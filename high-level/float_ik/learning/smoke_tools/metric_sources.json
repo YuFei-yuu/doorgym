@@ -1,0 +1,161 @@
+{
+  "base_commit": "9fdeae89613e0597603c605a0f5171723efedca0",
+  "unit_convention": "angles reported in degrees; controller joints/yaw in radians; distances m; time s",
+  "legacy_open_80deg_actual20": {
+    "source": "high-level/door_rl/door_asset_rl_env.py:848; train_door_rl.py:184",
+    "formula": "abs(signed_angle_rad) >= radians(20)",
+    "warning": "Original name open_80deg does NOT mean 80 degrees with defaults",
+    "implementation": "high-level/float_ik/learning/float_env.py:194 FloatEnv.metrics"
+  },
+  "legacy_pass20": {
+    "source": "high-level/door_rl/door_asset_rl_env.py:853",
+    "formula": "abs(signed_angle_deg)>=20 and door_x-base_x>0.7",
+    "implementation": "high-level/float_ik/learning/float_env.py:194 FloatEnv.metrics"
+  },
+  "open80": {
+    "source": ".repro/float-push/verify_push.py:120 run; FloatEnv.metrics:221",
+    "formula": "signed_angle_deg>=80",
+    "aggregation": "final; ever_open80 is a separate cumulative event",
+    "implementation": "high-level/float_ik/learning/float_env.py:194 FloatEnv.metrics"
+  },
+  "success": {
+    "source": ".repro/float-push/verify_push.py:120 run; learning/schema.py:8 task_success",
+    "formula": "unlocked AND final signed_angle_deg>=80 AND rear_clearance_m>=0.52",
+    "adaptation": "0.55 m target minus original 0.03 m tolerance; door normal projection with current-yaw rear offset; kinematic base only, not locomotion",
+    "implementation": "high-level/float_ik/learning/float_env.py:194 FloatEnv.metrics"
+  },
+  "reach": {
+    "source": "high-level/door_rl/door_asset_rl_env.py:837",
+    "formula": "ee_to_handle_m<0.08 for 10 consecutive simulation steps",
+    "adaptation": "latched episode event, evaluated independently of curriculum; 10/60 s",
+    "implementation": "high-level/float_ik/learning/float_env.py:194 FloatEnv.metrics"
+  },
+  "grasp": {
+    "source": "high-level/door_rl/door_asset_rl_env.py:1091",
+    "formula": "ee_to_handle_m<0.12 AND commanded_closure>0.65 AND actual_closure>0.35 for 10 consecutive simulation steps",
+    "adaptation": "latched diagnostic event, not force/contact-verified grasp; independently evaluated instead of curriculum-dependent buffer",
+    "implementation": "high-level/float_ik/learning/float_env.py:194 FloatEnv.metrics"
+  },
+  "phase_success": {
+    "source": "high-level/door_rl/door_asset_rl_env.py:1088-1128",
+    "adaptation": "report reach, grasp, unlocked, open80, success separately; these diagnostic stages never control actions",
+    "implementation": "high-level/float_ik/learning/float_env.py:194 FloatEnv.metrics"
+  },
+  "signed_angle_deg": {
+    "source": "high-level/float_ik/isaacgym_float_ik_b1z1_basearn_push_door.py:1138 run_demo",
+    "formula": "degrees(-door_hinge_q)",
+    "implementation": "high-level/float_ik/learning/float_env.py:194 FloatEnv.metrics"
+  },
+  "signed_open_ratio": {
+    "source": "high-level/float_ik/isaacgym_float_ik_b1z1_basearn_push_door.py:771 door_hinge_open_ratio",
+    "formula": "clip(abs(door_q-closed_q)/abs(open_limit_q-closed_q),0,1)",
+    "adaptation": "Reuses floating expert door_hinge_open_ratio, which is absolute despite this compatibility field name. Correct push direction is enforced separately by signed_angle_deg for success; differs from RL signed ratio clipping [-1,1.2].",
+    "implementation": "high-level/float_ik/learning/float_env.py:194 FloatEnv.metrics"
+  },
+  "handle_open_ratio": {
+    "source": "high-level/float_ik/isaacgym_float_ik_b1z1_basearn_push_door.py:784 compute_door_efforts; learning/float_env.py:209 metrics",
+    "formula": "(handle_q-handle_lower)/(handle_upper-handle_lower)",
+    "adaptation": "raw ratio retained; unlock threshold=40/45, matching expert task",
+    "implementation": "high-level/float_ik/learning/float_env.py:194 FloatEnv.metrics"
+  },
+  "ee_to_handle_m": {
+    "source": "high-level/door_rl/door_asset_rl_env.py:767",
+    "formula": "norm(actual_ee_world - live_handle_goal_world)",
+    "implementation": "high-level/float_ik/learning/float_env.py:194 FloatEnv.metrics"
+  },
+  "arm_base_to_handle_m": {
+    "source": "high-level/door_rl/door_asset_rl_env.py; URDF base_static_joint",
+    "adaptation": "norm(base origin + rotated [0.2,0,0.1] - handle goal), metric only",
+    "implementation": "high-level/float_ik/learning/float_env.py:194 FloatEnv.metrics"
+  },
+  "fk_goal_to_handle_m": {
+    "source": "NEW learning/kinematics.py and float_env.py",
+    "formula": "norm(FK(commanded joint positions) in world - live_handle_goal_world)",
+    "warning": "Not original ee_goal_to_handle_m: policy outputs joint targets, not a Cartesian goal",
+    "implementation": "high-level/float_ik/learning/float_env.py:194 FloatEnv.metrics"
+  },
+  "fk_ee_tracking_m": {
+    "source": "NEW",
+    "formula": "norm(FK(commanded joint positions) in world - measured EE world)",
+    "implementation": "high-level/float_ik/learning/float_env.py:194 FloatEnv.metrics"
+  },
+  "fk_validation_m": {
+    "source": "NEW",
+    "formula": "norm(FK(measured joint positions) in world - measured EE world)",
+    "validation_limit_m": 0.005,
+    "implementation": "high-level/float_ik/learning/float_env.py:194 FloatEnv.metrics"
+  },
+  "action_l2": {
+    "source": "door_dp_common.py applied_action logging; NEW action schema",
+    "formula": "L2 norm of applied 10D action",
+    "warning": "mixed physical units; per-channel traces are the primary interpretation",
+    "implementation": "high-level/float_ik/learning/float_env.py:169 FloatEnv.step"
+  },
+  "train_loss": {
+    "source": "high-level/dp/train_door_dp.py",
+    "formula": "MSE(predicted diffusion noise, sampled noise)",
+    "warning": "not action MSE, reward, or task success",
+    "implementation": "high-level/float_ik/learning/train.py:104 training loop"
+  },
+  "val_loss": {
+    "source": "NEW",
+    "formula": "same noise MSE on 4 fixed batches of 16 held-out windows with fixed diffusion noise",
+    "implementation": "high-level/float_ik/learning/train.py:114-126 fixed validation loop"
+  },
+  "inference_latency": {
+    "source": "NEW policy.py and rollout.py",
+    "formula": "wall time including observation encoding and 25 DDPM steps, synchronized by CPU action transfer; separate first-call latency; queued actions excluded from decision percentiles",
+    "implementation": "high-level/float_ik/learning/rollout.py:61 independent rollout loop; policy.py Policy.act"
+  },
+  "ever_open80": {
+    "source": "NEW learning/float_env.py:217,221 FloatEnv.metrics",
+    "formula": "max signed_angle_deg over episode >=80",
+    "warning": "May include locked-door collision spikes; not task success; degrees"
+  },
+  "rear_clearance_m": {
+    "source": "NEW learning/float_env.py:220 FloatEnv.metrics; derived from .repro/float-push/verify_push.py run",
+    "formula": "door_x-base_x-0.65*abs(cos(current_base_yaw))",
+    "units": "m",
+    "adaptation": "Fixed door normal and conservative longitudinal extent; does not check lateral doorway containment or leg collisions"
+  },
+  "joint_tracking_l2_rad": {
+    "source": "NEW learning/float_env.py:221 FloatEnv.metrics",
+    "formula": "L2(commanded_q-measured_q) for all seven joints",
+    "units": "rad"
+  },
+  "action_delta_l2": {
+    "source": "NEW learning/float_env.py:191 FloatEnv.step",
+    "formula": "L2(applied_t-applied_tminus1)",
+    "units": "mixed m/s,rad/s,rad; per 1/60 s step; multiply by60 for per-second change"
+  },
+  "clipped_fraction": {
+    "source": "NEW learning/float_env.py:191 FloatEnv.step",
+    "formula": "mean(raw_action!=applied_action) over10channels",
+    "units": "fraction [0,1]"
+  },
+  "handle_angle_deg": {
+    "source": "NEW learning/float_env.py:221 FloatEnv.metrics",
+    "formula": "degrees(handle_joint_position)",
+    "units": "degree"
+  },
+  "lr": {
+    "source": "high-level/float_ik/learning/train.py:113 training loop",
+    "formula": "optimizer.param_groups[0][lr]",
+    "units": "dimensionless"
+  },
+  "elapsed_sec": {
+    "source": "high-level/float_ik/learning/train.py:113 training loop",
+    "formula": "previous checkpoint training elapsed + monotonic time since current training loop start",
+    "units": "seconds, excludes process setup/data loading; budget.jsonl independently includes whole process wall-time"
+  },
+  "depth_audit": {
+    "source": "learning/float_env.py:131 FloatEnv.observe",
+    "limitation": "Early depth_m arrays are metric depth after nonfinite replacement and clipping to [0,2] m; not original unprocessed sensor depth"
+  },
+  "raw_gym_depth_audit": {
+    "source": "NEW learning/float_env.py:130 FloatEnv.observe; rollout.py recording",
+    "formula": "copy signed Gym IMAGE_DEPTH values before all transformations",
+    "units": "m, original negative camera depth with -inf background permitted",
+    "scope": "recording-audit only; not available for early training collection"
+  }
+}
