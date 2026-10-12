@@ -14,6 +14,9 @@ import matplotlib.pyplot as plt
 
 p=argparse.ArgumentParser()
 p.add_argument('--root',required=True)
+p.add_argument('--validation-count',type=int,default=5)
+p.add_argument('--test-seed',type=int,default=3000)
+p.add_argument('--validation-seed',type=int,default=2000)
 a=p.parse_args()
 r=Path(a.root).resolve()
 plots=r/'plots'
@@ -73,7 +76,8 @@ for cat in ['validation','test','data']:
     for mode,step in keys:
         group=[s for s in summary if s['category']==cat and s['mode']==mode and (s['checkpoint_step'] if s['checkpoint_step'] is not None else -1)==step]
         k=sum(s['success'] for s in group);n=len(group)
-        groups.append(dict(category=cat,mode=mode,step=step,attempts=n,successes=k,success_rate=k/n,wilson95=interval(k,n),open80_count=sum(s['open80'] for s in group),reach_count=sum(s['reach'] for s in group),grasp_count=sum(s['grasp'] for s in group),unlocked_count=sum(s['unlocked'] for s in group),mean_final_angle_deg=float(np.mean([s['signed_angle_deg'] or 0 for s in group]))))
+        final_angles=[s['signed_angle_deg'] for s in group if s['signed_angle_deg'] is not None]
+        groups.append(dict(category=cat,mode=mode,step=step,attempts=n,successes=k,success_rate=k/n,wilson95=interval(k,n),open80_count=sum(s['open80'] for s in group),reach_count=sum(s['reach'] for s in group),grasp_count=sum(s['grasp'] for s in group),unlocked_count=sum(s['unlocked'] for s in group),final_angle_samples=len(final_angles),mean_final_angle_deg=float(np.mean(final_angles)) if final_angles else None))
 (r/'aggregate.json').write_text(json.dumps(groups,indent=2))
 t=[g for g in groups if g['category']=='test']
 if t:
@@ -84,23 +88,35 @@ if t:
     ax.bar(labels,rates,color=['#27846b' if g['mode']=='expert' else '#416ea5' for g in t],alpha=.8)
     ax.errorbar(np.arange(len(t)),rates,yerr=np.maximum(0,np.stack([rates-bounds[:,0],bounds[:,1]-rates])),fmt='none',ecolor='black',capsize=5)
     for i,g in enumerate(t):ax.text(i,106,'%d/%d'%(g['successes'],g['attempts']),ha='center')
-    ax.set(ylabel='Final success (%)',ylim=(-3,115),title='Independent test, same 10 seeds; Wilson 95% CI')
+    complete=all(g['attempts']==30 for g in t) and all(s['status']=='completed' for s in summary if s['category']=='test')
+    ax.set(ylabel='Final success (%)',ylim=(-3,115),title=('Independent test' if complete else 'Partial independent test; stopped early')+'; Wilson 95% CI')
     save(fig,'test_comparison')
-v=[g for g in groups if g['category']=='validation' and g['attempts']==5]
+v=[g for g in groups if g['category']=='validation' and g['attempts']==a.validation_count]
 if v:
     fig,ax=plt.subplots(figsize=(7,4))
     rates=np.asarray([100*g['success_rate'] for g in v])
     intervals=np.asarray([[100*g['wilson95'][0],100*g['wilson95'][1]] for g in v])
     ax.errorbar([g['step'] for g in v],rates,yerr=np.stack([rates-intervals[:,0],intervals[:,1]-rates]),fmt='-o',capsize=4,label='Final success + Wilson 95% CI')
     ax.plot([g['step'] for g in v],[100*g['open80_count']/g['attempts'] for g in v],'-s',label='Final open >=80 deg')
-    ax.set(xlabel='Checkpoint training step',ylabel='Success (%)',ylim=(-3,103),title='Closed-loop validation, same 5 seeds')
+    ax.set(xlabel='Checkpoint training step',ylabel='Success (%)',ylim=(-3,103),title='Closed-loop validation, same %d seeds'%a.validation_count)
     ax.legend(fontsize=8);save(fig,'closed_loop_success')
 
 candidates=[r/'adapter-nominal']
-for mode in ['expert','policy']:
-    candidates+=list(sorted((r/'test').glob(mode+'*seed_3000')))
+candidates+=list(sorted((r/'test').glob('*seed_%d'%a.test_seed)))
 if len(candidates)==1:
-    candidates+=list(sorted((r/'validation').glob('*seed_2000')))
+    expert=r/('diagnostic/expert_seed_%d'%a.validation_seed)
+    if expert.exists():candidates.append(expert)
+    points=[json.loads(x.read_text()) for x in sorted(r.glob('validation_point_*.json'))]
+    if points:
+        selected=json.loads((r/'selection.json').read_text()) if (r/'selection.json').exists() else {}
+        steps=sorted(set([min(x['step'] for x in points),max(x['step'] for x in points)]+([selected['best_step']] if selected else [])))
+        for step in steps:
+            path=r/('validation/step_%06d_seed_%d'%(step,a.validation_seed))
+            if path.exists() and path not in candidates:candidates.append(path)
+        if selected:
+            successful=[path.parent for path in sorted((r/'validation').glob('step_%06d*/summary.json'%selected['best_step'])) if json.loads(path.read_text()).get('success')]
+            if successful and successful[0] not in candidates:candidates.append(successful[0])
+    else:candidates+=list(sorted((r/'validation').glob('*seed_%d'%a.validation_seed)))
 fig,axes=plt.subplots(2,2,figsize=(12,8))
 for path in candidates:
     if not (path/'metrics.csv').exists():continue
@@ -129,6 +145,7 @@ save(fig,'tracking_errors')
 for path in candidates:
     if not (path/'trajectory.npz').exists():continue
     z=np.load(path/'trajectory.npz');actions=z['action'];t=np.arange(len(actions))/60
+    if not len(actions):continue
     fig,axs=plt.subplots(3,1,figsize=(10,8),sharex=True)
     for j in range(3):axs[0].plot(t,actions[:,j],label=['vx (m/s)','vy (m/s)','yaw rate (rad/s)'][j])
     for j in range(6):axs[1].plot(t,actions[:,3+j],label='joint%d'%(j+1))
@@ -189,6 +206,7 @@ contact_rows=[]
 for item in videos:
     directory=Path(item['path']).parent
     if directory.parent.name!='test':continue
+    if not item['passed']:continue
     frames=[cv2.resize(cv2.imread(str(directory/('video_check_%04d.png'%i))),(480,270)) for i in (0,712,1424)]
     contact_rows.append(np.hstack(frames))
 if contact_rows:cv2.imwrite(str(r/'video_contact_sheet.png'),np.vstack(contact_rows))

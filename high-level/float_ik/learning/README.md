@@ -1,10 +1,17 @@
 # Floating-base push learning adapter
 
+Current results and next-session instructions are in
+[`docs/FLOAT_PUSH_TRAINING_NEXT.md`](../../../docs/FLOAT_PUSH_TRAINING_NEXT.md)
+and [`docs/FLOAT_PUSH_LONG_TRAINING_REPORT.md`](../../../docs/FLOAT_PUSH_LONG_TRAINING_REPORT.md).
+The controlled run has reached step 25000; its best model is step 15000.
+Testing stopped on a PhysX CUDA error and is incomplete. Do not restart the
+historical continuation command as if training were still at step 21000.
+
 This directory adapts the existing floating-base expert; it does not use the
 locomotion controller in `door_rl` or the old DP recording wrapper. The original
 expert and `DoorDiffusionPolicy` network are unchanged.
 
-Use `/data/zyf/video2door/.repro/blackwell/activate.sh` on ps1. Set
+Use `/data/zyf/video2door/.repro/blackwell/activate.sh` on pro5000. Set
 `VIDEO2DOOR_GPU` before activation, after checking three resource samples.
 Run one GPU job at a time, with two CPU threads and `nice -n 10`.
 
@@ -59,5 +66,16 @@ The first smoke run is `experiments/float-push/20261011-224552-smoke`.
 Its bounded driver and wall-time ledger live under that run's `tools/` and
 `budget.jsonl`. The first stage has a 7200-second total cap; formal training
 requires user confirmation and a new run. See the delivered Chinese report
-`/Users/yu/Data/Video2Door/FLOAT_PUSH_SMOKE_REPORT.md` for measured outcomes,
+`/Users/yu/Data/Video2Door/code/docs/FLOAT_PUSH_SMOKE_REPORT.md` for measured outcomes,
 limitations, commands and artifact paths.
+
+## Authorized controlled continuation
+
+`long_tools/driver.py` implements the separate 21600-second formal run with
+an explicit final-test reserve, resource checks, exact old-manifest resume,
+ten validation seeds and task-metric early stopping. Its budget is independent
+of the archived smoke ledger. See `long_tools/README.md` for contracts.
+`Policy` and `rollout.py` accept `inference_steps` / `--inference-steps` (25
+by default; 100 for paired diagnosis). `--diagnostic-steps 60` saves raw and
+normalized policy history, images, states, applied actions and post-states for
+the first second without changing the policy inputs or control semantics.

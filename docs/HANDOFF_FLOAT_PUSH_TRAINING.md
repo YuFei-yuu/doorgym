@@ -1,12 +1,12 @@
 # Video2Door 浮动底座推门训练交接文档
 
-> 2026-10-12 更新：下文保留的是训练前部署交接。首轮 DP 数据、5000 步训练和独立评估现已完成，专家测试 10/10、5000 步模型 0/10。请先阅读 [首轮结果、训练对照与下一轮提示词](FLOAT_PUSH_TRAINING_NEXT.md)，不要再按本文的“尚无训练接口/数据/MP4”判断现状。额外正式训练尚未启动。
+> 2026-10-12 更新：本文保留训练前部署说明。正式受控续训已到 25000 步，最佳模型 15000 步；独立测试因 PhysX CUDA 故障停止，尚未完成。当前服务器连接为 `ssh pro5000`。请先阅读 [最新状态与下一轮入口](FLOAT_PUSH_TRAINING_NEXT.md) 和 [正式实验报告](FLOAT_PUSH_LONG_TRAINING_REPORT.md)，不要按下文的“尚无训练接口/数据/MP4”或旧预算启动任务。
 
 更新日期：2026-10-11，记录已完成的部署与验证。**当前完成的是脚本专家推门，不是训练策略推门。** 
 
 ## 1. 当前结论与任务范围
 
-- 服务器 `ps1` 上的项目和独立 conda 环境已经就绪，Blackwell GPU 的 Isaac Gym、PyTorch 和相机兼容问题已解决。
+- 服务器 `pro5000` 上的项目和独立 conda 环境已经就绪，Blackwell GPU 的 Isaac Gym、PyTorch 和相机兼容问题已解决。
 - 原项目浮动底座入口完整执行了 2850 步：靠近、抓取、压下把手解锁、推门、底座过门、机械臂回收，最终开门角度约 89.98°。
 - 手腕和前置相机的 RGB、深度、把手分割采集通过，无需桌面或 OpenCV 窗口。
 - 不需要下载缺失的 663 组门资产、完整的低层行走控制器。先使用已经验证的门 `99650089960001`，其余现有门可用于后续扩展。
@@ -18,8 +18,8 @@
 | --- | --- |
 | 本地工作区 | `/Users/yu/Data/Video2Door` |
 | 本地项目源码 | `/Users/yu/Data/Video2Door/code` |
-| 本地 SSH 配置 | `/Users/yu/.ssh/config`，已配置别名 `ps1` |
-| SSH 连接 | `ssh ps1`，对应 `ubuntu@172.81.242.38` |
+| 本地 SSH 配置 | `/Users/yu/.ssh/config`，已配置别名 `pro5000` |
+| SSH 连接 | `ssh pro5000`，对应 `ubuntu@172.81.242.38` |
 | 服务器项目 | `/data/zyf/video2door` |
 | 仓库 origin | `https://github.com/YuFei-yuu/doorgym.git` |
 | 部署提交 | `0acc2f050479fb54a0670ccb90bc72b98b52a54a` |
@@ -27,7 +27,7 @@
 | 推荐运行环境 | `/data/zyf/video2door/.repro/envs/b1z1-blackwell` |
 | 推荐激活脚本 | `/data/zyf/video2door/.repro/blackwell/activate.sh` |
 | 本阶段辅助脚本 | `/data/zyf/video2door/.repro/float-push` |
-| 本地辅助脚本与报告 | `/Users/yu/Data/Video2Door/reproduction/ps1` |
+| 本地辅助脚本与报告 | `/Users/yu/Data/Video2Door/reproduction/pro5000` |
 
 约束：
 
@@ -81,7 +81,7 @@ GPU 占用会变化。交接时 GPU 0–3 已有约 4.6–4.8 GiB 占用和其�
 在服务器 Bash 中：
 
 ```bash
-ssh ps1
+ssh pro5000
 source /data/zyf/video2door/.repro/blackwell/activate.sh
 ```
 
@@ -108,7 +108,7 @@ source /data/zyf/video2door/.repro/blackwell/activate.sh
 快速只读检查：
 
 ```bash
-ssh ps1
+ssh pro5000
 nvidia-smi --query-gpu=index,name,memory.used,memory.total,utilization.gpu --format=csv
 cd /data/zyf/video2door
 git rev-parse HEAD
@@ -125,7 +125,7 @@ python -c 'from isaacgym import gymapi; import torch; print(torch.__version__, t
 推荐直接运行：
 
 ```bash
-ssh ps1
+ssh pro5000
 bash /data/zyf/video2door/.repro/float-push/run.sh
 ```
 
@@ -173,7 +173,7 @@ python -u high-level/float_ik/isaacgym_float_ik_b1z1_basearn_push_door.py \
 | 自动开门扭矩 | 0 |
 | 结果 | `summary.json` 中 `passed=true`，进程退出码 0 |
 
-本地证据：`/Users/yu/Data/Video2Door/reproduction/ps1/float-push/evidence/`，含 `summary.json`、`run.log` 和 0000/1560/2160/2760 步概览截图。**这些 NPZ 是相机快照，不是完整的专家状态/动作训练数据集；当前尚无 MP4 视频。**
+本地证据：`/Users/yu/Data/Video2Door/reproduction/pro5000/float-push/evidence/`，含 `summary.json`、`run.log` 和 0000/1560/2160/2760 步概览截图。**这些 NPZ 是相机快照，不是完整的专家状态/动作训练数据集；当前尚无 MP4 视频。**
 
 ## 6. 浮动底座专家入口、资产和参数
 
@@ -322,8 +322,8 @@ Isaac Gym 仿真、专家录制和策略闭环播放保留在已验证的 Python
 
 ## 11. 交接后最短阅读顺序
 
-1. 本文及 `/Users/yu/Data/Video2Door/reproduction/ps1/float-push/REPORT.txt`。
-2. `/Users/yu/Data/Video2Door/reproduction/ps1/float-push/evidence/summary.json` 与 `run.log`。
+1. 本文及 `/Users/yu/Data/Video2Door/reproduction/pro5000/float-push/REPORT.txt`。
+2. `/Users/yu/Data/Video2Door/reproduction/pro5000/float-push/evidence/summary.json` 与 `run.log`。
 3. 服务器 `.repro/blackwell/activate.sh` 和 `.repro/float-push/run.sh`。
 4. 原始浮动底座推门脚本及共享 IK 加载器。
 5. `high-level/dp/docs/door_dp_usage.md`、DP 状态/动作工具、训练模型与现有录制/播放包装器。

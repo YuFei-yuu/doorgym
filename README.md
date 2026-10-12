@@ -16,6 +16,11 @@ High-level learning curves: [wandb](https://wandb.ai/ericonaldo/b1-pick-multi-te
 
 Low-level model weights: https://drive.google.com/file/d/1KIfKu77QkrwbK-YllSWclqb6vJknGgjv/view?usp=sharing
 
+## Floating-base door push experiments
+
+Current deployment, measured results, and next-session instructions: [docs/README.md](docs/README.md).
+The maintained server connection is `ssh pro5000`; floating-base experiments use the existing Blackwell activation script described there.
+
 ## Set up the environment
 ```bash
 conda create -n b1z1 python=3.8 # isaacgym requires python <=3.8

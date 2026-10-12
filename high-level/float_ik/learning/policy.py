@@ -23,7 +23,9 @@ def images_to_torch(images, device):
 
 
 class Policy:
-    def __init__(self, checkpoint, device='cuda:0', seed=0, profile=False):
+    def __init__(self, checkpoint, device='cuda:0', seed=0, profile=False, inference_steps=25):
+        if inference_steps not in (25, 100):
+            raise ValueError('Audited inference_steps must be 25 or 100')
         ck = torch.load(checkpoint, map_location='cpu')
         if ck['schema'] != SCHEMA or ck['model_config'] != CONFIG or ck['action_names'] != ACTION_NAMES or ck['state_names'] != STATE_NAMES:
             raise ValueError('Incompatible floating-base action/observation schema')
@@ -34,7 +36,8 @@ class Policy:
         self.model.load_state_dict(ck['model'])
         self.stats = {k: v.to(device) for k, v in ck['stats'].items()}
         self.scheduler = scheduler()
-        self.scheduler.set_timesteps(25, device='cpu')
+        self.inference_steps = inference_steps
+        self.scheduler.set_timesteps(inference_steps, device='cpu')
         with torch.no_grad():
             self.time_embeddings = [self.model.timestep_encoder(t.to(device).reshape(1)) for t in self.scheduler.timesteps]
         self.history = deque(maxlen=4)

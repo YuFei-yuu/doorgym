@@ -7,7 +7,7 @@ from collections import Counter,defaultdict
 from datetime import datetime,timezone,timedelta
 
 workspace=Path('/Users/yu/Data/Video2Door')
-r=workspace/'reproduction/ps1/float-push-training/results'
+r=workspace/'reproduction/pro5000/float-push-training/results'
 server='/data/zyf/video2door/experiments/float-push/20261011-224552-smoke'
 agg=json.loads((r/'aggregate.json').read_text())
 sel=json.loads((r/'selection.json').read_text())
@@ -175,7 +175,7 @@ add('新增源码在 `/Users/yu/Data/Video2Door/code/high-level/float_ik/learnin
 add()
 add('以下命令用于查看和复现单个结果；不要覆盖原实验输出目录。每次换 GPU 必须在激活前设置 VIDEO2DOOR_GPU，保持 CUDA/Vulkan 同卡映射。')
 add()
-add('```bash\nssh ps1\nexport VIDEO2DOOR_GPU=0  # 先按当时三次资源采样选择\nsource /data/zyf/video2door/.repro/blackwell/activate.sh\nrun='+server+'\n# 独立模型回合，输出目录必须不存在\nnice -n 10 timeout 150 python high-level/float_ik/learning/rollout.py \\\n  --mode policy --seed 3000 --video \\\n  --checkpoint "$run/training/checkpoints/step_%06d.pt" \\\n  --output "$run/manual-new-rollout"\n# 只读数据检查与图表重建\npython high-level/float_ik/learning/checks.py --root "$run"\npython high-level/float_ik/learning/analyze.py --root "$run"\n```'%best)
+add('```bash\nssh pro5000\nexport VIDEO2DOOR_GPU=0  # 先按当时三次资源采样选择\nsource /data/zyf/video2door/.repro/blackwell/activate.sh\nrun='+server+'\n# 独立模型回合，输出目录必须不存在\nnice -n 10 timeout 150 python high-level/float_ik/learning/rollout.py \\\n  --mode policy --seed 3000 --video \\\n  --checkpoint "$run/training/checkpoints/step_%06d.pt" \\\n  --output "$run/manual-new-rollout"\n# 只读数据检查与图表重建\npython high-level/float_ik/learning/checks.py --root "$run"\npython high-level/float_ik/learning/analyze.py --root "$run"\n```'%best)
 add()
 add('真实执行命令逐条保存在 budget.jsonl。训练恢复入口为 `train.py --manifest ... --output ... --resume ... --steps ... --seconds ...`；正式训练需要先获得确认，并使用新 run_id、新预算账本和新场景种子，不能直接继承本次硬编码 2 小时账本无限追加。')
 add()
@@ -200,6 +200,7 @@ else:
     add('本轮模型在部分独立测试回合满足开门过门阈值，但小样本、单训练种子、单门以及运动学底座限制仍然存在。正式训练应先依据失败类型与动作限幅情况确定是否需要调整动作参数化，再决定扩大数据，而不能只依据 loss 下降。')
 add()
 add('本轮未启动 PPO、DAgger 或其他算法，没有额外门资产下载，也没有启动正式训练。首轮结果交付后停止，等待用户确认下一阶段。')
-path=workspace/'FLOAT_PUSH_SMOKE_REPORT.md'
+path=workspace/'code/docs/FLOAT_PUSH_SMOKE_REPORT.md'
+path.parent.mkdir(parents=True,exist_ok=True)
 path.write_text('\n'.join(lines)+'\n')
 print(path)
