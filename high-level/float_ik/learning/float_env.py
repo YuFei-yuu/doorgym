@@ -11,7 +11,7 @@ from isaacgym import gymapi
 from kinematics import FK
 
 from schema import SCHEMA, ACTION_NAMES, STATE_NAMES, DEFAULT_SCHEMA, EE_SCHEMA, contract, task_success
-from ee_actions import normalize_ee_action
+from ee_actions import normalize_ee_action, expert_pose_reference
 
 
 def rotate(v, yaw):
@@ -162,6 +162,17 @@ class FloatEnv:
         if self.cartesian:
             # Record Cartesian commands BEFORE IK. The same step() is used by
             # expert, replay and policy; neither return phase can write joints.
+            if phase == 'push_door' and 'door_open_freeze_target_pos' in self.traj:
+                # Once the scripted expert freezes the world-space contact
+                # target, stop advancing the base beneath it. Passing resumes
+                # during the existing Cartesian return-home interpolation.
+                # This is teacher scheduling only, never a policy-mode assist.
+                self.traj.setdefault('ee_release_base_xy', self.xy.copy())
+                self.traj.setdefault('ee_release_base_yaw', self.yaw)
+                xy = self.traj['ee_release_base_xy'].copy()
+                yaw = self.traj['ee_release_base_yaw']
+                self.traj['base_xy'] = xy.copy()
+                self.traj['yaw'] = yaw
             if phase in ('return_home', 'hold_home'):
                 self.traj.setdefault('return_home_start_dofs', self.targets.copy())
                 home_q = demo.lerp(self.traj['return_home_start_dofs'], self.home, self.traj.get('return_home_alpha', 1.))
@@ -176,7 +187,9 @@ class FloatEnv:
                 _, current = demo.get_body_pose(g, self.env, self.arm, self.ee_index)
                 quat = demo.base_ik.quat_multiply(demo.base_ik.yaw_quat(yaw-self.yaw), current)
             velocity = rotate(np.asarray(xy, dtype=np.float64)-self.xy, -self.yaw)/self.dt
-            return normalize_ee_action(np.r_[velocity, (yaw-self.yaw)/self.dt, pos, quat, grip], self.action_lower[-1], self.action_upper[-1], self.previous[6:10])
+            command = normalize_ee_action(np.r_[velocity, (yaw-self.yaw)/self.dt, pos, quat, grip], self.action_lower[-1], self.action_upper[-1], self.previous[6:10])
+            measured, _ = demo.get_body_pose(g, self.env, self.arm, self.ee_index)
+            return expert_pose_reference(command, self.previous, measured)
         # Original expert moves base BEFORE computing IK. This temporary mutation
         # occurs after obs_t capture; step applies the same transform, then physics.
         demo.set_robot_base_pose(g, self.env, self.actors, xy, a.robot_z, yaw)

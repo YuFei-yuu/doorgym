@@ -3,9 +3,10 @@
 ## 当前阅读顺序
 
 1. [当前状态与下一步](FLOAT_PUSH_TRAINING_NEXT.md)：最新结果、待办、预算与冻结边界。
-2. [正式训练与成功视频复现](FLOAT_PUSH_LONG_TRAINING_REPORT.md)：5000→25000 验证、部分独立测试、15000/seed 4008 补录与证据。
-3. [环境配置](环境配置.md)：唯一维护的 pro5000 环境、运行和 Blackwell/CUDA/Vulkan 恢复依据。
-4. [学习接口](../high-level/float_ik/learning/README.md) 与 [正式工具](../high-level/float_ik/learning/long_tools/README.md)：当前末端目标 → IK → 伺服契约，以及历史关节工具的兼容边界。
+2. [末端接口短程验证](FLOAT_PUSH_EE_SHORT_REPORT.md)：专家质量筛查、2000 步新模型、原始发散与通用限幅诊断、同步对比视频。
+3. [正式训练与成功视频复现](FLOAT_PUSH_LONG_TRAINING_REPORT.md)：历史关节接口的 5000→25000 验证、部分独立测试及 15000/seed 4008 补录。
+4. [环境配置](环境配置.md)：唯一维护的 pro5000 环境、运行和 Blackwell/CUDA/Vulkan 恢复依据。
+5. [学习接口](../high-level/float_ik/learning/README.md) 与 [正式工具](../high-level/float_ik/learning/long_tools/README.md)：当前末端目标 → IK → 伺服契约，以及历史关节工具的兼容边界。
 
 ## 历史资料
 

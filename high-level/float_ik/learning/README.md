@@ -68,6 +68,18 @@ by FK to a Cartesian teacher pose and passed through the same IK; there is no
 joint-space return bypass. These changes define a new teacher/execution version,
 not a claim that the old expert trajectory is numerically unchanged.
 
+The short Cartesian validation run further corrects the scripted teacher: when
+the door-open world contact target freezes, base advance pauses until the
+existing return-home phase. Before IK, `expert_pose_reference` limits translation
+to 6 mm per control tick, clips the desired reference to a 6 cm neighborhood of
+the measured EE, and limits orientation steps to 0.035 rad. Sequential position
+limits and subsequent physics mean 6 cm is not a guaranteed post-step tracking
+error bound. These limits remove abrupt teacher labels; they are not called by
+policy execution. Model, replay and expert still submit the resulting Cartesian
+commands to the same generic IK/servo executor. The source snapshot identifies
+this teacher revision; do not mix its data with earlier expert versions merely
+because their action schema is the same.
+
 Recollect demonstrations. Old executed joint angles do not uniquely recover the
 intended pre-IK pose, and simply relabeling the old files is invalid. New NPZs embed
 schema and feature names; training validates dimensions, unit quaternions and
@@ -143,9 +155,8 @@ Keep numerical task success separate from motion-quality assessment.
 Server evidence: `experiments/float-push/20261012-ee-ik-adapter-check` (separate
 600-second implementation-check cap, not the old training ledger). It contains
 CPU checks, full nominal Cartesian expert/replay episodes, policy interface
-probes, video, source hashes and comparison results. This verifies the adapter;
-no Cartesian DP has been trained yet. Fresh collection, optimizer budget and
-validation/test allocation are the next training steps.
+probes, video, source hashes and comparison results. That check verified the
+adapter without training a model. The subsequent 2000-step run is described below.
 
 `verification.json` confirms 4 CPU tests and 10 simulator probe checks passed.
 Nominal seed 7000 expert and independent replay both completed 2850 steps with
@@ -154,3 +165,18 @@ actions, states, joint targets and actual joints match exactly across all frames
 The 47.5-second video is `expert_nominal_final/rollout_h264.mp4`; it shows the
 expert, not a trained DP. Total bounded check time was 136.384194 seconds with
 zero optimizer updates; the frozen experiment ledger is unchanged.
+
+## Subsequent 2000-step validation
+
+See the [short-run report](../../../docs/FLOAT_PUSH_EE_SHORT_REPORT.md) and
+[frozen short-run tools](short_tools/README.md). New expert quality screening
+accepted 16 train and 3 validation episodes out of 20 attempts. The fixed final
+2000-step model is **not a reliable door-opening policy**: direct execution
+diverged and stopped at 368 steps with PhysX CUDA 700. A separate diagnostic
+wrapper applying generic pose-reference limits completed three paired runs but
+achieved no reach/grasp, and the base drifted far from the expert path. This
+wrapper is explicit, is not the default executor, and its results must not replace
+the direct-execution failure. World-reference rate limits alone do not keep up
+with the allowed moving-base velocity; see the report before using this profile.
+Teacher-observation position prediction RMSE was still about 0.221 m. All
+attempts, model hashes and videos are retained; the old joint experiment is intact.

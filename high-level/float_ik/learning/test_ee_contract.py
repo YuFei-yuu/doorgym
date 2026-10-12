@@ -4,12 +4,24 @@ import unittest
 from pathlib import Path
 import numpy as np
 from schema import EE_SCHEMA, JOINT_SCHEMA, contract, model_config
-from ee_actions import normalize_ee_action
+from ee_actions import normalize_ee_action, expert_pose_reference
 from dataset_contract import validate_episode, validate_replay
 from kinematics import FK
 
 
 class CartesianContractTests(unittest.TestCase):
+    def test_expert_reference_limits_without_changing_base_or_gripper(self):
+        previous=np.array([0,0,0,0,0,0,0,0,0,1,-1.],dtype=np.float32)
+        desired=np.array([.2,.1,.01,1,0,0,0,0,1,0,-.5],dtype=np.float32)
+        result=expert_pose_reference(desired,previous,np.zeros(3))
+        self.assertAlmostEqual(float(result[3]),.006,places=7)
+        angle=2*np.arctan2(np.linalg.norm(result[6:9]),abs(result[9]))
+        self.assertAlmostEqual(float(angle),.035,places=6)
+        np.testing.assert_array_equal(result[:3],desired[:3])
+        self.assertEqual(result[-1],desired[-1])
+        for _ in range(100):previous=expert_pose_reference(desired,previous,np.zeros(3))
+        self.assertLessEqual(np.linalg.norm(previous[3:6]),.0600001)
+
     def test_action_normalization_and_rejection(self):
         raw = np.array([4., -2., 3., 2., .2, .7, 0., 0., 0., -2., 3.])
         applied = normalize_ee_action(raw, -1.57, 0., [0, 0, 0, 1])
