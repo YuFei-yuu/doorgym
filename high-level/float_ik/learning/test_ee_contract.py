@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 import numpy as np
-from schema import EE_SCHEMA, JOINT_SCHEMA, contract, model_config
+from schema import EE_SCHEMA, contract, model_config
 from ee_actions import normalize_ee_action, expert_pose_reference
 from dataset_contract import validate_episode, validate_replay
 from kinematics import FK
@@ -45,8 +45,8 @@ class CartesianContractTests(unittest.TestCase):
         z = dict(schema=np.array(EE_SCHEMA), action_names=np.array(actions), state_names=np.array(states), action=a, state=s, images=np.zeros((3,4,54,96),np.uint8))
         validate_episode(z, EE_SCHEMA)
         validate_replay({k:z[k] for k in ('schema','action_names','action')}, EE_SCHEMA)
-        validate_replay(dict(action=np.zeros((3,10))), JOINT_SCHEMA)
-        with self.assertRaises(ValueError): validate_episode(z, JOINT_SCHEMA)
+        with self.assertRaises(ValueError): validate_replay(dict(action=np.zeros((3,10))), EE_SCHEMA)
+        with self.assertRaises(ValueError): validate_episode(z, 'unsupported_schema')
         z['state'][1,-1] = 1
         with self.assertRaises(ValueError): validate_episode(z, EE_SCHEMA)
         del z['schema']
@@ -81,7 +81,7 @@ class CartesianContractTests(unittest.TestCase):
         ck=dict(schema=EE_SCHEMA,model_config=config,action_names=actions,state_names=states,model=model.state_dict(),step=0,stats=dict(state_mean=torch.zeros(39),state_std=torch.ones(39),action_mean=torch.zeros(11),action_std=torch.ones(11)))
         with tempfile.TemporaryDirectory() as d:
             p=Path(d)/'ck.pt';torch.save(ck,p)
-            with self.assertRaises(ValueError): Policy(p,device='cpu',schema=JOINT_SCHEMA)
+            with self.assertRaises(ValueError): Policy(p,device='cpu',schema='unsupported_schema')
             policy=Policy(p,device='cpu',schema=EE_SCHEMA)
             obs=dict(state=np.zeros(39,np.float32),images=np.zeros((4,54,96),np.uint8))
             out,decision=policy.act(obs)

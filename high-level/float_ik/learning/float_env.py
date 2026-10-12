@@ -10,7 +10,7 @@ import isaacgym_float_ik_b1z1_basearn_push_door as demo
 from isaacgym import gymapi
 from kinematics import FK
 
-from schema import SCHEMA, ACTION_NAMES, STATE_NAMES, DEFAULT_SCHEMA, EE_SCHEMA, contract, task_success
+from schema import DEFAULT_SCHEMA, contract, task_success
 from ee_actions import normalize_ee_action, expert_pose_reference
 
 
@@ -28,7 +28,6 @@ class FloatEnv:
         self.expert_enabled, self.video_enabled = expert, video
         self.schema = schema
         self.action_names, self.state_names = contract(schema)
-        self.cartesian = schema == EE_SCHEMA
         self.sim = None
         # Guard expert planning per instance; generic IK is allowed in policy mode.
         # Do not monkeypatch shared modules: that also disabled IK and later experts.
@@ -80,10 +79,8 @@ class FloatEnv:
         self.xy = initial.astype(np.float64)
         self.yaw = float(a.robot_yaw)
         self.start_xy, self.start_yaw = self.xy.copy(), self.yaw
-        self.previous = np.r_[np.zeros(3), self.targets].astype(np.float32)
-        if self.cartesian:
-            ep, eq = demo.get_body_pose(g, self.env, self.arm, self.ee_index)
-            self.previous = normalize_ee_action(np.r_[np.zeros(3), ep, eq, self.targets[-1]], self.action_lower[-1], self.action_upper[-1])
+        ep, eq = demo.get_body_pose(g, self.env, self.arm, self.ee_index)
+        self.previous = normalize_ee_action(np.r_[np.zeros(3), ep, eq, self.targets[-1]], self.action_lower[-1], self.action_upper[-1])
         self.last_ik_delta = 0.
         self.previous_quat = None
         self.n = 0
@@ -92,10 +89,7 @@ class FloatEnv:
         self.reached = self.grasped = False
         self.max_angle = self.max_handle = 0.
         self.phase_counts = {}
-        if self.expert_enabled or self.cartesian:
-            self.ik = demo.base_ik.setup_ik_controller(g, self.sim, self.env, self.arm, arm_asset, self.names, self.lower, self.upper, a)
-        else:
-            g.prepare_sim(self.sim)
+        self.ik = demo.base_ik.setup_ik_controller(g, self.sim, self.env, self.arm, arm_asset, self.names, self.lower, self.upper, a)
         if self.expert_enabled:
             heading = np.array([math.cos(self.yaw), math.sin(self.yaw)], dtype=np.float32)
             self.start = initial.copy()
@@ -159,76 +153,54 @@ class FloatEnv:
         phase, xy, yaw, pos, quat, grip, _ = self.trajectory_targets(self.n, a, self.door, g, self.env, self.door_actor, self.ik, self.start, self.stop, self.push, self.start_yaw, self.start_yaw+a.push_base_yaw_delta, self.traj)
         self.phase = phase
         self.phase_counts[phase] = self.phase_counts.get(phase, 0)+1
-        if self.cartesian:
-            # Record Cartesian commands BEFORE IK. The same step() is used by
-            # expert, replay and policy; neither return phase can write joints.
-            if phase == 'push_door' and 'door_open_freeze_target_pos' in self.traj:
-                # Once the scripted expert freezes the world-space contact
-                # target, stop advancing the base beneath it. Passing resumes
-                # during the existing Cartesian return-home interpolation.
-                # This is teacher scheduling only, never a policy-mode assist.
-                self.traj.setdefault('ee_release_base_xy', self.xy.copy())
-                self.traj.setdefault('ee_release_base_yaw', self.yaw)
-                xy = self.traj['ee_release_base_xy'].copy()
-                yaw = self.traj['ee_release_base_yaw']
-                self.traj['base_xy'] = xy.copy()
-                self.traj['yaw'] = yaw
-            if phase in ('return_home', 'hold_home'):
-                self.traj.setdefault('return_home_start_dofs', self.targets.copy())
-                home_q = demo.lerp(self.traj['return_home_start_dofs'], self.home, self.traj.get('return_home_alpha', 1.))
-                local_pos, local_quat = self.fk.pose(home_q)
-                base_quat = demo.base_ik.yaw_quat(yaw)
-                pos = demo.quat_apply(base_quat, local_pos) + np.r_[xy, a.robot_z]
-                quat = demo.base_ik.quat_multiply(base_quat, local_quat)
-            elif quat is None:
-                # A fixed pose action has no hidden phase-dependent orientation
-                # switch. Hold the measured orientation after the commanded base
-                # rotation when the old scripted expert requested position only.
-                _, current = demo.get_body_pose(g, self.env, self.arm, self.ee_index)
-                quat = demo.base_ik.quat_multiply(demo.base_ik.yaw_quat(yaw-self.yaw), current)
-            velocity = rotate(np.asarray(xy, dtype=np.float64)-self.xy, -self.yaw)/self.dt
-            command = normalize_ee_action(np.r_[velocity, (yaw-self.yaw)/self.dt, pos, quat, grip], self.action_lower[-1], self.action_upper[-1], self.previous[6:10])
-            measured, _ = demo.get_body_pose(g, self.env, self.arm, self.ee_index)
-            return expert_pose_reference(command, self.previous, measured)
-        # Original expert moves base BEFORE computing IK. This temporary mutation
-        # occurs after obs_t capture; step applies the same transform, then physics.
-        demo.set_robot_base_pose(g, self.env, self.actors, xy, a.robot_z, yaw)
-        if phase == 'return_home':
+        # Record Cartesian commands BEFORE IK. The same step() is used by
+        # expert, replay and policy; neither return phase can write joints.
+        if phase == 'push_door' and 'door_open_freeze_target_pos' in self.traj:
+            # Once the scripted expert freezes the world-space contact
+            # target, stop advancing the base beneath it. Passing resumes
+            # during the existing Cartesian return-home interpolation.
+            # This is teacher scheduling only, never a policy-mode assist.
+            self.traj.setdefault('ee_release_base_xy', self.xy.copy())
+            self.traj.setdefault('ee_release_base_yaw', self.yaw)
+            xy = self.traj['ee_release_base_xy'].copy()
+            yaw = self.traj['ee_release_base_yaw']
+            self.traj['base_xy'] = xy.copy()
+            self.traj['yaw'] = yaw
+        if phase in ('return_home', 'hold_home'):
             self.traj.setdefault('return_home_start_dofs', self.targets.copy())
-            self.targets[:] = demo.lerp(self.traj['return_home_start_dofs'], self.home, self.traj.get('return_home_alpha', 0.))
-        elif phase == 'hold_home':
-            self.targets[:] = self.home
-        else:
-            demo.set_ik_target(self.ik, pos, quat)
-            demo.update_arm_ik_targets(g, self.sim, self.targets, self.ik, a, len(self.targets))
-            self.targets[-1] = np.clip(grip, self.lower[-1], self.upper[-1])
+            home_q = demo.lerp(self.traj['return_home_start_dofs'], self.home, self.traj.get('return_home_alpha', 1.))
+            local_pos, local_quat = self.fk.pose(home_q)
+            base_quat = demo.base_ik.yaw_quat(yaw)
+            pos = demo.quat_apply(base_quat, local_pos) + np.r_[xy, a.robot_z]
+            quat = demo.base_ik.quat_multiply(base_quat, local_quat)
+        elif quat is None:
+            # A fixed pose action has no hidden phase-dependent orientation
+            # switch. Hold the measured orientation after the commanded base
+            # rotation when the old scripted expert requested position only.
+            _, current = demo.get_body_pose(g, self.env, self.arm, self.ee_index)
+            quat = demo.base_ik.quat_multiply(demo.base_ik.yaw_quat(yaw-self.yaw), current)
         velocity = rotate(np.asarray(xy, dtype=np.float64)-self.xy, -self.yaw)/self.dt
-        return np.r_[velocity, (yaw-self.yaw)/self.dt, self.targets].astype(np.float32)
+        command = normalize_ee_action(np.r_[velocity, (yaw-self.yaw)/self.dt, pos, quat, grip], self.action_lower[-1], self.action_upper[-1], self.previous[6:10])
+        measured, _ = demo.get_body_pose(g, self.env, self.arm, self.ee_index)
+        return expert_pose_reference(command, self.previous, measured)
 
     def step(self, action):
         raw = np.asarray(action, dtype=np.float32)
         if raw.shape != (len(self.action_names),) or not np.isfinite(raw).all():
             raise ValueError('Invalid/nonfinite policy action')
-        if self.cartesian:
-            applied = normalize_ee_action(raw, self.action_lower[-1], self.action_upper[-1], self.previous[6:10])
-        else:
-            applied = np.clip(raw, np.r_[[-.6, -.3, -.4], self.action_lower], np.r_[[.6, .3, .4], self.action_upper]).astype(np.float32)
+        applied = normalize_ee_action(raw, self.action_lower[-1], self.action_upper[-1], self.previous[6:10])
         self.last_clipped_channels = raw != applied
-        if self.cartesian:
-            self.last_clipped_channels[6:10] = False  # quaternion normalization is not bound clipping
+        self.last_clipped_channels[6:10] = False  # quaternion normalization is not bound clipping
         self.xy += rotate(applied[:2], self.yaw)*self.dt
         self.yaw += float(applied[2])*self.dt
         demo.set_robot_base_pose(self.gym, self.env, self.actors, self.xy, self.args.robot_z, self.yaw)
-        if self.cartesian:
-            current_q, _ = demo.get_actor_dof_state(self.gym, self.env, self.arm)
-            # Reuse the original floating expert's general pose tracker, including
-            # DLS damping, current-state feedback, increment and joint limits.
-            demo.set_ik_target(self.ik, applied[3:6], applied[6:10])
-            demo.update_arm_ik_targets(self.gym, self.sim, self.targets, self.ik, self.args, len(self.targets))
-            self.targets[-1] = applied[10]
-            self.last_ik_delta = float(np.max(np.abs(self.targets[:6]-current_q[:6])))
-        else:
-            self.targets[:] = applied[3:]
+        current_q, _ = demo.get_actor_dof_state(self.gym, self.env, self.arm)
+        # Reuse the original floating expert's general pose tracker, including
+        # DLS damping, current-state feedback, increment and joint limits.
+        demo.set_ik_target(self.ik, applied[3:6], applied[6:10])
+        demo.update_arm_ik_targets(self.gym, self.sim, self.targets, self.ik, self.args, len(self.targets))
+        self.targets[-1] = applied[10]
+        self.last_ik_delta = float(np.max(np.abs(self.targets[:6]-current_q[:6])))
         self.gym.set_actor_dof_position_targets(self.env, self.arm, self.targets)
         demo.enforce_locked_door_hinge(self.gym, self.env, self.door_actor, self.door)
         q, dq = demo.get_actor_dof_state(self.gym, self.env, self.door_actor)
@@ -243,10 +215,9 @@ class FloatEnv:
         obs = self.observe()
         metrics = self.metrics()
         metrics.update(action_l2=float(np.linalg.norm(applied)), action_delta_l2=float(np.linalg.norm(applied-previous)), clipped_fraction=float(np.mean(self.last_clipped_channels)))
-        if self.cartesian:
-            ep, eq = demo.get_body_pose(self.gym, self.env, self.arm, self.ee_index)
-            cosine = abs(float(np.dot(demo.base_ik.normalize_quat(eq), applied[6:10])))
-            metrics.update(ee_command_pos_error_m=float(np.linalg.norm(applied[3:6]-ep)), ee_command_rot_error_rad=float(2*math.acos(np.clip(cosine,0,1))), ik_joint_delta_max_rad=self.last_ik_delta)
+        ep, eq = demo.get_body_pose(self.gym, self.env, self.arm, self.ee_index)
+        cosine = abs(float(np.dot(demo.base_ik.normalize_quat(eq), applied[6:10])))
+        metrics.update(ee_command_pos_error_m=float(np.linalg.norm(applied[3:6]-ep)), ee_command_rot_error_rad=float(2*math.acos(np.clip(cosine,0,1))), ik_joint_delta_max_rad=self.last_ik_delta)
         return obs, metrics, self.n >= 2850, applied
 
     def metrics(self):

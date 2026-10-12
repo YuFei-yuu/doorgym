@@ -7,7 +7,7 @@ import numpy as np
 from float_env import FloatEnv, demo  # Isaac Gym must precede torch.
 import torch
 from policy import DoorDiffusionPolicy, Policy
-from schema import EE_SCHEMA, JOINT_SCHEMA, contract, model_config
+from schema import EE_SCHEMA, contract, model_config
 
 p=argparse.ArgumentParser();p.add_argument('--output',required=True);a=p.parse_args()
 out=Path(a.output)
@@ -45,7 +45,7 @@ try:
     ck=dict(schema=EE_SCHEMA,model_config=config,action_names=names,state_names=states,model=DoorDiffusionPolicy(**config).state_dict(),step=0,stats=dict(state_mean=torch.zeros(39),state_std=torch.ones(39),action_mean=torch.zeros(11),action_std=torch.ones(11)))
     with tempfile.TemporaryDirectory() as d:
         path=Path(d)/'untrained.pt';torch.save(ck,path)
-        try:Policy(path,device='cpu',schema=JOINT_SCHEMA)
+        try:Policy(path,device='cpu',schema='unsupported_schema')
         except ValueError:checks['checkpoint_mismatch_rejected']=True
         controller=Policy(path,schema=EE_SCHEMA,seed=7001)
         for i in range(12):

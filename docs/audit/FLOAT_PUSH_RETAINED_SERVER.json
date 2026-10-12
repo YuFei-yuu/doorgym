@@ -1,0 +1,9 @@
+{
+  "side": "server",
+  "root": "/data/zyf/video2door/experiments/float-push/20261012-ee-short-refined",
+  "retained_files_hash_verified": 335,
+  "intentionally_removed_files": 22,
+  "missing_only_retired_tool_directories": true,
+  "retained_mismatches": [],
+  "checkpoint_sha256": "3bc8e9a1877f02a24c876987754d04b633b5b18aba4a3556573db142d41d028f"
+}

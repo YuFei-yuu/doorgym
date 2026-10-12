@@ -14,24 +14,29 @@ import time
 
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[2]
-sys.path.insert(0, str(HERE / 'long_tools'))
+sys.path.insert(0, str(HERE / 'run_tools'))
 from bounded import atomic_json, run, used
 
 p = argparse.ArgumentParser()
 p.add_argument('--root', required=True)
+p.add_argument('--plan', help='Required for init: explicit new-run JSON plan; no inherited seeds/budget')
 p.add_argument('stage', choices=['init', 'pilot', 'collect', 'train', 'evaluate'])
 a = p.parse_args()
 r = Path(a.root).resolve()
 r.mkdir(parents=True, exist_ok=True)
 lock = (r/'driver.lock').open('a')
 fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-plan = dict(schema='float_push_ee_world_v1', total_seconds=3600, optimizer_steps=2000,
-            train_seeds=list(range(8100,8116)), offline_val_seeds=list(range(8200,8204)),
-            rollout_val_seeds=[8500,8501,8502], pilot_seed=8001, inference_steps=25,
-            checkpoint_selection='fixed final step 2000; no validation selection',
-            teacher='freeze base at open door; pre-IK reference limits: 6mm/tick, 6cm lookahead, .035rad/tick',
-            predecessor='experiments/float-push/20261012-195314-ee-short',
-            note='Short interface/learning validation, not a formal success-rate benchmark')
+if a.stage == 'init':
+    if not a.plan: p.error('--plan is required for init')
+    plan = json.loads(Path(a.plan).read_text())
+else:
+    plan = json.loads((r/'plan.json').read_text())
+required = {'schema','total_seconds','optimizer_steps','train_seeds','offline_val_seeds','rollout_val_seeds','pilot_seed','inference_steps','train_seconds','teacher','checkpoint_selection'}
+if not required.issubset(plan): raise ValueError('Missing plan keys: %s' % (required-set(plan)))
+if plan['schema'] != 'float_push_ee_world_v1': raise ValueError('Only Cartesian plans supported')
+seeds = plan['train_seeds']+plan['offline_val_seeds']+plan['rollout_val_seeds']+[plan['pilot_seed']]
+if len(seeds)!=len(set(seeds)): raise ValueError('Plan seed sets overlap')
+if min(plan['total_seconds'],plan['optimizer_steps'],plan['train_seconds']) <= 0: raise ValueError('Positive budget and update limits required')
 
 def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
@@ -44,10 +49,7 @@ if a.stage == 'init':
     if (r/'plan.json').exists():
         raise RuntimeError('Existing experiment; do not reinitialize')
     atomic_json(r/'plan.json', plan)
-    prior=REPO/plan['predecessor']/'budget.jsonl'
-    # Carry the failed teacher pilot's accounting into the same 3600-second cap.
-    (r/'budget.jsonl').write_bytes(prior.read_bytes())
-    atomic_json(r/'inherited_budget.json',dict(source=str(prior),sha256=digest(prior),seconds=used(r)))
+    (r/'budget.jsonl').touch(exist_ok=False)
     atomic_json(r/'source_sha256.json', source_hashes())
     atomic_json(r/'provenance.json', dict(git_head=subprocess.check_output(['git','rev-parse','HEAD'],cwd=REPO,text=True).strip(), initialized=time.time()))
     (r/'source.diff').write_bytes(subprocess.check_output(['git','diff','HEAD'],cwd=REPO))
@@ -83,7 +85,7 @@ def episode(name, mode, seed, folder, nominal=False, checkpoint=None, video=Fals
     out=r/folder/name
     cmd=[HERE/'rollout.py','--schema',plan['schema'],'--mode',mode,'--seed',seed,'--split',folder,'--record','--diagnostic-steps',60,'--output',out]
     if nominal:cmd+=['--nominal']
-    if checkpoint:cmd+=['--checkpoint',checkpoint,'--inference-steps',25]
+    if checkpoint:cmd+=['--checkpoint',checkpoint,'--inference-steps',plan['inference_steps']]
     if video:cmd+=['--video']
     launch(name,cmd,timeout=180,reserve=1200 if folder=='data' else 0)
     print('EPISODE',name,json.loads((out/'summary.json').read_text())['success'],flush=True)
@@ -103,11 +105,11 @@ elif a.stage == 'collect':
 elif a.stage == 'train':
     gate=json.loads((r/'dataset_quality.json').read_text())
     assert gate['passed'], 'Dataset quality must pass before optimizer work'
-    launch('train_2000',[HERE/'train.py','--schema',plan['schema'],'--manifest',r/'manifest.json','--output',r/'training','--steps',2000,'--seconds',1000],timeout=1100,reserve=900)
+    launch('train',[HERE/'train.py','--schema',plan['schema'],'--manifest',r/'manifest.json','--output',r/'training','--steps',plan['optimizer_steps'],'--seconds',plan['train_seconds']],timeout=plan['train_seconds']+100,reserve=900)
     latest=json.loads((r/'training/latest.json').read_text())
-    assert latest['step']==2000, 'Did not reach planned checkpoint; do not silently change selection'
+    assert latest['step']==plan['optimizer_steps'], 'Did not reach planned checkpoint; do not silently change selection'
     ck=Path(latest['checkpoint'])
-    atomic_json(r/'frozen_model.json',dict(checkpoint=str(ck),step=2000,sha256=digest(ck),selection=plan['checkpoint_selection']))
+    atomic_json(r/'frozen_model.json',dict(checkpoint=str(ck),step=plan['optimizer_steps'],sha256=digest(ck),selection=plan['checkpoint_selection']))
 elif a.stage == 'evaluate':
     frozen=json.loads((r/'frozen_model.json').read_text());ck=Path(frozen['checkpoint'])
     assert digest(ck)==frozen['sha256']

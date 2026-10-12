@@ -1,20 +1,16 @@
-"""Reject mixed joint/Cartesian recordings before normalization or training."""
+"""Validate the supported Cartesian recording before normalization or training."""
 import numpy as np
 from schema import EE_SCHEMA, contract
 
 
 def validate_replay(z, schema):
     actions, states = contract(schema)
-    # Old joint recordings predate embedded schemas; only their explicit legacy
-    # reader may accept that format. Cartesian datasets must be self-describing.
     if 'schema' not in z:
-        if schema == EE_SCHEMA:
-            raise ValueError('Cartesian data requires embedded schema; recollect expert demonstrations')
-    else:
-        if str(z['schema'].item()) != schema:
-            raise ValueError('Recording schema mismatch')
-        if z['action_names'].tolist() != actions:
-            raise ValueError('Recording feature names mismatch')
+        raise ValueError('Cartesian data requires embedded schema; recollect expert demonstrations')
+    if str(z['schema'].item()) != schema:
+        raise ValueError('Recording schema mismatch')
+    if z['action_names'].tolist() != actions:
+        raise ValueError('Recording feature names mismatch')
     n = len(z['action'])
     if z['action'].shape != (n, len(actions)) or not np.isfinite(z['action']).all():
         raise ValueError('Recording action dimensions/values mismatch')

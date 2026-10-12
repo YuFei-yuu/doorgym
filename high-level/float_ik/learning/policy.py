@@ -9,8 +9,7 @@ from diffusers import DDPMScheduler
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'dp'))
 from models.door_diffusion_policy import DoorDiffusionPolicy
 
-from schema import SCHEMA, contract, model_config
-CONFIG = model_config(SCHEMA)  # Historical import compatibility.
+from schema import contract, model_config
 
 
 def scheduler():

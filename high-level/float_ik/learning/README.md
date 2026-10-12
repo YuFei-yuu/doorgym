@@ -5,11 +5,10 @@ joint position servos**, with the kinematic floating base retained. The original
 `DoorDiffusionPolicy` network file is reused unchanged. There is no locomotion
 policy and no walking/balance model.
 
-The frozen joint-action experiment reached step 25000 (best 15000). Those
-checkpoints and demonstrations belong to `float_push_joint_v1`; they are **not**
-Cartesian models or Cartesian labels. Its incomplete independent test and latest
-budget are documented in [`docs/FLOAT_PUSH_TRAINING_NEXT.md`](../../../docs/FLOAT_PUSH_TRAINING_NEXT.md)
-and the [historical report](../../../docs/FLOAT_PUSH_LONG_TRAINING_REPORT.md).
+Current results and next work: [handoff](../../../docs/FLOAT_PUSH_TRAINING_NEXT.md).
+Reuse and performance-affecting differences: [upstream audit](../../../docs/FLOAT_PUSH_UPSTREAM_AUDIT.md).
+Retired joint-action code and experiment artifacts have been deleted; see the
+[cleanup record](../../../docs/FLOAT_PUSH_CLEANUP_REPORT.md). Only the Cartesian schema is supported.
 
 ## Current contract
 
@@ -23,7 +22,7 @@ and the [historical report](../../../docs/FLOAT_PUSH_LONG_TRAINING_REPORT.md).
 | 10 | Gripper joint position target | rad |
 
 The action is **11D**, retaining lateral base velocity in addition to the
-original DP's Cartesian pose/gripper semantics. State is **39D**: the historical
+original DP's Cartesian pose/gripper semantics. State is **39D**: the
 28D robot proprioception plus the previous executed 11D Cartesian command.
 Actual EE pose in proprioception remains base-relative; command pose is world-relative.
 Reset initializes the previous command to zero base velocity and the measured EE
@@ -135,15 +134,33 @@ Manifest entries keep `episode` (NPZ path), `seed`, `split` (train/val/test),
 retain every attempted episode. Example seed values above are not an assertion
 that those seeds remain unused; inspect experiment records before selection.
 
-## Historical joint interface
+## Analysis and bounded execution
 
-Use explicit `--schema float_push_joint_v1` for old 10D joint-action models/data;
-`FloatEnv(schema='float_push_joint_v1')` retains the legacy executor. The frozen
-`long_tools/` and `smoke_tools/` drivers now explicitly request this schema.
-Their fixed schedules, `checks.py`, audit/report templates and budgets are for
-historical joint runs and must not be repurposed as a Cartesian training driver.
-`schema.py`'s legacy `SCHEMA/ACTION_NAMES/STATE_NAMES` exports remain for those
-historical tools; new callers use `DEFAULT_SCHEMA` and `contract(schema)`.
+Only `float_push_ee_world_v1` is accepted. Removed joint-action models, missing
+schema metadata and unsupported schemas are rejected. There is no legacy
+executor or legacy `SCHEMA/ACTION_NAMES/STATE_NAMES` export.
+
+- `checks.py --root <run> --checkpoint <checkpoint> --output <new.json>`: CPU
+  recording alignment, split isolation and train-only normalization audit.
+- `offline_eval.py --root <run> --output <new.json> --checkpoint <checkpoint>`:
+  teacher-observation action/position/geodesic-rotation errors. Optional device,
+  inference-steps, episodes and windows; no fixed old checkpoint/seed list.
+- `analyze.py --root <run> --output <new-directory> --episode <relative-episode>`:
+  training curves, all-attempt CSV/JSON, Cartesian and post-IK tracking plots.
+  Add `--pair <expert-relative-dir> <policy-relative-dir> --videos` for a labelled
+  paired video. Default and diagnostic execution profiles are never pooled.
+  Errors remain in attempt counts; nonfinite diagnostics serialize as null.
+- `ee_quality.py --root <run> [--limits <fixed-limits.json>] pilot|dataset|evaluation`:
+  retain the current quality audit/plots; optional complete limit configuration,
+  expected frame count from episode metadata, no fixed seed-specific plotting.
+- [run_tools](run_tools/README.md): shared resource sampling, locks and accounting.
+- [short_tools](short_tools/README.md): portable diagnostic/delivery wrappers.
+
+Analysis runs on existing records without launching a simulator. Output paths
+must be new to preserve historical evidence. Paths in copied manifests are
+resolved against the current run mirror when their original server root differs.
+The default state/teacher/training/control settings have not been tuned by this
+cleanup; the known execution failure still requires the next experimental work.
 
 The task metric still means unlocked + final signed angle ≥80° + rear clearance
 ≥0.52 m. It does not require sustained grasp, collision-free motion or lateral
@@ -179,4 +196,4 @@ wrapper is explicit, is not the default executor, and its results must not repla
 the direct-execution failure. World-reference rate limits alone do not keep up
 with the allowed moving-base velocity; see the report before using this profile.
 Teacher-observation position prediction RMSE was still about 0.221 m. All
-attempts, model hashes and videos are retained; the old joint experiment is intact.
+attempts, model hashes and videos are retained; the current Cartesian evidence is retained; old joint artifacts were subsequently removed.

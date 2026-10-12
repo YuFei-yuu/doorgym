@@ -10,7 +10,6 @@ BaseEnv=float_env.FloatEnv
 PROFILE='ee_reference_limited_v1'
 class LimitedEnv(BaseEnv):
     def step(self,action):
-        assert self.cartesian
         normalized=normalize_ee_action(action,self.action_lower[-1],self.action_upper[-1],self.previous[6:10])
         measured,_=float_env.demo.get_body_pose(self.gym,self.env,self.arm,self.ee_index)
         # Pure position/quaternion arithmetic; no expert_action, door state or phase.
@@ -29,5 +28,5 @@ finally:
     for name in ['summary.json','config.json']:
         p=out/name
         if p.exists():
-            d=json.loads(p.read_text());d.update(execution_profile=PROFILE,execution_wrapper_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),reference_limits=dict(position_step_m=.006,position_lookahead_m=.06,rotation_step_rad=.035),comparison_scope='Frozen 2000-step model plus generic execution limits. Separate from failed direct-execution validation.')
+            d=json.loads(p.read_text());d.update(execution_profile=PROFILE,execution_wrapper_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),reference_limits=dict(position_step_m=.006,position_lookahead_m=.06,rotation_step_rad=.035),comparison_scope='Explicit generic execution limits, diagnostic only; never pool with default execution results.')
             p.write_text(json.dumps(d,indent=2))

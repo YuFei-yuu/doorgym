@@ -1,6 +1,6 @@
 # 浮动底座末端动作：短程 DP 验证
 
-实验：`20261012-ee-short-refined`。接口 `float_push_ee_world_v1`，从随机初始化训练 **2000 步**，固定使用最后模型，没有根据视频或闭环结果选模。代码起点为已推送的 `e32bf75`，本轮专家修正和执行工具另随报告提交。
+实验：`20261012-ee-short-refined`。接口 `float_push_ee_world_v1`，从随机初始化训练 **2000 步**，固定使用最后模型，没有根据视频或闭环结果选模。代码起点为已推送的 `e32bf75`，专家修正、执行工具和报告已随 `d0b7390` 提交并推送。
 
 ## 专家质量先行
 
@@ -26,7 +26,7 @@
 
 2000 步完整完成，梯度和 loss 均有限。固定离线验证噪声 MSE 从第 250 步的 0.135268 变为第 2000 步的 0.059302。该 loss 不是推门成功率。
 
-复用原 `offline_eval.py`，在两条合格离线验证演示的 20 个专家观测窗口上诊断。位置向量 RMSE（各 xyz 通道 RMSE 的平方和开方）由未训练的 24.56 m、500 步的 1.014 m 降至 2000 步的 **0.221 m**；2000 步 xyz 分量分别为 0.216 / 0.041 / 0.019 m。因此在尚未产生闭环状态偏移时，预测误差就已明显大于专家参考步进尺度。该小样本诊断不作为重新选模依据。
+复用本地学习适配已有的 `offline_eval.py`（不是原仓库 DP 入口），在两条合格离线验证演示的 20 个专家观测窗口上诊断。位置向量 RMSE（各 xyz 通道 RMSE 的平方和开方）由未训练的 24.56 m、500 步的 1.014 m 降至 2000 步的 **0.221 m**；2000 步 xyz 分量分别为 0.216 / 0.041 / 0.019 m。因此在尚未产生闭环状态偏移时，预测误差就已明显大于专家参考步进尺度。该小样本诊断不作为重新选模依据。
 
 补充 CPU 单窗口核验：同一 11D 模型、噪声与 25 步采样下，缓存推理与原始完整 forward 的输出最大差为 0；证据为 `inference_equivalence_cpu.json`。这排除了该窗口中的缓存实现差异，不代表所有设备与观测都经过穷举核验。
 
@@ -74,3 +74,5 @@
 [训练曲线](/Users/yu/Data/Video2Door/reproduction/pro5000/float-push-ee-short/results/plots/training.png)；[完整核验](/Users/yu/Data/Video2Door/reproduction/pro5000/float-push-ee-short/results/delivery_checks.json)。服务器原始数据位于 `/data/zyf/video2door/experiments/float-push/20261012-ee-short-refined`；本地交付位于 `/Users/yu/Data/Video2Door/reproduction/pro5000/float-push-ee-short/results`。`plan.json`、源码快照及哈希、manifest、训练日志、checkpoint、逐步指标、原始 NPZ、所有视频与文件哈希共同记录来源。H.264 视频均逐文件完整解码核对。
 
 独立进程预算上限 3600 秒，实际累计 926.402075 秒，含第一次未通过质量的专家检查 29.100009 秒；CPU 离线绘图/转码不占 GPU。单 GPU 顺序运行，每次启动前采样资源三次；原冻结实验账本及 15000/25000 checkpoint 哈希未变。训练循环耗时 18.504 秒与全进程预算不是同一口径。
+
+清理后追溯说明：后续用户授权删除旧关节实验，以及本实验源码快照内无关的旧调度工具目录；新末端数据、模型、视频、指标均保留。原 `artifact_sha256.json` 描述清理前快照，不能再作为所有路径均存在的断言。删除例外和保留产物核验见 [清理报告](FLOAT_PUSH_CLEANUP_REPORT.md)。
