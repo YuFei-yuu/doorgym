@@ -74,6 +74,8 @@ def resource(phase):
 
 def launch(label,phase,args,timeout=240,reserve=0):
     global sequence
+    if Path(args[1]).name in ('rollout.py', 'train.py'):
+        args = list(args) + ['--schema', 'float_push_joint_v1']
     sequence+=1
     shell='export VIDEO2DOOR_GPU=%d; source %s || exit; exec nice -n 10 %s'%(gpu,shlex.quote(str(repo/'.repro/blackwell/activate.sh')),shlex.join(list(map(str,args))))
     return run(r,phase,['bash','-c',shell],timeout,total=TOTAL,reserve=reserve,

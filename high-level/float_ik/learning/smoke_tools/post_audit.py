@@ -27,7 +27,7 @@ os.environ['VIDEO2DOOR_GPU']=str(min(choices)[1])
 print('SELECT_GPU',os.environ['VIDEO2DOOR_GPU'],flush=True)
 for name,timeout,args in [
     ('offline-action',70,['offline_eval.py','--root',str(r)]),
-    ('recording-audit',65,['rollout.py','--output',str(r/'recording-audit'),'--mode','expert','--nominal','--record']),
+    ('recording-audit',65,['rollout.py','--schema','float_push_joint_v1','--output',str(r/'recording-audit'),'--mode','expert','--nominal','--record']),
 ]:
     command=[sys.executable,str(repo/'high-level/float_ik/learning'/args[0])]+args[1:]
     wrapped=[sys.executable,str(r/'tools/bounded.py'),'--root',str(r),'--stage','baseline','--limit','300','--timeout',str(timeout),'--','bash','-c','source /data/zyf/video2door/.repro/blackwell/activate.sh; exec nice -n 10 '+shlex.join(command)]

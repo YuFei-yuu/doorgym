@@ -9,18 +9,25 @@ from pathlib import Path
 import numpy as np
 import torch
 import torch.nn.functional as F
-from schema import ACTION_NAMES, STATE_NAMES
-from policy import CONFIG, SCHEMA, DoorDiffusionPolicy, images_to_torch, scheduler
+from schema import DEFAULT_SCHEMA, SCHEMAS, contract, model_config
+from policy import DoorDiffusionPolicy, images_to_torch, scheduler
+from dataset_contract import validate_episode
 
 p = argparse.ArgumentParser()
 p.add_argument('--manifest', required=True)
 p.add_argument('--output', required=True)
 p.add_argument('--steps', type=int, required=True)
 p.add_argument('--resume')
+p.add_argument('--schema', choices=SCHEMAS, default=DEFAULT_SCHEMA)
 p.add_argument('--seed', type=int, default=42)
 p.add_argument('--seconds', type=float, default=3000)
 a = p.parse_args()
+SCHEMA = a.schema
+ACTION_NAMES, STATE_NAMES = contract(SCHEMA)
+CONFIG = model_config(SCHEMA)
 root = Path(a.output)
+if not a.resume and ((root/'train.jsonl').exists() or any((root/'checkpoints').glob('*.pt'))):
+    raise ValueError('Training output already contains a run; choose a new output or explicit --resume')
 root.mkdir(parents=True, exist_ok=True)
 (root/'checkpoints').mkdir(exist_ok=True)
 torch.set_num_threads(2)
@@ -35,6 +42,7 @@ for item in entries:
     if item['split'] not in data or not item['success']:
         continue
     with np.load(item['episode']) as z:
+        validate_episode(z, SCHEMA)
         episode = {k: z[k] for k in ('state', 'images', 'action')}
     if len(episode['action']) >= 20:
         data[item['split']].append(episode)
@@ -42,6 +50,11 @@ assert len(data['train']) >= 8 and len(data['val']) >= 2, {k: len(v) for k,v in 
 state = torch.from_numpy(np.concatenate([e['state'] for e in data['train']]))
 action = torch.from_numpy(np.concatenate([e['action'] for e in data['train']]))
 stats = dict(state_mean=state.mean(0), state_std=state.std(0).clamp_min(.01), action_mean=action.mean(0), action_std=action.std(0).clamp_min(.01))
+if a.resume:
+    header = torch.load(a.resume, map_location='cpu')
+    if header['schema'] != SCHEMA:
+        raise ValueError('Cannot resume a checkpoint from a different action schema')
+    del header
 model = DoorDiffusionPolicy(**CONFIG).cuda()
 optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4, weight_decay=.01)
 noise_scheduler = scheduler()

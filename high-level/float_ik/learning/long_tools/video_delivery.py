@@ -50,7 +50,7 @@ with (r/'driver.lock').open('a') as lock:
         for i,item in enumerate(plan):
             output=r/item['output']
             if (output/'summary.json').exists():continue
-            command=['python',str(learning/'rollout.py'),'--mode','policy','--checkpoint',str(r/'training/checkpoints'/('step_%06d.pt'%item['step'])),
+            command=['python',str(learning/'rollout.py'),'--schema','float_push_joint_v1','--mode','policy','--checkpoint',str(r/'training/checkpoints'/('step_%06d.pt'%item['step'])),
                      '--seed',str(item['seed']),'--output',str(output),'--video','--diagnostic-steps','60','--split','video_reproduction']
             output.parent.mkdir(exist_ok=True)
             shell='export VIDEO2DOOR_GPU=%d; source %s || exit; exec nice -n 10 %s'%(gpu,shlex.quote(str(repo/'.repro/blackwell/activate.sh')),shlex.join(command))

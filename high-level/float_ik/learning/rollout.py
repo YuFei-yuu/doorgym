@@ -9,12 +9,15 @@ import hashlib
 from pathlib import Path
 from collections import Counter
 import numpy as np
-from float_env import FloatEnv, SCHEMA, STATE_NAMES, ACTION_NAMES
+from float_env import FloatEnv
+from schema import DEFAULT_SCHEMA, SCHEMAS, contract
+from dataset_contract import validate_replay
 
 p = argparse.ArgumentParser()
 p.add_argument('--output', required=True)
 p.add_argument('--mode', choices=['expert', 'policy', 'replay'], required=True)
 p.add_argument('--checkpoint')
+p.add_argument('--schema', choices=SCHEMAS, default=DEFAULT_SCHEMA)
 p.add_argument('--replay')
 p.add_argument('--seed', type=int, default=0)
 p.add_argument('--nominal', action='store_true')
@@ -25,6 +28,8 @@ p.add_argument('--video', action='store_true')
 p.add_argument('--inference-steps', type=int, choices=[25, 100], default=25)
 p.add_argument('--diagnostic-steps', type=int, default=0)
 a = p.parse_args()
+SCHEMA = a.schema
+ACTION_NAMES, STATE_NAMES = contract(SCHEMA)
 out = Path(a.output)
 out.mkdir(parents=True, exist_ok=False)
 source_hashes = {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in Path(__file__).parent.glob('*.py')}
@@ -34,14 +39,29 @@ def terminate(signum, frame):
     raise TimeoutError('Owned rollout reached its wall-time limit')
 signal.signal(signal.SIGTERM, terminate)
 writer = None
-env = FloatEnv(expert=a.mode == 'expert', video=a.video)
+env = FloatEnv(expert=a.mode == 'expert', video=a.video, schema=SCHEMA)
 states, images, depths, actions, raw_actions, metrics, phases = [], [], [], [], [], [], []
 sensor_depths = []
 next_states = []
 execution_latencies = []
 latencies, policy_latencies, decision_steps = [], [], []
 early = []
+joint_targets, joint_positions = [], []
 try:
+    if a.mode == 'replay':
+        with np.load(a.replay) as z:
+            validate_replay(z, SCHEMA)
+            replay = z['action'].copy()
+        if len(replay) < a.steps:
+            raise ValueError('Replay is shorter than requested rollout')
+    if a.mode == 'policy':
+        # Check incompatible model contracts on CPU, before simulator allocation.
+        import torch
+        from schema import model_config
+        ck = torch.load(a.checkpoint, map_location='cpu')
+        if ck['schema'] != SCHEMA or ck['model_config'] != model_config(SCHEMA) or ck['action_names'] != ACTION_NAMES or ck['state_names'] != STATE_NAMES:
+            raise ValueError('Checkpoint schema does not match rollout --schema')
+        del ck
     obs = env.reset(a.seed, {'randomize': not a.nominal})
     metadata.update(action_lower=env.action_lower.tolist(), action_upper=env.action_upper.tolist(), config=vars(env.args), randomization=env.randomization, state_dim=len(obs['state']), initial_door_deg=float(env.gym.get_actor_dof_states(env.env, env.door_actor, 1)['pos'][0])*180/np.pi)
     (out/'config.json').write_text(json.dumps(metadata, indent=2, default=str))
@@ -54,12 +74,10 @@ try:
             metadata['expert_call_guard_passed'] = True
         else:
             raise RuntimeError('Independent policy expert guard failed')
-        controller = Policy(a.checkpoint, seed=a.seed, inference_steps=a.inference_steps)
+        controller = Policy(a.checkpoint, seed=a.seed, inference_steps=a.inference_steps, schema=SCHEMA)
         metadata['checkpoint_step'] = controller.step
         diagnostic_stats = {k: v.cpu().numpy() for k, v in controller.stats.items()}
     (out/'config.json').write_text(json.dumps(metadata, indent=2, default=str))
-    if a.mode == 'replay':
-        replay = np.load(a.replay)['action']
     if a.video:
         import cv2
         writer = cv2.VideoWriter(str(out/'rollout.mp4'), cv2.VideoWriter_fourcc(*'mp4v'), 30., (640, 360))
@@ -97,8 +115,10 @@ try:
         obs, info, done, applied = env.step(action)
         execution_latencies.append(time.perf_counter()-execute_started)
         actions.append(applied.copy())
+        joint_targets.append(env.targets.copy())
+        joint_positions.append(obs['state'][7:14].copy())
         if diagnostic is not None:
-            diagnostic.update(next_state=obs['state'].copy(), action=applied.copy(), clipped_channels=action != applied)
+            diagnostic.update(next_state=obs['state'].copy(), action=applied.copy(), clipped_channels=env.last_clipped_channels.copy())
             early.append(diagnostic)
         if a.record:
             next_states.append(obs['state'].copy())
@@ -133,10 +153,10 @@ finally:
         # A timeout/invalid action may interrupt step after raw_action was
         # produced. Keep completed transitions aligned, and retain the pending
         # action separately rather than inventing an executed transition.
-        np.savez_compressed(out/'trajectory.npz', action=np.asarray(actions).reshape(-1,10), raw_action=np.asarray(raw_actions[:len(actions)]).reshape(-1,10), rejected_or_interrupted_action=np.asarray(raw_actions[len(actions):]).reshape(-1,10), phase=np.asarray(phases), policy_call_sec=policy_latencies, decision_sec=latencies, decision_step=decision_steps, execution_observe_sec=execution_latencies)
+        np.savez_compressed(out/'trajectory.npz', schema=SCHEMA, action_names=ACTION_NAMES, action=np.asarray(actions).reshape(-1,len(ACTION_NAMES)), raw_action=np.asarray(raw_actions[:len(actions)]).reshape(-1,len(ACTION_NAMES)), rejected_or_interrupted_action=np.asarray(raw_actions[len(actions):]).reshape(-1,len(ACTION_NAMES)), joint_position_target=np.asarray(joint_targets).reshape(-1,7), actual_joint_position=np.asarray(joint_positions).reshape(-1,7), phase=np.asarray(phases), policy_call_sec=policy_latencies, decision_sec=latencies, decision_step=decision_steps, execution_observe_sec=execution_latencies)
     if a.record and actions:
         n = len(actions)
-        np.savez_compressed(out/'episode.npz', state=np.asarray(states[:n]), next_state=np.asarray(next_states), images=np.asarray(images[:n]), depth_m=np.asarray(depths[:n]), gym_depth_m=np.asarray(sensor_depths[:n]), action=np.asarray(actions), frame=np.arange(n), next_frame=np.arange(1,n+1), sim_time=np.arange(n)/60.)
+        np.savez_compressed(out/'episode.npz', schema=SCHEMA, action_names=ACTION_NAMES, state_names=STATE_NAMES, state=np.asarray(states[:n]), next_state=np.asarray(next_states), images=np.asarray(images[:n]), depth_m=np.asarray(depths[:n]), gym_depth_m=np.asarray(sensor_depths[:n]), action=np.asarray(actions), joint_position_target=np.asarray(joint_targets), actual_joint_position=np.asarray(joint_positions), frame=np.arange(n), next_frame=np.arange(1,n+1), sim_time=np.arange(n)/60.)
     if early:
         np.savez_compressed(out/'early_diagnostic.npz', **{k: np.asarray([x[k] for x in early]) for k in early[0]})
     (out/'summary.json').write_text(json.dumps(metadata, indent=2, default=str))

@@ -1,4 +1,4 @@
-"""URDF forward kinematics for diagnostics only; never writes simulator state."""
+"""URDF forward kinematics for diagnostics and Cartesian expert return targets."""
 import math
 import xml.etree.ElementTree as ET
 import numpy as np
@@ -33,7 +33,7 @@ class FK:
             tip=j.find('parent').attrib['link']
         self.chain=chain[::-1]
 
-    def position(self,q):
+    def transform(self,q):
         t=np.eye(4)
         for origin,axis,index,kind in self.chain:
             t=t@origin
@@ -44,4 +44,14 @@ class FK:
                 else:
                     motion[:3,:3]=rotation(axis,q[index])
                 t=t@motion
-        return t[:3,3]
+        return t
+
+    def position(self,q):
+        return self.transform(q)[:3,3]
+
+    def pose(self, q):
+        """Root-relative xyz and unit xyzw, including fixed URDF tip transforms."""
+        # scipy is already a dependency of the repository's floating IK stack.
+        from scipy.spatial.transform import Rotation
+        t = self.transform(q)
+        return t[:3,3], Rotation.from_matrix(t[:3,:3]).as_quat()

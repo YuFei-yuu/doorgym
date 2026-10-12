@@ -146,9 +146,19 @@ for path in candidates:
     if not (path/'trajectory.npz').exists():continue
     z=np.load(path/'trajectory.npz');actions=z['action'];t=np.arange(len(actions))/60
     if not len(actions):continue
+    cartesian = actions.shape[1] == 11
+    arm_targets = z['joint_position_target'][:,:6] if cartesian else actions[:,3:9]
+    if cartesian:
+        fig,axs=plt.subplots(2,1,figsize=(10,6),sharex=True)
+        for j in range(3):axs[0].plot(t,actions[:,3+j],label='xyz'[j]+' world (m)')
+        for j in range(4):axs[1].plot(t,actions[:,6+j],label='q'+'xyzw'[j])
+        for ax in axs:ax.legend(fontsize=8);ax.grid(alpha=.15)
+        axs[1].set_xlabel('Simulation time (s)')
+        fig.suptitle(path.name+' Cartesian commands (before IK)')
+        save(fig,'ee_commands_'+path.name)
     fig,axs=plt.subplots(3,1,figsize=(10,8),sharex=True)
     for j in range(3):axs[0].plot(t,actions[:,j],label=['vx (m/s)','vy (m/s)','yaw rate (rad/s)'][j])
-    for j in range(6):axs[1].plot(t,actions[:,3+j],label='joint%d'%(j+1))
+    for j in range(6):axs[1].plot(t,arm_targets[:,j],label='joint%d'%(j+1))
     axs[2].plot(t,actions[:,-1],label='gripper target (rad)')
     for ax in axs:ax.legend(fontsize=7,ncol=3);ax.grid(alpha=.15)
     axs[1].set_ylabel('Target (rad)');axs[2].set_xlabel('Simulation time (s)')
@@ -157,7 +167,8 @@ for path in candidates:
     rates=np.diff(actions,axis=0)*60
     fig,axs=plt.subplots(3,1,figsize=(10,8),sharex=True)
     for j in range(3):axs[0].plot(t[1:],rates[:,j],label=['dvx/dt (m/s^2)','dvy/dt (m/s^2)','dwz/dt (rad/s^2)'][j])
-    for j in range(6):axs[1].plot(t[1:],rates[:,3+j],label='joint%d'%(j+1))
+    arm_rates=np.diff(arm_targets,axis=0)*60
+    for j in range(6):axs[1].plot(t[1:],arm_rates[:,j],label='joint%d'%(j+1))
     axs[2].plot(t[1:],rates[:,-1],label='gripper target rate (rad/s)')
     for ax in axs:ax.legend(fontsize=7,ncol=3);ax.grid(alpha=.15)
     axs[1].set_ylabel('Target rate (rad/s)');axs[2].set_xlabel('Simulation time (s)')
@@ -166,8 +177,10 @@ for path in candidates:
     raw=z['raw_action']
     fig,axs=plt.subplots(2,1,figsize=(10,5),sharex=True)
     axs[0].plot(t,np.linalg.norm(raw-actions,axis=1),label='L2(raw - applied), mixed units')
-    axs[0].set_ylabel('Clipping magnitude');axs[0].legend(fontsize=8)
-    axs[1].plot(t,np.mean(np.abs(raw-actions)>1e-7,axis=1)*100)
+    axs[0].set_ylabel('Constraint/normalization change' if cartesian else 'Clipping magnitude');axs[0].legend(fontsize=8)
+    clipped=np.abs(raw-actions)>1e-7
+    if cartesian:clipped[:,6:10]=False
+    axs[1].plot(t,np.mean(clipped,axis=1)*100)
     axs[1].set(xlabel='Simulation time (s)',ylabel='Clipped channels (%)',ylim=(-3,103))
     fig.suptitle(path.name+' action constraints',fontsize=11)
     save(fig,'constraints_'+path.name)

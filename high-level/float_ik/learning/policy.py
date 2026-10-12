@@ -9,8 +9,8 @@ from diffusers import DDPMScheduler
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'dp'))
 from models.door_diffusion_policy import DoorDiffusionPolicy
 
-from schema import SCHEMA, ACTION_NAMES, STATE_NAMES
-CONFIG = dict(state_dim=38, action_dim=10, obs_horizon=4, pred_horizon=16)
+from schema import SCHEMA, contract, model_config
+CONFIG = model_config(SCHEMA)  # Historical import compatibility.
 
 
 def scheduler():
@@ -23,16 +23,19 @@ def images_to_torch(images, device):
 
 
 class Policy:
-    def __init__(self, checkpoint, device='cuda:0', seed=0, profile=False, inference_steps=25):
+    def __init__(self, checkpoint, device='cuda:0', seed=0, profile=False, inference_steps=25, schema=None):
         if inference_steps not in (25, 100):
             raise ValueError('Audited inference_steps must be 25 or 100')
         ck = torch.load(checkpoint, map_location='cpu')
-        if ck['schema'] != SCHEMA or ck['model_config'] != CONFIG or ck['action_names'] != ACTION_NAMES or ck['state_names'] != STATE_NAMES:
+        self.schema = ck['schema']
+        self.action_names, self.state_names = contract(self.schema)
+        self.config = model_config(self.schema)
+        if (schema is not None and self.schema != schema) or ck['model_config'] != self.config or ck['action_names'] != self.action_names or ck['state_names'] != self.state_names:
             raise ValueError('Incompatible floating-base action/observation schema')
         self.device = device
         self.profile = profile
         self.last_timing = {}
-        self.model = DoorDiffusionPolicy(**CONFIG).to(device).eval()
+        self.model = DoorDiffusionPolicy(**self.config).to(device).eval()
         self.model.load_state_dict(ck['model'])
         self.stats = {k: v.to(device) for k, v in ck['stats'].items()}
         self.scheduler = scheduler()
@@ -47,6 +50,8 @@ class Policy:
 
     @torch.no_grad()
     def act(self, obs):
+        if np.asarray(obs['state']).shape != (len(self.state_names),):
+            raise ValueError('Observation does not match checkpoint schema')
         self.history.append(obs)
         while len(self.history) < 4:
             self.history.appendleft(obs)
@@ -60,7 +65,7 @@ class Policy:
         if self.profile:
             torch.cuda.synchronize(self.device)
         encoded = time.perf_counter()
-        sample = torch.randn((1, 16, 10), device=self.device, generator=self.generator)
+        sample = torch.randn((1, self.config['pred_horizon'], self.config['action_dim']), device=self.device, generator=self.generator)
         for t, time_embedding in zip(self.scheduler.timesteps, self.time_embeddings):
             cond = torch.cat([cond_obs, time_embedding], -1)
             x = self.model.input_proj(sample.transpose(1, 2))

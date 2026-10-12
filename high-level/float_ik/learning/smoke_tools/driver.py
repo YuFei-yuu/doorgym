@@ -43,6 +43,8 @@ def used(stage):
     return sum(x['elapsed_sec'] for x in rows if x['stage']==stage)
 
 def run(label,stage,limit,timeout,command):
+    if Path(command[1]).name in ('rollout.py', 'train.py'):
+        command = list(command) + ['--schema', 'float_push_joint_v1']
     with (r/'logs'/(label+'.log')).open('x') as f:
         cmd=[sys.executable,str(r/'tools/bounded.py'),'--root',str(r),'--stage',stage,'--limit',str(limit),'--timeout',str(timeout),'--','bash','-c','source /data/zyf/video2door/.repro/blackwell/activate.sh; exec nice -n 10 '+shlex.join(list(map(str,command)))]
         print('START',label,flush=True)

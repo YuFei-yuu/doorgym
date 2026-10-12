@@ -1,4 +1,10 @@
-# Controlled continuation
+# Controlled continuation (historical joint schema)
+
+These tools remain pinned to `float_push_joint_v1`. The current standalone
+`rollout.py` / `train.py` default to `float_push_ee_world_v1`; driver dispatches
+explicitly pass the legacy schema. Do not use this fixed schedule or its audit/
+report templates for new Cartesian data or checkpoints. See the parent README
+for the new EE → IK → servo contract.
 
 Current handoff: [`docs/FLOAT_PUSH_TRAINING_NEXT.md`](../../../../docs/FLOAT_PUSH_TRAINING_NEXT.md).
 The completed controlled run reached step 25000; best is 15000 and last is

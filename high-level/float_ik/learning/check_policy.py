@@ -15,7 +15,7 @@ imgs=images_to_torch(np.repeat(obs['images'][None,None],4,axis=1),'cuda')
 generator=torch.Generator(device='cuda').manual_seed(123)
 schedule=scheduler();schedule.set_timesteps(a.inference_steps,device='cuda')
 with torch.no_grad():
-    sample=torch.randn((1,16,10),device='cuda',generator=generator)
+    sample=torch.randn((1,policy.config['pred_horizon'],policy.config['action_dim']),device='cuda',generator=generator)
     for t in schedule.timesteps:
         noise=policy.model(sample,t.reshape(1),state,*imgs)
         sample=schedule.step(noise,t,sample,generator=generator).prev_sample

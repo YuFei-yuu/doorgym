@@ -53,7 +53,8 @@ if (r/'selection.json').exists():
     checks['fixed_scenarios_match_across_three_methods']=bool(len(scenarios)==10 and all(len(v)==3 and v[0]==v[1]==v[2] for v in scenarios.values()))
 if a.reset:
     from float_env import FloatEnv, rotate
-    e=FloatEnv()
+    from schema import JOINT_SCHEMA
+    e=FloatEnv(schema=JOINT_SCHEMA)
     o1=e.reset(7)
     first={k:v.copy() for k,v in o1.items() if hasattr(v,'copy')}
     for _ in range(3):
