@@ -1,0 +1,54 @@
+{
+  "date": "2026-10-13",
+  "local": {
+    "deleted_roots": 5,
+    "deleted_bytes": 4392269768,
+    "retained_files": 189,
+    "evidence": "/Users/yu/Data/Video2Door/reproduction/pro5000/retained-evidence/20261013"
+  },
+  "server": {
+    "deleted_roots": 9,
+    "deleted_bytes": 4397379485,
+    "retained_files": 193,
+    "evidence": "/data/zyf/video2door/.repro/retained-evidence/20261013"
+  },
+  "source_commit": "0acc2f050479fb54a0670ccb90bc72b98b52a54a",
+  "gpu_seconds_unchanged": 176.58770003495738,
+  "retained_tools": [
+    "checks",
+    "offline_eval",
+    "analyze",
+    "deliver",
+    "run_tools",
+    "upstream_reuse",
+    "kinematics",
+    "artifacts"
+  ],
+  "deleted_training_executors": [
+    "float_env",
+    "rollout",
+    "train",
+    "policy",
+    "schema",
+    "ee_actions",
+    "ee_quality",
+    "ee_short_run",
+    "upstream_run",
+    "coordinated",
+    "limited_rollout",
+    "run_limited"
+  ],
+  "tests": {
+    "analysis_tests": 4,
+    "budget_tests": [
+      "normal_exit",
+      "TERM_timeout_accounting",
+      "lock",
+      "reserve",
+      "dead_process_reconciliation",
+      "no_double_accounting"
+    ],
+    "retained_trajectory_analysis": "passed",
+    "original_sources_unchanged": true
+  }
+}

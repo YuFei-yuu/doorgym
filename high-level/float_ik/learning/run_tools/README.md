@@ -1,24 +1,18 @@
-# Shared bounded execution
+# Shared resource and budget launcher
 
-`bounded.py` and `test_budget.py` were preserved from the retired orchestration
-and moved here without changing their accounting/lock/timeout behavior.
-`launch.py` samples GPU resources three times, selects one eligible GPU, activates
-the repository environment and runs one child through that accounting layer.
-No old experiment schedule, seed range or fixed budget is inherited.
+`launch.py` samples GPUs three times, two seconds apart, requires at least16GiB
+free memory and mean utilization below70%, activates the project environment,
+and dispatches one child through `bounded.py`. Children use one GPU, nice10 and
+two math/PhysX threads. The ledger includes failed and interrupted children.
 
 ```bash
 python high-level/float_ik/learning/run_tools/launch.py \
-  --root <new-run> --stage <unique-stage> --timeout <seconds> \
-  --total-seconds <run-cap> -- python <script> <arguments>
+  --root <run> --stage <unique-stage> --timeout <seconds> \
+  --total-seconds <approved-cap> -- python <script> <arguments>
 ```
 
-`ee_short_run.py --root <new-run> --plan <plan.json> init` requires an explicit
-plan with schema, total_seconds, optimizer_steps, train_seconds, train_seeds,
-offline_val_seeds, rollout_val_seeds, pilot_seed, inference_steps, teacher and
-checkpoint_selection. Seed sets must be disjoint. The other stages are pilot,
-collect, train and evaluate; pilot/dataset quality gates must pass before
-collection/training. A plan is a recorded configuration, not a renewed resource
-authorization. Source changes after initialization require a new run.
+At a new run, copy the retained cumulative budget ledger before launching.
+Current task cap7200s; prior charges176.587700s. Preserved ledger location is in
+[the handoff](../../../../docs/FLOAT_PUSH_TRAINING_NEXT.md).
 
-The existing `ee_reference_limited_v1` profile remains diagnostic only; fixing
-moving-base reference coordination is separate work. See the current handoff.
+`python test_budget.py` checks timeout, accounting, recovery and mutual exclusion.

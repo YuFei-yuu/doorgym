@@ -91,3 +91,6 @@ Thumbs.db
 *.flv
 *.mov
 *.wmv
+
+# Private runtime, caches, retained evidence and deployment diagnostics
+/.repro/

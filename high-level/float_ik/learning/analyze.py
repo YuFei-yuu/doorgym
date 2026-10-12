@@ -11,8 +11,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from artifacts import write_new_json
-from ee_quality import world_positions
-from schema import DEFAULT_SCHEMA
+from dataset_contract import layout
 
 
 def rows(path):
@@ -28,24 +27,25 @@ def save(fig, output, name):
 def episode_plot(folder, output, name):
     m=rows(folder/'metrics.csv')
     with np.load(folder/'trajectory.npz') as z:
-        if str(z['schema'].item()) != DEFAULT_SCHEMA: raise ValueError('Unsupported trajectory schema: '+str(folder))
-        action=z['action'].astype(float);raw=z['raw_action'].astype(float)
+        indices=layout(z['action_names'].tolist());action=z['action'].astype(float);raw=z['raw_action'].astype(float)
         joints=z['joint_position_target'].astype(float);actual_q=z['actual_joint_position'].astype(float)
+        ik=z['ik_joint_position_target'].astype(float) if 'ik_joint_position_target' in z else None
     if len(m)!=len(action): raise ValueError('Metrics/action length mismatch: '+str(folder))
     if not m: return
     t=np.array([float(x['sim_time']) for x in m]);col=lambda key:np.array([float(x[key]) for x in m])
     fig,axs=plt.subplots(3,2,figsize=(13,10))
-    for j,key in enumerate('xyz'): axs[0,0].plot(t,action[:,3+j],label=key+' command')
-    if (folder/'episode.npz').exists():
-        with np.load(folder/'episode.npz') as z: actual=world_positions(z['next_state'],m)
-        for j,key in enumerate('xyz'): axs[0,0].plot(t,actual[:,j],'--',label=key+' actual')
+    for j,key in enumerate('xyz'): axs[0,0].plot(t,action[:,indices['position'][j]],label=key+' command')
+    if 'ee_actual_x' in m[0]:
+        for key in 'xyz':axs[0,0].plot(t,col('ee_actual_'+key),'--',label=key+' actual')
     axs[0,0].set(ylabel='World EE position (m)')
     for key in ['ee_command_pos_error_m','fk_ee_tracking_m']:axs[0,1].plot(t,col(key),label=key)
     axs[0,1].set(ylabel='Position error (m)')
     for j in range(6):
         axs[1,0].plot(t,joints[:,j],label='q%d target'%(j+1))
         axs[1,0].plot(t,actual_q[:,j],'--',alpha=.6)
-    axs[1,0].set(ylabel='Post-IK target / dashed actual (rad)')
+    if ik is not None:
+        for j in range(6):axs[1,0].plot(t,ik[:,j],':',alpha=.4)
+    axs[1,0].set(ylabel='Servo target / dashed actual / dotted raw IK (rad)')
     axs[1,1].plot(t,col('ee_command_rot_error_rad')*180/np.pi,label='Orientation tracking')
     axs[1,1].set(ylabel='Degrees')
     axs[2,0].plot(t,col('base_x'),label='base x');axs[2,0].plot(t,col('base_y'),label='base y')
@@ -54,9 +54,9 @@ def episode_plot(folder, output, name):
     for ax in axs.flat:ax.legend(fontsize=6,ncol=2);ax.set_xlabel('Simulation time (s)');ax.grid(alpha=.2)
     fig.suptitle(name);save(fig,output,'trajectory_'+name)
     fig,axs=plt.subplots(3,1,figsize=(11,8),sharex=True)
-    for j,label in enumerate(['vx m/s','vy m/s','yaw rate rad/s']):axs[0].plot(t,action[:,j],label=label)
+    for j,label in enumerate(['vx m/s','yaw rate rad/s'] if action.shape[1]==10 else ['vx m/s','vy m/s','yaw rate rad/s']):axs[0].plot(t,action[:,j],label=label)
     if len(t)>1:
-        axs[1].plot(t[1:],np.linalg.norm(np.diff(action[:,3:6],axis=0),axis=1)*1000,label='EE target displacement mm/step')
+        axs[1].plot(t[1:],np.linalg.norm(np.diff(action[:,indices['position']],axis=0),axis=1)*1000,label='EE target displacement mm/step')
         axs[2].plot(t[1:],np.max(np.abs(np.diff(joints[:,:6],axis=0)),axis=1),label='Max arm target jump rad/step')
     for ax in axs:ax.legend();ax.grid(alpha=.2)
     axs[-1].set_xlabel('Simulation time (s)');save(fig,output,'command_changes_'+name)
@@ -126,11 +126,11 @@ def main():
     records=[];default_plots={}
     for path in sorted(r.rglob('summary.json')):
         s=json.loads(path.read_text())
-        if s.get('schema')!=DEFAULT_SCHEMA:continue
+        if 'mode' not in s or 'steps_completed' not in s:continue
         rel=path.parent.relative_to(r);category=rel.parts[0];profile=s.get('execution_profile','default')
         rec=dict(episode=str(rel),category=category,execution_profile=profile,mode=s.get('mode'),seed=s.get('seed'),step=s.get('checkpoint_step'),status=s.get('status'),steps_completed=s.get('steps_completed'),success=bool(s.get('success',False) and s.get('status')=='completed'),reach=s.get('reach',False),grasp=s.get('grasp',False),signed_angle_deg=s.get('signed_angle_deg'),failure_type=s.get('failure_type'))
         records.append(rec)
-        if (path.parent/'trajectory.npz').exists():default_plots.setdefault((category,profile,rec['mode']),rel)
+        if (path.parent/'trajectory.npz').exists() and (path.parent/'metrics.csv').exists():default_plots.setdefault((category,profile,rec['mode']),rel)
     if not records:raise ValueError('No Cartesian attempts found')
     write_new_json(out/'episode_results.json',records)
     with (out/'episode_results.csv').open('x') as f:
@@ -140,7 +140,7 @@ def main():
     aggregate=[]
     for key,items in groups.items():
         n=len(items);k=sum(x['success'] for x in items);rate=k/n;z=1.96;den=1+z*z/n;center=(rate+z*z/(2*n))/den;half=z*np.sqrt(rate*(1-rate)/n+z*z/(4*n*n))/den
-        aggregate.append(dict(category=key[0],execution_profile=key[1],mode=key[2],step=key[3],attempts=n,completed=sum(x['status']=='completed' for x in items),errors=sum(x['status']=='error' for x in items),successes=k,reach=sum(x['reach'] for x in items),grasp=sum(x['grasp'] for x in items),numerical_success_rate=rate,wilson95=[max(0,center-half),min(1,center+half)]))
+        aggregate.append(dict(category=key[0],execution_profile=key[1],mode=key[2],step=key[3],attempts=n,completed=sum(x['status']=='completed' for x in items),errors=sum(x['status']=='error' for x in items),successes=k,reach=sum(x['reach'] for x in items),grasp=sum(x['grasp'] for x in items),success_rate=rate,wilson95=[max(0,center-half),min(1,center+half)]))
     write_new_json(out/'aggregate.json',aggregate)
     log=r/'training/train.jsonl'
     if log.exists():
@@ -150,7 +150,7 @@ def main():
         axs[1].plot([x['elapsed_sec'] for x in train],[x['step'] for x in train]);axs[1].set(xlabel='Training seconds',ylabel='Optimizer step');save(fig,out,'training')
     for i,rel in enumerate(a.episode or default_plots.values()):episode_plot(r/rel,out,'%02d_%s'%(i,Path(rel).name))
     pairs=[compare_pair(r/e,r/p,out,i,a.videos) for i,(e,p) in enumerate(a.pair)]
-    write_new_json(out/'analysis.json',dict(schema=DEFAULT_SCHEMA,root=str(r),attempts=len(records),pairs=pairs,meaning='CPU analysis; errors retained in attempted denominators; execution profiles never pooled; numerical success is not reliable manipulation.'))
+    write_new_json(out/'analysis.json',dict(schemas=sorted({json.loads(p.read_text())['schema'] for p in r.rglob('summary.json') if json.loads(p.read_text()).get('schema')}),root=str(r),attempts=len(records),pairs=pairs,meaning='Recorded task results, trajectories and paired videos; groups retain execution versions.'))
     print(json.dumps(dict(attempts=len(records),groups=len(aggregate),pairs=len(pairs),output=str(out))))
 
 
