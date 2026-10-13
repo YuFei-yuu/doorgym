@@ -4,6 +4,8 @@ The active design is [upstream whole-body DP with a floating base](../../../docs
 
 After manual video approval, floating execution defaults to `--float_pass_mode forward`: open to 80 degrees, skip the near-side pre-alignment, and navigate directly to the far-side target based on the initial approach side. `--float_pass_mode source` retains the old flow; the legged entry still defaults to source. The forward profile is distinct from old training data. `validate_forward_expert.py` evaluates the predeclared 3x3 positions with two seeds each, with every attempt retained. See [navigation comparison](../../../docs/FLOAT_PUSH_FORWARD_PASS_REVIEW.md).
 
+The approved position grid completed 18/18 expert tasks, all without backward travel after reaching 80 degrees. All 18 videos decoded fully and the downloaded artifact hashes matched. This is an expert result; no DP training was performed. See [validation report](../../../docs/FLOAT_PUSH_FORWARD_EXPERT_VALIDATION.md).
+
 Retained reusable tools:
 
 - `run_tools/launch.py`, `bounded.py`: GPU sampling, single-process limits and cumulative budget.

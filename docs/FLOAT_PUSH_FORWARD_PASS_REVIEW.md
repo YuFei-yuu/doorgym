@@ -50,3 +50,5 @@ CPU回归检查覆盖后端默认模式、源流程行为对照、门前/门平�
 用户已授权提交并推送修复，然后验证多初态：robot_x为3.9/4.1/4.3m，robot_y参数为-0.06/0/0.06m，每组两个新seed，共18次，z=0.50m/yaw=π及其他配置保持。种子预定14500–14517，全部尝试计入分母，无失败补换。`robot_y`由源入口叠加把手中心偏移，报告同时记录实际初始底座位姿。
 
 验证入口为 `high-level/float_ik/learning/validate_forward_expert.py`；run为 `experiments/float-push/20261013-forward-expert-grid18`。任务判定仍为正向80°及原通过目标/容差，额外记录反向行程、转向和pass_align帧数。仅做专家验证，不重新训练；旧5000更新模型及20回合旧数据保留原定义。
+
+验证已完成：18/18达到80°并完成原pass_done，9组位置均2/2成功，所有回合80°后反向行程为0，门前重新对齐帧数为0。18个视频完整解码、本地440个文件SHA256核对通过。详见 [18回合结果](FLOAT_PUSH_FORWARD_EXPERT_VALIDATION.md)。
