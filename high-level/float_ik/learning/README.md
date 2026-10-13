@@ -1,6 +1,6 @@
 # Floating-base DP support tools
 
-The active design is [upstream whole-body DP with a floating base](../../../docs/FLOAT_PUSH_REPRODUCTION_PLAN.md). Implement its execution adapter before collecting v3 data. Training and inference use `high-level/dp/train_door_dp.py` and `DoorDPPolicyController`.
+The active design is [upstream whole-body DP with a floating base](../../../docs/FLOAT_PUSH_REPRODUCTION_PLAN.md). `wholebody_float.py` supplies the source split-asset floating backend to the original whole-body task loop. Use `--float_execution source` for the frozen source pose API / CPU tensor pipeline with GPU PhysX. The nominal expert and exact command replay reached 90 degrees and completed the original pass flow. All 20 expert collection attempts succeeded. Original uncached training completed 5000 updates; frozen-model evaluation completed without retraining: validation opened 1/3 and passed 0/3, test opened 0/3 and passed 0/3. The model has not met the task objective. See [results](../../../docs/FLOAT_PUSH_V3_RESULTS.md) and [v3 progress](../../../docs/FLOAT_PUSH_V3_PROGRESS.md).
 
 Retained reusable tools:
 
@@ -10,6 +10,9 @@ Retained reusable tools:
 - `analyze.py`, `short_tools/deliver.py`: trajectory plots, task tables and paired video delivery. Recorded `action_names` determine coordinates.
 - `upstream_reuse.py`: NPZ container adapter inheriting original sequence indexing/statistics, when the LeRobot path is unavailable.
 - `kinematics.py`, `artifacts.py`: URDF FK, portable paths and strict JSON.
+- `analyze_v3.py`: plots, CSV metrics and FK/Jacobian audits for the new source-task backend.
+- `resume_eval_v3.py`: evaluation-only continuation from a verified frozen 5000-update checkpoint; never invokes training.
+- `run_tools/activate_train.sh`: isolated pro5000 Conda training environment; disables user-site packages.
 
 The retired float executors, 39D/11D trainers, reference limiters and experiment schedulers were removed. The source repository's original float scripts and whole-body DP modules remain unchanged.
 

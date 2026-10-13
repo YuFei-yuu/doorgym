@@ -1,6 +1,7 @@
 import argparse
 import json
 import time
+import random
 from pathlib import Path
 
 import numpy as np
@@ -41,6 +42,9 @@ def parse_args():
     parser.add_argument("--wandb_group", type=str, default=None)
     parser.add_argument("--wandb_save_checkpoints", action="store_true", help="Upload checkpoint files to wandb.")
     parser.add_argument("--log_interval", type=int, default=100)
+    parser.add_argument("--seed", type=int, default=None)
+    parser.add_argument("--output_dir", type=str, default=None)
+    parser.add_argument("--recording_metadata", type=str, default=None)
     return parser.parse_args()
 
 
@@ -100,6 +104,10 @@ def _as_chw_u8(x):
         hwc = np.transpose(chw, (1, 2, 0))
         hwc = cv2.resize(hwc, (IMAGE_WIDTH, IMAGE_HEIGHT), interpolation=cv2.INTER_NEAREST)
         chw = np.transpose(hwc, (2, 0, 1))
+    # LeRobot 0.3.x decodes images as CHW floats in [0, 1]. Recover
+    # original uint8 camera pixels before the source encoder divides by 255.
+    if np.issubdtype(chw.dtype, np.floating) and np.isfinite(chw).all() and chw.min() >= 0 and chw.max() <= 1:
+        chw = np.rint(chw * 255.0)
     return torch.from_numpy(chw.astype(np.uint8))
 
 
@@ -232,6 +240,12 @@ def save_checkpoint(path, model, optimizer, stats, config, feature_names):
 
 def main():
     args = parse_args()
+    if args.seed is not None:
+        random.seed(args.seed)
+        np.random.seed(args.seed)
+        torch.manual_seed(args.seed)
+        if torch.cuda.is_available():
+            torch.cuda.manual_seed_all(args.seed)
     from diffusers.schedulers.scheduling_ddpm import DDPMScheduler
 
     device = torch.device(args.device if torch.cuda.is_available() or not args.device.startswith("cuda") else "cpu")
@@ -254,6 +268,8 @@ def main():
         pin_memory=device.type == "cuda",
         drop_last=True,
     )
+    if len(loader) == 0:
+        raise ValueError("No complete training batch; dataset must contain at least batch_size sequences")
     model = DoorDiffusionPolicy(
         state_dim=stats["state_mean"].numel(),
         action_dim=len(ACTION_NAMES),
@@ -267,9 +283,12 @@ def main():
         prediction_type="epsilon",
     )
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-6)
-    run_dir = Path(__file__).resolve().parent / "logs" / "door-dp" / args.run_name
+    run_dir = Path(args.output_dir) if args.output_dir else Path(__file__).resolve().parent / "logs" / "door-dp" / args.run_name
+    run_dir.mkdir(parents=True, exist_ok=True)
     ckpt_dir = run_dir / "checkpoints"
     config = vars(args).copy()
+    if args.recording_metadata:
+        config["recording_metadata"] = json.loads(Path(args.recording_metadata).read_text())
     config.update(
         {
             "state_dim": stats["state_mean"].numel(),
@@ -316,8 +335,20 @@ def main():
             torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             optimizer.step()
             step += 1
+            config["completed_updates"] = step
+            if step % 10 == 0 or step == args.steps:
+                progress = run_dir / "progress.json"
+                temporary = progress.with_suffix(".tmp")
+                temporary.write_text(json.dumps({"step": step, "target_steps": args.steps,
+                                                  "elapsed_sec": time.time() - t0}))
+                temporary.replace(progress)
             if step % args.log_interval == 0:
                 elapsed = time.time() - t0
+                metrics = {"train/step": step, "train/loss": float(loss.item()),
+                           "train/lr": float(optimizer.param_groups[0]["lr"]),
+                           "train/elapsed_sec": float(elapsed)}
+                with (run_dir / "metrics.jsonl").open("a") as log:
+                    log.write(json.dumps(metrics) + "\n")
                 print(f"[step {step}] loss={loss.item():.6f} elapsed={elapsed:.1f}s", flush=True)
                 if wandb_run is not None:
                     wandb_run.log(

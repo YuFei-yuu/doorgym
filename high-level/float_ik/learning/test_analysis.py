@@ -57,5 +57,19 @@ class AnalysisTests(unittest.TestCase):
             (p/'summary.json').write_text(json.dumps(dict(mode='policy',execution_profile='b')))
             with self.assertRaisesRegex(ValueError,'different execution profiles'):compare_pair(e,p,root,0)
 
+    def test_original_snap_is_explicit_and_cannot_hide_base_changes(self):
+        with tempfile.TemporaryDirectory() as d:
+            p=Path(d)/'episode.npz';episode(p)
+            with np.load(p) as z:data={k:z[k].copy() for k in z.files}
+            data['state_names']=np.array(['base_roll','base_pitch','wx','wy','wz']+
+                ['dof_pos_'+str(i) for i in range(7)]+['dof_vel_'+str(i) for i in range(7)]+
+                ['ee_x','ee_y','ee_z','qx','qy','qz','qw','gripper'])
+            data['next_state'][0,5:11]=1
+            data['next_state'][0,12:18]=2
+            data['pre_observation_event']=np.array(['none','upstream_snap_arm_to_zero','none','none'])
+            validate_episode(data)
+            data['state'][1,0]=1
+            with self.assertRaisesRegex(ValueError,'base or gripper'):validate_episode(data)
+
 
 if __name__=='__main__':unittest.main()

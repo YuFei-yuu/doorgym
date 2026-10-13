@@ -1,5 +1,5 @@
 """Expert-observation diagnostics through the original DoorDPPolicyController."""
-import argparse,json,sys
+import argparse,json,sys,time
 from pathlib import Path
 import numpy as np
 from artifacts import resolve_recorded_path,write_new_json
@@ -13,7 +13,7 @@ def main():
     from door_dp_common import DoorDPPolicyController
     torch.set_num_threads(2);torch.manual_seed(a.seed)
     controller=DoorDPPolicyController(resolve_recorded_path(root,a.checkpoint),device=a.device)
-    manifest=json.loads((root/'manifest.json').read_text());errors=[];rotations=[];samples=[];names=None
+    manifest=json.loads((root/'manifest.json').read_text());errors=[];rotations=[];samples=[];names=None;predictions=[];truths=[]
     for item in [x for x in manifest if x['split']=='val' and x['success']][:a.episodes]:
         with np.load(resolve_recorded_path(root,item['episode'])) as z:
             meta=validate_episode(z);names=meta['action_names'];idx=layout(names)
@@ -27,8 +27,12 @@ def main():
                     if 'images' in z:rgb=[np.repeat(im[:,:,None],3,-1) for im in z['images'][frame]]
                     else:rgb=[z[k][frame] for k in ('wrist_handle_mask','wrist_masked_depth','front_handle_mask','front_masked_depth')]
                     controller.append_observation(z['state'][frame],*rgb)
+                started=time.monotonic()
                 controller.sample_action_chunk();pred=np.asarray(list(controller.action_queue),float);truth=z['action'][center:center+len(pred)].astype(float)
+                print(json.dumps(dict(seed=item['seed'],frame=int(center),window=len(samples)+1,
+                                      inference_sec=time.monotonic()-started)),flush=True)
                 errors.extend(pred-truth)
+                predictions.append(pred);truths.append(truth)
                 for action,target in zip(pred,truth):
                     q=action[idx['quaternion']];norm=np.linalg.norm(q)
                     rotations.append(2*np.arccos(np.clip(abs(np.dot(q/norm,target[idx['quaternion']])),0,1)) if norm>1e-8 else np.nan)
@@ -36,7 +40,11 @@ def main():
     if not errors:raise ValueError('No accepted validation windows')
     error=np.asarray(errors);rmse=np.sqrt(np.mean(error**2,axis=0))
     result=dict(checkpoint=a.checkpoint,action_names=names,samples=len(error),windows=samples,rmse_per_channel=rmse,position_vector_rmse_m=np.linalg.norm(rmse[layout(names)['position']]),orientation_p95_rad=np.percentile(rotations,95),invalid_rotation_count=int((~np.isfinite(rotations)).sum()),inference_steps=len(controller.noise_scheduler.timesteps),clip_sample=bool(controller.noise_scheduler.config.clip_sample))
-    write_new_json(a.output,result);print(json.dumps(dict(output=a.output,samples=len(error))))
+    write_new_json(a.output,result)
+    np.savez_compressed(Path(a.output).with_name('offline_predictions.npz'),prediction=np.stack(predictions),expert=np.stack(truths),
+                        action_names=np.asarray(names),orientation_error_rad=np.asarray(rotations),
+                        seed=np.array([x['seed'] for x in samples]),center=np.array([x['frame'] for x in samples]))
+    print(json.dumps(dict(output=a.output,samples=len(error))))
 
 
 if __name__=='__main__':main()

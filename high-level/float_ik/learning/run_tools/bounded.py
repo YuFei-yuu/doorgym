@@ -55,6 +55,15 @@ def run(root, stage, command, timeout, total=21600, reserve=0, gpu=None,
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         reconcile(root)
         hard = min(float(timeout), total-used(root)-reserve)
+        limits_path = root/'budget_limits.json'
+        if limits_path.exists():
+            limits = json.loads(limits_path.read_text())
+            category = stage.split('__', 1)[0]
+            if category not in limits:
+                raise ValueError('Unbudgeted stage category: '+category)
+            consumed = sum(r['elapsed_sec'] for r in read_rows(root)
+                           if r['stage'].split('__', 1)[0] == category)
+            hard = min(hard, float(limits[category])-consumed)
         if hard <= grace+2:
             raise RuntimeError('Insufficient budget, including shutdown reserve')
         row = dict(command_id='%d-%d' % (time.time_ns(), os.getpid()), stage=stage,

@@ -7,7 +7,7 @@ from artifacts import resolve_recorded_path,write_new_json
 from dataset_contract import validate_episode
 
 
-def audit_run(root,checkpoint=None):
+def audit_run(root,checkpoint=None,expected_updates=None):
     root=Path(root).resolve();manifest=json.loads((root/'manifest.json').read_text());entries=[x for x in manifest if x.get('success',False)]
     seeds=[x['seed'] for x in manifest];paths=[str(x['episode']) for x in manifest]
     checks=dict(nonempty_manifest=bool(entries),disjoint_seeds=len(set(seeds))==len(seeds),disjoint_paths=len(set(paths))==len(paths),valid_splits=all(x['split'] in ('train','val','test') for x in manifest))
@@ -22,6 +22,8 @@ def audit_run(root,checkpoint=None):
         import torch
         ck=torch.load(resolve_recorded_path(root,checkpoint),map_location='cpu');cfg=ck['config'];meta=details[0]
         checks['checkpoint_dimensions']=cfg['state_dim']==len(meta['state_names']) and cfg['action_dim']==len(meta['action_names'])
+        if expected_updates is not None:
+            checks['checkpoint_updates']=cfg.get('completed_updates')==expected_updates and cfg.get('steps')==expected_updates
         checks['normalization_train_only']=bool(train)
         for key in ('state','action'):
             if not train:break
@@ -31,6 +33,6 @@ def audit_run(root,checkpoint=None):
 
 
 if __name__=='__main__':
-    p=argparse.ArgumentParser();p.add_argument('--root',required=True);p.add_argument('--checkpoint');p.add_argument('--output',required=True);a=p.parse_args()
-    result=audit_run(a.root,a.checkpoint);write_new_json(a.output,result);print(json.dumps(result['checks']))
+    p=argparse.ArgumentParser();p.add_argument('--root',required=True);p.add_argument('--checkpoint');p.add_argument('--expected-updates',type=int);p.add_argument('--output',required=True);a=p.parse_args()
+    result=audit_run(a.root,a.checkpoint,a.expected_updates);write_new_json(a.output,result);print(json.dumps(result['checks']))
     if not result['passed']:raise SystemExit(1)

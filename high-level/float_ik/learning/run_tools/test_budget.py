@@ -24,10 +24,17 @@ with tempfile.TemporaryDirectory() as directory:
         raise AssertionError('Reserve exceeded')
     except RuntimeError:
         pass
+    atomic_json(root/'budget_limits.json', {'execution': 0})
+    try:
+        run(root, 'execution__exhausted', [sys.executable,'-c','pass'], 4, total=20, grace=1)
+        raise AssertionError('Exhausted stage accepted')
+    except RuntimeError:
+        pass
+    (root/'budget_limits.json').unlink()
     atomic_json(root/'active_command.json', dict(command_id='dead',pid=99999999,hard_timeout_sec=2))
     reconcile(root)
     assert json.loads((root/'budget.jsonl').read_text().splitlines()[-1])['reconciled']
     count = len((root/'budget.jsonl').read_text().splitlines())
     reconcile(root)
     assert len((root/'budget.jsonl').read_text().splitlines()) == count
-print(json.dumps(dict(passed=True,checks=['normal_exit','TERM_timeout_accounting','lock','reserve','dead_process_reconciliation','no_double_accounting'])))
+print(json.dumps(dict(passed=True,checks=['normal_exit','TERM_timeout_accounting','lock','reserve','stage_limit','dead_process_reconciliation','no_double_accounting'])))

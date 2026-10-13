@@ -3,6 +3,7 @@ import json
 import math
 import os
 import sys
+import time
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -1300,6 +1301,12 @@ class ManipLocoDoorAsset(ManipLoco):
 
 def parse_args():
     parser = argparse.ArgumentParser()
+    parser.add_argument("--float_output", type=str, default=None)
+    parser.add_argument("--float_seed", type=int, default=42)
+    parser.add_argument("--float_video", action="store_true")
+    parser.add_argument("--float_push_target", choices=["wholebody", "source_float"], default="wholebody")
+    parser.add_argument("--float_execution", choices=["tensor", "source"], default="tensor")
+    parser.add_argument("--float_replay", type=str, default=None)
     parser.add_argument("--rl_device", type=str, default="cuda:0")
     parser.add_argument("--sim_device", type=str, default="cuda:0")
     parser.add_argument("--graphics_device_id", type=int, default=None)
@@ -1487,11 +1494,11 @@ def build_low_level_args(args):
     )
 
 
-def main():
+def main(backend=None):
     args = parse_args()
     os.chdir(ROOT)
 
-    DOOR_RUNTIME.update(_load_door_runtime(args.door_cfg))
+    DOOR_RUNTIME.update(_load_door_runtime(args.door_cfg) if backend is None else backend.load_runtime(args))
     if not args.use_all_door_assets:
         _filter_door_runtime_by_names(DOOR_RUNTIME, DEFAULT_DOOR_ASSET_NAMES)
     total_door_assets = len(DOOR_RUNTIME["door_asset_specs"])
@@ -1556,7 +1563,11 @@ def main():
 
     low_args = build_low_level_args(args)
     env_cfg, train_cfg = task_registry.get_cfgs(name="b1z1")
-    task_registry.register("b1z1_door_asset", ManipLocoDoorAsset, env_cfg, train_cfg, "b1z1")
+    if backend is not None:
+        backend.configure(args)
+        low_args.seed = args.float_seed
+        low_args.num_threads = 2
+    task_registry.register("b1z1_door_asset", backend or ManipLocoDoorAsset, env_cfg, train_cfg, "b1z1")
 
     env_cfg.sim.substeps = args.sim_substeps
     env_cfg.sim.physx.num_position_iterations = args.sim_position_iterations
@@ -1588,17 +1599,21 @@ def main():
     env, _ = task_registry.make_env(name="b1z1_door_asset", args=low_args, env_cfg=env_cfg)
     obs = env.get_observations()
 
-    ppo_runner, _, _, _ = task_registry.make_alg_runner(
-        log_root=args.log_dir,
-        env=env,
-        name="b1z1",
-        args=low_args,
-        train_cfg=train_cfg,
-        return_log_dir=True,
-    )
-    policy = ppo_runner.get_inference_policy(device=env.device, stochastic=False)
+    if backend is None:
+        ppo_runner, _, _, _ = task_registry.make_alg_runner(
+            log_root=args.log_dir,
+            env=env,
+            name="b1z1",
+            args=low_args,
+            train_cfg=train_cfg,
+            return_log_dir=True,
+        )
+        policy = ppo_runner.get_inference_policy(device=env.device, stochastic=False)
+    else:
+        policy = lambda obs, **kwargs: torch.zeros(args.num_envs, env.num_actions, device=env.device)
+    state_fn = get_door_dp_state if backend is None else lambda env, *a: env.dp_state()
 
-    print("Loaded low-level walking policy from:", os.path.join(args.log_dir, f"model_{args.checkpoint}.pt"))
+    print("Execution backend:", "wholebody" if backend is None else env.execution_profile)
     print("Loaded door assets:", env.door_asset_names)
     print(
         "Door asset selection:",
@@ -2233,6 +2248,9 @@ def main():
     dp_record_warned_no_camera = False
     sample_commands()
     for step in range(args.steps):
+        dp_action = None
+        dp_elapsed = None
+        dp_replanned = False
         if step % args.resample_interval == 0:
             sample_commands()
         if args.preview_trajectory_at_spawn:
@@ -2241,6 +2259,8 @@ def main():
         else:
             update_stop_mask()
         update_ee_trajectory()
+        if backend is not None:
+            env.adapt_expert_push(phase_id, manip_step, traj_rotate_pos, traj_push_pos, pass_started)
         update_pass_state()
 
         pass_backoff = pass_started & (~pass_backoff_done) & (~pass_done)
@@ -2297,14 +2317,17 @@ def main():
             dp_camera_images = env.capture_wrist_camera_images()
             mask_rgb, masked_depth_rgb, front_mask_rgb, front_masked_depth_rgb = dp_image_inputs_from_camera_tensors(dp_camera_images, dp_env_id)
             if mask_rgb is not None and masked_depth_rgb is not None:
+                dp_started = time.perf_counter()
+                dp_replanned = len(dp_controller.action_queue) == 0
                 dp_action = dp_controller.act(
-                    get_door_dp_state(env, phase_id, phase_name, dp_env_id),
+                    state_fn(env, phase_id, phase_name, dp_env_id),
                     mask_rgb,
                     masked_depth_rgb,
                     front_mask_rgb,
                     front_masked_depth_rgb,
                 )
                 apply_door_dp_action(env, dp_action, dp_env_id, ee_goal_delta_rpy_from_quat)
+                dp_elapsed = time.perf_counter() - dp_started
                 if make_door_dp_log_record is not None:
                     dp_extra = {
                         "stopped_by_door": bool(stopped_by_door[dp_env_id].item()),
@@ -2328,8 +2351,14 @@ def main():
                         dp_logger.write(dp_record)
                     if args.dp_print and step % max(1, args.dp_log_interval) == 0:
                         print_door_dp_log_record(dp_record)
+        if backend is not None:
+            env.before_step(step, phase_id, phase_name, pass_started, pass_done,
+                            pass_arm_zero_snapped, pass_through_xy, dp_action,
+                            inference_sec=dp_elapsed, replanned=dp_replanned)
         actions = policy(obs.detach(), hist_encoding=True)
         obs, _, _, _, dones, infos = env.step(actions.detach())
+        if backend is not None:
+            env.after_step()
         camera_images = env.capture_wrist_camera_images()
         env.show_wrist_seg(camera_images, args.camera_env_id)
         if dp_recorders:
@@ -2428,8 +2457,12 @@ def main():
             saved_count = int(torch.sum(dp_record_success[list(dp_recorders.keys())]).detach().cpu().item())
             print(f"Finished raw Door DP recording: saved_successful={saved_count}/{len(dp_recorders)}")
             break
+        if backend is not None and dp_controller is None and env.task_done:
+            break
     if dp_logger is not None:
         dp_logger.close()
+    if backend is not None:
+        env.close()
 
 
 if __name__ == "__main__":

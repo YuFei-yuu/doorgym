@@ -887,6 +887,69 @@ def refresh_current_ee_pose(gym, sim, ik_state):
     ik_state.current_pos_np = eef_state[:3].detach().cpu().numpy().copy()
 
 
+def source_float_push_target(args, traj, open_stage, door_open_ratio, handle_goal,
+                             handle_quat, current_pos, t, has_door_pos=True):
+    """Shared source floating push position logic; task/IK are supplied by caller."""
+    if "handle_contact_offset_local" not in traj:
+        traj["handle_contact_offset_local"] = quat_apply(
+            base_ik.quat_conjugate(handle_quat), traj["rotate"] - handle_goal)
+    live_push_dir = traj["push_dir"].copy()
+    if open_stage:
+        live_pull_dir = quat_axis(handle_quat, axis=2)
+        live_pull_dir[2] = 0.0
+        live_pull_dir = normalize(live_pull_dir)
+        if np.linalg.norm(live_pull_dir) >= 1.0e-5:
+            if float(np.dot(live_pull_dir, traj["approach_dir"])) < 0.0:
+                live_pull_dir = -live_pull_dir
+            live_push_dir = -live_pull_dir
+
+    follow_handle = (
+        open_stage
+        and t <= args.handle_follow_push_ratio
+        and "handle_contact_offset_local" in traj
+    )
+    freeze_ee_target = False
+    if "handle_contact_offset_local" in traj:
+        handle_contact_offset = quat_apply(handle_quat, traj["handle_contact_offset_local"])
+        handle_target_pos = handle_goal + handle_contact_offset + live_push_dir * args.push_contact_bias
+    else:
+        handle_target_pos = handle_goal.copy()
+    if (
+        open_stage
+        and has_door_pos
+        and current_pos is not None
+        and door_open_ratio >= args.door_freeze_target_ratio
+    ):
+        if "door_open_freeze_target_pos" not in traj:
+            traj["door_open_freeze_target_pos"] = handle_target_pos.copy()
+        target_pos = traj["door_open_freeze_target_pos"].copy()
+        target_quat = None
+        freeze_ee_target = True
+    elif follow_handle:
+        target_pos = handle_target_pos.copy()
+        target_quat = None
+        if args.push_follow_orientation and not args.ik_position_only and "handle_contact_quat_local" in traj:
+            target_quat = base_ik.quat_multiply(handle_quat, traj["handle_contact_quat_local"])
+    elif open_stage and current_pos is not None:
+        target_pos = current_pos + live_push_dir * args.lever_step_size
+        blend_start = min(float(args.door_freeze_blend_start_ratio), float(args.door_freeze_target_ratio) - 1.0e-4)
+        if door_open_ratio >= blend_start:
+            blend_t = smoothstep(
+                (door_open_ratio - blend_start)
+                / max(1.0e-4, float(args.door_freeze_target_ratio) - blend_start)
+            )
+            target_pos = lerp(target_pos, handle_target_pos, blend_t)
+        target_quat = None
+    elif args.unidoor_style_push and current_pos is not None:
+        push_step_pos = current_pos + traj["push_dir"] * args.lever_step_size
+        push_max_pos = traj["rotate"] + traj["push_dir"] * args.door_push_distance
+        progress = float(np.dot(push_step_pos - traj["rotate"], traj["push_dir"]))
+        target_pos = push_max_pos if progress > args.door_push_distance else push_step_pos
+    else:
+        target_pos = lerp(traj["rotate"], traj["push"], t)
+    return target_pos, freeze_ee_target
+
+
 def trajectory_targets(
     step,
     args,
@@ -1013,64 +1076,13 @@ def trajectory_targets(
                     base_ik.quat_conjugate(handle_quat),
                     turned_quat,
                 )
-            live_push_dir = traj["push_dir"].copy()
-            if door.open_stage:
-                live_pull_dir = quat_axis(handle_quat, axis=2)
-                live_pull_dir[2] = 0.0
-                live_pull_dir = normalize(live_pull_dir)
-                if np.linalg.norm(live_pull_dir) >= 1.0e-5:
-                    if float(np.dot(live_pull_dir, traj["approach_dir"])) < 0.0:
-                        live_pull_dir = -live_pull_dir
-                    live_push_dir = -live_pull_dir
-
-            follow_handle = (
-                door.open_stage
-                and t <= args.handle_follow_push_ratio
-                and "handle_contact_offset_local" in traj
-            )
-            freeze_ee_target = False
             door_pos, _ = get_actor_dof_state(gym, env, door_actor)
             door_open_ratio = (
                 door_hinge_open_ratio(door, float(door_pos[0]), args) if len(door_pos) > 0 else 0.0
             )
-            if "handle_contact_offset_local" in traj:
-                handle_contact_offset = quat_apply(handle_quat, traj["handle_contact_offset_local"])
-                handle_target_pos = handle_goal + handle_contact_offset + live_push_dir * args.push_contact_bias
-            else:
-                handle_target_pos = handle_goal.copy()
-            if (
-                door.open_stage
-                and len(door_pos) > 0
-                and ik_state.current_pos_np is not None
-                and door_open_ratio >= args.door_freeze_target_ratio
-            ):
-                if "door_open_freeze_target_pos" not in traj:
-                    traj["door_open_freeze_target_pos"] = handle_target_pos.copy()
-                target_pos = traj["door_open_freeze_target_pos"].copy()
-                target_quat = None
-                freeze_ee_target = True
-            elif follow_handle:
-                target_pos = handle_target_pos.copy()
-                target_quat = None
-                if args.push_follow_orientation and not args.ik_position_only and "handle_contact_quat_local" in traj:
-                    target_quat = base_ik.quat_multiply(handle_quat, traj["handle_contact_quat_local"])
-            elif door.open_stage and ik_state.current_pos_np is not None:
-                target_pos = ik_state.current_pos_np + live_push_dir * args.lever_step_size
-                blend_start = min(float(args.door_freeze_blend_start_ratio), float(args.door_freeze_target_ratio) - 1.0e-4)
-                if door_open_ratio >= blend_start:
-                    blend_t = smoothstep(
-                        (door_open_ratio - blend_start)
-                        / max(1.0e-4, float(args.door_freeze_target_ratio) - blend_start)
-                    )
-                    target_pos = lerp(target_pos, handle_target_pos, blend_t)
-                target_quat = None
-            elif args.unidoor_style_push and ik_state.current_pos_np is not None:
-                push_step_pos = ik_state.current_pos_np + traj["push_dir"] * args.lever_step_size
-                push_max_pos = traj["rotate"] + traj["push_dir"] * args.door_push_distance
-                progress = float(np.dot(push_step_pos - traj["rotate"], traj["push_dir"]))
-                target_pos = push_max_pos if progress > args.door_push_distance else push_step_pos
-            else:
-                target_pos = lerp(traj["rotate"], traj["push"], t)
+            target_pos, freeze_ee_target = source_float_push_target(
+                args, traj, door.open_stage, door_open_ratio, handle_goal, handle_quat,
+                ik_state.current_pos_np, t, has_door_pos=len(door_pos) > 0)
             if freeze_ee_target:
                 target_quat = None
             else:
