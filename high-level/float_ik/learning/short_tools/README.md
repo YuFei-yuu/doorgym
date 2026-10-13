@@ -8,5 +8,5 @@ Use `--episode <relative-folder>` to choose trajectories and
 --total-seconds <cap> -- --checkpoint <original-checkpoint>` dispatches
 `offline_eval.py` through the shared resource/budget launcher.
 
-The execution adapter will write the metrics described in
+The execution adapter writes the metrics described in
 [the recording specification](../../../../docs/FLOAT_PUSH_METRICS.md).

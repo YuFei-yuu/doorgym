@@ -1,5 +1,7 @@
 # Visual Whole-Body for Loco-Manipulation
 
+本项目当前工作为浮动底座推门 Diffusion Policy。新对话从[交接入口](docs/FLOAT_PUSH_TRAINING_NEXT.md)开始，内含环境、运行命令及训练入口。
+
 https://wholebody-b1.github.io/
 
 Related to paper <[Visual Whole-Body Control for Legged Loco-Manipulation](https://arxiv.org/abs/2403.16967)>

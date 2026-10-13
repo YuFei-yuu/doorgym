@@ -1,51 +1,25 @@
-# DP训练、推理与任务记录
+# 训练与任务指标
 
-更新：2026-10-13。方法参照固定源提交`0acc2f050479fb54a0670ccb90bc72b98b52a54a`。主目标和执行配置见 [复现方案](FLOAT_PUSH_REPRODUCTION_PLAN.md)。
+成功标准：正确方向门角达到80°，并完成原 pass_done（门后目标距离≤0.12m）。所有完整尝试计入分母。
 
-## 源仓库直接记录的指标
-
-| 环节 | 来源/字段 | 保存与绘图 |
+| 环节 | 记录 | 产物 |
 |---|---|---|
-| 训练 | `train_door_dp.py`：train/step、train/loss、train/lr、train/elapsed_sec | 每100更新保存JSONL/CSV；loss-step、lr-step、累计耗时-step；可同时使用原wandb日志 |
-| 数据成功 | 原push recorder的 `pass_started`，正向门角达到80° | 每次采集的seed、门资产、是否开门、结束原因；成功数/尝试数 |
-| 完成通过 | 原push任务的 `pass_done`、through目标与0.12m容差 | 原阶段标记、首次80°/通过时刻、最终门角与目标距离；开门成功率、完整任务成功率 |
-| DP动作 | `make_door_dp_log_record`：dp_action_raw、applied_action、robot_command | 10通道随时间曲线，标注每16步重规划时刻 |
-| 底座 | base.xy、height、lin_vel、ang_vel | 世界XY路径叠加门及通过目标；速度/yaw-rate曲线 |
-| 末端 | ee.target_pos_world、actual_pos_world、target_quat、actual_quat、pos_error | 世界目标/实际XYZ、三维轨迹、位置误差范数、四元数姿态角误差 |
-| 夹爪 | gripper.target、actual_pos | 目标/实际曲线；标注转把、开门与通过时刻 |
-| 门/阶段 | door.dof、phase_id/name，原入口extra中的pass_started/pass_done | 门角/把手角、阶段时间轴，与末端和底座曲线对齐 |
+| 训练 | train/step、loss、lr、elapsed_sec | metrics.jsonl/csv、训练曲线 |
+| 任务 | opened、pass_done、门角、目标距离、事件帧、结束原因 | summary.json、成功率表 |
+| 数据 | 执行前state/action/image、next_state、帧序列、snap事件 | trajectory.npz、raw/ |
+| 动作 | 原始/应用10D动作、重规划时刻、DP/脚本帧数 | execution.jsonl、动作曲线 |
+| 执行 | 底座XY/速度/yaw、末端目标/实际位姿、q/dq/IK目标、接触 | 任务与关节诊断图 |
+| 直接通过 | 首次80°后的反向行程、累计转向、pass_align帧数 | 多初态结果表 |
+| 推理 | 每次重规划耗时 | 延迟P50/P95 |
 
-原raw recorder把阶段保存在subtask_index作可视化。状态输入使用真实机器人字段。
+## 检查与分析入口
 
-## 浮动适配增加的观测记录
+- checks.py、dataset_contract.py：字段、维度、帧对齐、集合隔离、训练集统计和checkpoint更新数。
+- offline_eval.py：用原控制器和100步DDPM，对专家观测生成动作，记录各通道RMSE和姿态误差。
+- analyze_v3.py：每回合动作、关节、门角、底座路径、接触图及CSV。
+- validate_forward_expert.py：预定18回合位置网格验证、全量分母和视频解码。
+- deliver_v3.py：旧5000更新实验的汇总与同初态视频模板。
 
-| 数据 | 用途与图 |
-|---|---|
-| obs_t、a_t、obs_t+1、frame/next_frame、sim_time | 验证50Hz时间对齐、回放和窗口边界；逐帧检查表 |
-| IK输出、最终伺服目标、实际q/dq | 七关节目标/实际、速度及IK残差曲线 |
-| 实际root位姿、URDF安装位姿、末端刚体位姿 | 核验世界/底座/安装原点坐标转换 |
-| 原snap_arm_to_zero及freeze事件 | 在关节和末端图上标记原开门后处理触发 |
-| dp_action_applied、图像有效性、命令来源 | DP控制帧数/占比、脚本命令帧数和相机缺帧 |
-| GPU/进程资源、单次推理耗时 | 每次启动的资源快照、预算账本、推理延迟分布 |
-| 结束原因、异常类型、完成物理步数 | 按全部尝试统计完整任务、超时和仿真异常 |
-| 实际手指/把手contact body pair及可用的接触力 | 连续接触时间段图；几何距离另列 |
+训练噪声MSE和末端误差用于诊断，任务成功由仿真回合判定。训练统计只从训练集合计算。
 
-这些补充字段用于排查适配和解释任务过程，不改变原优化目标或设置额外精度门槛。
-
-## 专家观测离线分析
-
-固定最后5000更新checkpoint，使用验证集原16帧观测窗口和原100步DDPM推理，评估实际执行的16步动作块。
-
-保存各动作通道RMSE、世界末端位置向量RMSE、归一化四元数的姿态角误差分布、vx/yaw-rate/夹爪误差；绘制预测/专家动作曲线与误差分布。按原subtask_index分段统计只用于分析。
-
-数据统计使用原compute_stats/normalize_batch，训练集合均值/标准差及样本数单独保存。检查验证集隔离和z-score覆盖范围。验证噪声MSE若记录，应在冻结checkpoint上用固定窗口/噪声计算并独立列为诊断。
-
-## 完整任务交付
-
-- 同初态专家/模型、同资产和同执行版本，保存左右并排视频与原视频。
-- 每个完整回合记录原开门成功、原pass_done、最终通过目标距离、首次事件时刻及结束原因。
-- 汇总开门成功数/全部尝试数、完整任务成功数/全部尝试数；视频与指标使用相同seed和checkpoint。
-- 训练loss表示原噪声预测损失；任务曲线与成功率来自仿真回合。日志、图表和视频分别放入run的training、evaluation、analysis目录。
-- 关键产物下载本地，检查SHA256和完整视频解码。
-
-现有 `checks.py` 检查数据，`offline_eval.py` 直接调用原控制器，`analyze.py/short_tools/deliver.py` 提供图表和配对视频基础。新的浮动入口按本表写出原JSONL及绘图用CSV/NPZ，分析工具随后适配新增字段。
+每个run保存源码/配置、种子与集合划分、模型更新数、SHA256和同初态视频。新训练建议继续保留训练曲线、离线动作误差、完整回合成功率、门角与底座路径图。

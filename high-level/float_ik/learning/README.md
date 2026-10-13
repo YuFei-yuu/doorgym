@@ -1,23 +1,29 @@
-# Floating-base DP support tools
+# 浮动底座DP入口
 
-The active design is [upstream whole-body DP with a floating base](../../../docs/FLOAT_PUSH_REPRODUCTION_PLAN.md). `wholebody_float.py` supplies the source split-asset floating backend to the original whole-body task loop. Use `--float_execution source` for the frozen source pose API / CPU tensor pipeline with GPU PhysX. The nominal expert and exact command replay reached 90 degrees and completed the original pass flow. All 20 expert collection attempts succeeded. Original uncached training completed 5000 updates; frozen-model evaluation completed without retraining: validation opened 1/3 and passed 0/3, test opened 0/3 and passed 0/3. The model has not met the task objective. See [results](../../../docs/FLOAT_PUSH_V3_RESULTS.md) and [v3 progress](../../../docs/FLOAT_PUSH_V3_PROGRESS.md).
+先读[交接文档](../../../docs/FLOAT_PUSH_TRAINING_NEXT.md)。当前forward专家已通过9组位置×2seed的18回合验证；该方案尚未训练DP。
 
-After manual video approval, floating execution defaults to `--float_pass_mode forward`: open to 80 degrees, skip the near-side pre-alignment, and navigate directly to the far-side target based on the initial approach side. `--float_pass_mode source` retains the old flow; the legged entry still defaults to source. The forward profile is distinct from old training data. `validate_forward_expert.py` evaluates the predeclared 3x3 positions with two seeds each, with every attempt retained. See [navigation comparison](../../../docs/FLOAT_PUSH_FORWARD_PASS_REVIEW.md).
+## 当前路径
 
-The approved position grid completed 18/18 expert tasks, all without backward travel after reaching 80 degrees. All 18 videos decoded fully and the downloaded artifact hashes matched. This is an expert result; no DP training was performed. See [validation report](../../../docs/FLOAT_PUSH_FORWARD_EXPERT_VALIDATION.md).
+- wholebody_float.py：原全身任务的浮动后端。使用 --float_execution source；通过模式默认forward，可显式切换source。
+- validate_forward_expert.py：18回合专家位置网格验证。
+- collect_v3.py：批量采集模板；种子表仍为旧实验值，新采集时配置新的集合。
+- high-level/dp/convert_door_raw_to_lerobot.py、train_door_dp.py：原数据转换和训练入口（仓库路径为 high-level/dp/）。
+- checks.py、dataset_contract.py：数据、统计和checkpoint检查。
+- offline_eval.py、analyze_v3.py：原控制器离线分析及执行曲线。
+- run_tools/launch.py：单GPU选择、项目环境、进程运行时限与记账。
+- run_tools/activate_train.sh：独立训练Conda激活。
+- watch_training_plot.py：读取训练日志生成曲线。
 
-Retained reusable tools:
+finish_v3.py、resume_eval_v3.py、deliver_v3.py保留旧实验编排供参考，其集合与目录定义不作为新训练的默认计划。通用FK、原序列适配、分析和视频工具仍保留。
 
-- `run_tools/launch.py`, `bounded.py`: GPU sampling, single-process limits and cumulative budget.
-- `checks.py`, `dataset_contract.py`: named Cartesian fields, frame alignment, split isolation and original checkpoint train-only statistics.
-- `offline_eval.py`: expert-observation errors through the original controller, without error-based task gates. Reads the original config/model/stats checkpoint format.
-- `analyze.py`, `short_tools/deliver.py`: trajectory plots, task tables and paired video delivery. Recorded `action_names` determine coordinates.
-- `upstream_reuse.py`: NPZ container adapter inheriting original sequence indexing/statistics, when the LeRobot path is unavailable.
-- `kinematics.py`, `artifacts.py`: URDF FK, portable paths and strict JSON.
-- `analyze_v3.py`: plots, CSV metrics and FK/Jacobian audits for the new source-task backend.
-- `resume_eval_v3.py`: evaluation-only continuation from a verified frozen 5000-update checkpoint; never invokes training.
-- `run_tools/activate_train.sh`: isolated pro5000 Conda training environment; disables user-site packages.
+## 数据约定
 
-The retired float executors, 39D/11D trainers, reference limiters and experiment schedulers were removed. The source repository's original float scripts and whole-body DP modules remain unchanged.
+真实27D状态、原10D末端动作、四路54×96图像、50Hz；schema为 float_push_upstream_ee_v3。当前 execution_profile 为 upstream_wholebody_float_v3_forward_pass，旧source模式保留独立profile。
 
-Metrics and plot definitions: [recording specification](../../../docs/FLOAT_PUSH_METRICS.md). Run `python -m unittest test_analysis` here; run `python run_tools/test_budget.py` for process accounting.
+任务/导航 → DP覆盖 → IK/底座执行顺序及源snap处理保留。训练继续使用原LeRobot读取及train-only归一化。
+
+## 相关资料
+
+[环境](../../../docs/环境配置.md) · [执行方案](../../../docs/FLOAT_PUSH_REPRODUCTION_PLAN.md) · [指标](../../../docs/FLOAT_PUSH_METRICS.md) · [专家验证](../../../docs/FLOAT_PUSH_FORWARD_EXPERT_VALIDATION.md)
+
+CPU回归：python -m unittest test_forward_pass test_analysis。资源工具检查：python run_tools/test_budget.py。

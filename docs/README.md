@@ -1,9 +1,10 @@
-# 当前文档
+# 项目文档
 
-1. [复现方案](FLOAT_PUSH_REPRODUCTION_PLAN.md)：原全身DP＋浮动底座、已确认配置和执行顺序。
-2. [指标与绘图](FLOAT_PUSH_METRICS.md)：原日志字段、任务评价、补充记录与可视化。
-3. [环境配置](环境配置.md)：pro5000环境、资产和GPU运行约定。
-4. [新对话提示词](FLOAT_PUSH_NEXT_PROMPT.md)：可复制到新对话。
-5. [清理记录](FLOAT_PUSH_CLEANUP_REPORT.md)：本次删除清单和精简证据位置。
+新对话先读[交接入口](FLOAT_PUSH_TRAINING_NEXT.md)，即可了解当前状态、环境位置、运行命令和下一步。
 
-`audit/FLOAT_PUSH_REPRODUCTION_V3_DESIGN.json` 保存源Git核查与已确认决策；`audit/FLOAT_PUSH_CLEANUP_20261013.json` 保存清理汇总。
+- [环境配置](环境配置.md)：服务器两套Conda环境与激活方式。
+- [当前方案](FLOAT_PUSH_REPRODUCTION_PLAN.md)：源模块复用、状态动作和直接通过逻辑。
+- [指标说明](FLOAT_PUSH_METRICS.md)：训练日志、任务成功率和绘图入口。
+- [专家18回合验证](FLOAT_PUSH_FORWARD_EXPERT_VALIDATION.md)：当前方案的多初态结果。
+- [直接通过修复](FLOAT_PUSH_FORWARD_PASS_REVIEW.md)：改动原因与同初态对照。
+- [旧模型参考](FLOAT_PUSH_V3_RESULTS.md)：保留的5000更新模型和数据位置。
