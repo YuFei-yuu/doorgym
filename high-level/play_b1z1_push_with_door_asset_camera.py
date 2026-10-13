@@ -1306,6 +1306,8 @@ def parse_args():
     parser.add_argument("--float_video", action="store_true")
     parser.add_argument("--float_push_target", choices=["wholebody", "source_float"], default="wholebody")
     parser.add_argument("--float_execution", choices=["tensor", "source"], default="tensor")
+    parser.add_argument("--float_pass_mode", choices=["source", "forward"], default=None,
+                        help="Floating backend defaults to forward passage; source keeps the original pre-alignment.")
     parser.add_argument("--float_replay", type=str, default=None)
     parser.add_argument("--rl_device", type=str, default="cuda:0")
     parser.add_argument("--sim_device", type=str, default="cuda:0")
@@ -1494,8 +1496,16 @@ def build_low_level_args(args):
     )
 
 
+def resolve_float_pass_mode(requested, floating):
+    mode = requested if requested is not None else ("forward" if floating else "source")
+    if not floating and mode != "source":
+        raise ValueError("--float_pass_mode forward requires the floating backend")
+    return mode
+
+
 def main(backend=None):
     args = parse_args()
+    args.float_pass_mode = resolve_float_pass_mode(args.float_pass_mode, backend is not None)
     os.chdir(ROOT)
 
     DOOR_RUNTIME.update(_load_door_runtime(args.door_cfg) if backend is None else backend.load_runtime(args))
@@ -1926,6 +1936,10 @@ def main(backend=None):
             pass_done[newly_passing] = False
             pass_backoff_start_xy[newly_passing] = env.root_states[newly_passing, :2]
             side = torch.sign(env.root_states[newly_passing, 0] - env.door_root_state[newly_passing, 0])
+            if backend is not None and args.float_pass_mode == "forward":
+                # The kinematic base can reach/cross the door plane before 80deg.
+                # Keep the approach side so the far-side goal cannot flip behind us.
+                side = torch.sign(start_xy[newly_passing, 0] - env.door_root_state[newly_passing, 0])
             side = torch.where(torch.abs(side) < 1e-6, torch.ones_like(side), side)
             pass_side[newly_passing] = side
 
@@ -1938,6 +1952,11 @@ def main(backend=None):
             through_xy[:, 0] -= side * args.pass_through_distance
             through_xy[:, 1] -= side * args.pass_left_offset
             pass_through_xy[newly_passing] = through_xy
+            if backend is not None and args.float_pass_mode == "forward":
+                # Already aligned while pushing: do not return to the near-side
+                # pre-alignment waypoint and turn around a second time.
+                pass_pre_xy[newly_passing] = env.root_states[newly_passing, :2]
+                pass_align_done[newly_passing] = True
 
         if torch.any(pass_done):
             env.freeze_arm_default[pass_done] = False

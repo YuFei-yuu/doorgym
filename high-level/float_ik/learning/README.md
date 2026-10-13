@@ -2,6 +2,8 @@
 
 The active design is [upstream whole-body DP with a floating base](../../../docs/FLOAT_PUSH_REPRODUCTION_PLAN.md). `wholebody_float.py` supplies the source split-asset floating backend to the original whole-body task loop. Use `--float_execution source` for the frozen source pose API / CPU tensor pipeline with GPU PhysX. The nominal expert and exact command replay reached 90 degrees and completed the original pass flow. All 20 expert collection attempts succeeded. Original uncached training completed 5000 updates; frozen-model evaluation completed without retraining: validation opened 1/3 and passed 0/3, test opened 0/3 and passed 0/3. The model has not met the task objective. See [results](../../../docs/FLOAT_PUSH_V3_RESULTS.md) and [v3 progress](../../../docs/FLOAT_PUSH_V3_PROGRESS.md).
 
+After manual video approval, floating execution defaults to `--float_pass_mode forward`: open to 80 degrees, skip the near-side pre-alignment, and navigate directly to the far-side target based on the initial approach side. `--float_pass_mode source` retains the old flow; the legged entry still defaults to source. The forward profile is distinct from old training data. `validate_forward_expert.py` evaluates the predeclared 3x3 positions with two seeds each, with every attempt retained. See [navigation comparison](../../../docs/FLOAT_PUSH_FORWARD_PASS_REVIEW.md).
+
 Retained reusable tools:
 
 - `run_tools/launch.py`, `bounded.py`: GPU sampling, single-process limits and cumulative budget.

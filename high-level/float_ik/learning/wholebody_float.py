@@ -65,6 +65,7 @@ class WholebodyFloat(upstream.ManipLocoDoorAsset):
         if not args.float_output or args.record_dp_dataset:
             raise ValueError('Use --float_output; the backend supplies pre-execution raw recording')
         cls.args = args
+        cls.execution_profile = PROFILE + ('_forward_pass' if args.float_pass_mode == 'forward' else '')
 
     def __init__(self, cfg, sim_params, physics_engine, sim_device, headless):
         type(self).instance = self
@@ -205,7 +206,7 @@ class WholebodyFloat(upstream.ManipLocoDoorAsset):
             self.replay_rows = [json.loads(s) for s in Path(self.args.float_replay).with_name('execution.jsonl').read_text().splitlines()]
         self.started = time.monotonic()
         self.log = (self.output/'execution.jsonl').open('x')
-        self.config = dict(schema=SCHEMA, execution_profile=PROFILE, seed=self.args.float_seed,
+        self.config = dict(schema=SCHEMA, execution_profile=self.execution_profile, seed=self.args.float_seed,
                            args=vars(self.args), env=class_to_dict(cfg), dt=self.dt,
                            door_runtime=upstream.DOOR_RUNTIME,
                            physics_dt=self.physics_dt, dof_names=self.dof_names,
@@ -461,7 +462,7 @@ class WholebodyFloat(upstream.ManipLocoDoorAsset):
         payload.update(next_state=np.stack(self.transitions), frame=np.arange(n), next_frame=np.arange(1, n+1),
                        sim_time=np.arange(n)*self.dt, state_feature_names=np.asarray(self.dp_state_names),
                        action_names=np.asarray(ACTION_NAMES), schema=np.asarray(SCHEMA),
-                       execution_profile=np.asarray(PROFILE), fps=np.asarray(50))
+                       execution_profile=np.asarray(self.execution_profile), fps=np.asarray(50))
         payload['pre_observation_event'] = np.asarray(self.snap_events[:n])
         payload['image_valid'] = np.array([r['extra']['image_valid'] for r in self.rows],dtype=bool)
         payload['executed_goal_quaternion'] = np.array([r['executed_goal_quaternion'] for r in self.rows],dtype=np.float32)
@@ -470,7 +471,8 @@ class WholebodyFloat(upstream.ManipLocoDoorAsset):
         np.savez_compressed(self.output/'trajectory.npz', **payload)
         last = self.rows[-1]
         distance = float(np.linalg.norm(np.array(last['base_after'][:2])-last['extra']['through_target'])) if opened else None
-        summary = dict(seed=self.args.float_seed, schema=SCHEMA, execution_profile=PROFILE,
+        summary = dict(seed=self.args.float_seed, schema=SCHEMA, execution_profile=self.execution_profile,
+                       pass_navigation=self.args.float_pass_mode,
                        mode='replay' if self.replay is not None else ('policy' if self.args.dp_policy_checkpoint else 'expert'),
                        checkpoint=self.args.dp_policy_checkpoint,
                        opened=opened, pass_done=done, success=opened and done and error is None,

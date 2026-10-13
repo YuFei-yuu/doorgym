@@ -28,6 +28,7 @@ def collect(root, reference, total=7200):
                   source_hashes=frozen['source_hashes'],tensor_pipeline=frozen['tensor_pipeline'],
                   fps=50,split_seeds=dict(train=list(range(14100,14116)),val=list(range(14200,14204))),
                   expert_args={k:frozen['args'][k] for k in ['robot_x','robot_y','robot_z','robot_yaw','stop_distance','push_base_vx','lever_step_size','float_execution','float_push_target']})
+    contract['expert_args']['float_pass_mode'] = frozen['args'].get('float_pass_mode', 'source')
     atomic_json(root/'recording_contract.json',contract)
     for split,seeds in contract['split_seeds'].items():
         raw_out=root/'data'/('raw_'+split);raw_out.mkdir(parents=True,exist_ok=True)
