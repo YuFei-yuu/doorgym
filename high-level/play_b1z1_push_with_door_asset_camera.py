@@ -1303,6 +1303,8 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--float_output", type=str, default=None)
     parser.add_argument("--float_seed", type=int, default=42)
+    parser.add_argument("--float_expert_post_pass_seconds", type=float, choices=[0., 3.], default=0.,
+                        help="Record the existing floating expert for 3 real seconds after first pass_done")
     parser.add_argument("--float_video", action="store_true")
     parser.add_argument("--float_push_target", choices=["wholebody", "source_float"], default="wholebody")
     parser.add_argument("--float_execution", choices=["tensor", "source"], default="tensor")
@@ -2476,12 +2478,13 @@ def main(backend=None):
             saved_count = int(torch.sum(dp_record_success[list(dp_recorders.keys())]).detach().cpu().item())
             print(f"Finished raw Door DP recording: saved_successful={saved_count}/{len(dp_recorders)}")
             break
-        if backend is not None and dp_controller is None and env.task_done:
+        if backend is not None and dp_controller is None and env.expert_recording_complete():
             break
     if dp_logger is not None:
         dp_logger.close()
     if backend is not None:
         env.close()
+        env.expert_tail.require_complete()
 
 
 if __name__ == "__main__":

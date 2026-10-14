@@ -31,6 +31,7 @@ from dp.door_dp_common import (RawDoorDPRecorder, get_door_dp_action,
 from legged_gym.envs.manip_loco.manip_loco import ManipLoco
 from legged_gym.utils.helpers import class_to_dict
 from kinematics import FK
+from expert_tail import ExpertRecordingTail
 
 SCHEMA = 'float_push_upstream_ee_v3'
 PROFILE = 'upstream_wholebody_float_v3'
@@ -64,6 +65,8 @@ class WholebodyFloat(upstream.ManipLocoDoorAsset):
             raise ValueError('Floating backend currently records one isolated attempt per process')
         if not args.float_output or args.record_dp_dataset:
             raise ValueError('Use --float_output; the backend supplies pre-execution raw recording')
+        if args.float_expert_post_pass_seconds and (args.dp_policy_checkpoint or args.float_replay):
+            raise ValueError('Post-pass recording is restricted to the existing expert')
         cls.args = args
         cls.execution_profile = PROFILE + ('_forward_pass' if args.float_pass_mode == 'forward' else '')
 
@@ -77,6 +80,7 @@ class WholebodyFloat(upstream.ManipLocoDoorAsset):
         self.output = output
         self.viewer = None
         self.dt = sim_params.dt * cfg.control.decimation
+        self.expert_tail = ExpertRecordingTail(self.args.float_expert_post_pass_seconds, self.dt)
         self.physics_dt = sim_params.dt
         self.num_actions = 0
         self.max_episode_length = int(cfg.env.episode_length_s / self.dt)
@@ -302,6 +306,7 @@ class WholebodyFloat(upstream.ManipLocoDoorAsset):
                      inference_sec=inference_sec, dp_replanned=replanned,
                      contact_pairs_available=False)
         self.task_done = bool(done[0])
+        self.expert_tail.observe(step, self.task_done)
         self.record = make_door_dp_log_record(self, step, action if dp_action is None else dp_action,
                                             phase_id=phase, phase_names=names, extra=extra)
         self.record['sim_time'] = step*self.dt
@@ -313,6 +318,9 @@ class WholebodyFloat(upstream.ManipLocoDoorAsset):
         self.record['freeze_arm_zero'] = bool(self.freeze_arm_zero[0])
         self.record['dq_before'] = self.dof_vel[0].cpu().tolist()
         self.record['jacobian_world'] = self.ee_j_eef[0].cpu().tolist()
+
+    def expert_recording_complete(self):
+        return self.task_done and self.expert_tail.complete
 
     def adapt_expert_push(self, phase, manip_step, rotate, push, pass_started):
         if self.args.float_push_target != 'source_float' or int(phase[0]) != 7 or bool(pass_started[0]):
@@ -455,7 +463,7 @@ class WholebodyFloat(upstream.ManipLocoDoorAsset):
             return
         opened = any(r['extra']['pass_started'] for r in self.rows)
         done = any(r['extra']['pass_done'] for r in self.rows)
-        if opened and error is None:
+        if opened and (error is None or self.expert_tail.seconds):
             self.raw.save_episode()
         n = len(self.rows)
         payload = {k:np.stack(v[:n]) for k,v in self.raw.frames.items()}
@@ -489,6 +497,15 @@ class WholebodyFloat(upstream.ManipLocoDoorAsset):
                        first_open_frame=next((r['step'] for r in self.rows if r['extra']['pass_started']), None),
                        first_pass_frame=next((r['step'] for r in self.rows if r['extra']['pass_done']), None),
                        end_reason='exception' if error else ('pass_done' if done else 'max_steps'), error=error)
+        if self.expert_tail.seconds:
+            summary.update(first_success_step=self.expert_tail.first_pass_step,
+                           termination_reason=('exception' if error else
+                                               'post_pass_recording_complete' if self.expert_tail.complete else 'max_steps'),
+                           expert_post_pass_seconds=self.expert_tail.seconds,
+                           post_pass_recorded_seconds=self.expert_tail.recorded_seconds,
+                           post_pass_required_steps=self.expert_tail.steps,
+                           recording_complete=self.expert_tail.complete and error is None,
+                           success=summary['success'] and self.expert_tail.complete)
         (self.output/'summary.json').write_text(json.dumps(summary, indent=2))
         print('FLOAT_SUMMARY', json.dumps(summary), flush=True)
         self.gym.destroy_sim(self.sim)

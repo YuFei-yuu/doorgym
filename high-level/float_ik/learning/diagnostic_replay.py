@@ -12,6 +12,11 @@ import torch
 from diagnostic_contract import clipped_legacy_action, legacy_contract, validate_checkpoint_contract
 
 
+def replay_configuration(mode, quaternion_mode='source'):
+    return dict(restore_freeze=mode == 'recorded',
+                restore_quaternion=mode == 'recorded' and quaternion_mode == 'source')
+
+
 class DiagnosticReplay(backend.WholebodyFloat):
     diagnostic_options = None
 
@@ -29,10 +34,12 @@ class DiagnosticReplay(backend.WholebodyFloat):
         if len(self.replay) != len(self.replay_rows) or self.args.steps != len(self.replay):
             raise ValueError('Replay must run exactly the recorded expert horizon')
         contract = None
-        if options.mode != 'recorded':
+        variant = replay_configuration(options.mode, getattr(options, 'quaternion_mode', 'source'))
+        if not variant['restore_quaternion']:
+            self.replay_quaternions = None
+        if not variant['restore_freeze']:
             # The policy applicator clears these flags and normalizes the raw
             # target quaternion. Do not reinstate either expert side channel.
-            self.replay_quaternions = None
             for row in self.replay_rows:
                 row['freeze_arm_default'] = False
                 row['freeze_arm_zero'] = False
@@ -44,8 +51,9 @@ class DiagnosticReplay(backend.WholebodyFloat):
         source = Path(__file__)
         info = dict(mode=options.mode, original_horizon=len(self.replay),
                     stats_checkpoint=options.stats_checkpoint, action_contract=contract,
-                    autonomous_policy=False, restores_freeze_flags=options.mode == 'recorded',
-                    restores_executed_quaternion=options.mode == 'recorded',
+                    autonomous_policy=False, restores_freeze_flags=variant['restore_freeze'],
+                    restores_executed_quaternion=variant['restore_quaternion'],
+                    quaternion_mode=getattr(options, 'quaternion_mode', 'source'),
                     preserves_natural_snap=True, source_sha256=hashlib.sha256(source.read_bytes()).hexdigest())
         (self.output/'diagnostic.json').write_text(json.dumps(info, indent=2))
 
@@ -78,6 +86,8 @@ def main():
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument('--diagnostic-mode', dest='mode', choices=['recorded', 'actions', 'clipped'], required=True)
     parser.add_argument('--stats-checkpoint')
+    parser.add_argument('--diagnostic-quaternion-mode', dest='quaternion_mode', choices=['source', 'action'], default='source',
+                        help='action applies identical original 10D quaternion normalization to both freeze variants')
     options, remaining = parser.parse_known_args()
     if options.mode == 'clipped' and not options.stats_checkpoint:
         parser.error('Clipped replay requires --stats-checkpoint')

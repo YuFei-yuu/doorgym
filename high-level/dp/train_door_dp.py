@@ -56,6 +56,8 @@ def parse_args():
     parser.add_argument("--resume", type=str, default=None, help="Full-state checkpoint to continue.")
     parser.add_argument('--action_contract', choices=['legacy', 'forward_v3'], default='legacy')
     parser.add_argument('--wandb_mode', choices=['offline', 'disabled'], default='offline')
+    parser.add_argument('--stop_on_nonfinite_loss', action='store_true',
+                        help='Abort before backward/optimizer when the computed loss is nonfinite')
     return parser.parse_args()
 
 
@@ -300,6 +302,11 @@ def save_checkpoint(path, model, optimizer, stats, config, feature_names, sample
     temporary.replace(latest)
 
 
+def require_finite_loss(loss, next_step):
+    if not bool(torch.isfinite(loss).all().item()):
+        raise FloatingPointError('Nonfinite loss before optimizer update %d' % next_step)
+
+
 def main():
     args = parse_args()
     if args.steps <= 0 or args.save_interval <= 0 or args.log_interval <= 0:
@@ -439,6 +446,8 @@ def main():
             noisy_action = noise_scheduler.add_noise(action, noise, timesteps)
             pred = model(noisy_action, timesteps, state, mask, masked_depth, front_mask, front_masked_depth)
             loss = F.mse_loss(pred, noise)
+            if args.stop_on_nonfinite_loss:
+                require_finite_loss(loss, step + 1)
             optimizer.zero_grad(set_to_none=True)
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
