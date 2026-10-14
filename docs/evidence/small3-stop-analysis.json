@@ -1,0 +1,497 @@
+{
+  "source": "experiments/float-push/20261014-forward-v3-small3",
+  "python": "/data/zyf/video2door/.repro/envs/door-dp-train/bin/python",
+  "cuda_visible_devices": "",
+  "threads": "2",
+  "experts": [
+    {
+      "seed": 16040,
+      "frames": 1296,
+      "windows": 1265,
+      "terminal_frames": [
+        1295
+      ],
+      "terminal_vx": [
+        0.0
+      ],
+      "terminal_yaw": [
+        0.0
+      ],
+      "terminal_target_count_by_offset": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1
+      ],
+      "terminal_in_executed_prefix": 0,
+      "terminal_observation_centers": 0,
+      "total_stationary_raw_frames": 921,
+      "last_three_commands": [
+        {
+          "vx": 0.43718472123146057,
+          "vy": 0.0,
+          "yaw": 0.020388007164001465
+        },
+        {
+          "vx": 0.43665555119514465,
+          "vy": 0.0,
+          "yaw": 0.021229863166809082
+        },
+        {
+          "vx": 0.0,
+          "vy": 0.0,
+          "yaw": 0.0
+        }
+      ],
+      "terminal_measured_displacement_m": 0.0
+    },
+    {
+      "seed": 16041,
+      "frames": 1292,
+      "windows": 1261,
+      "terminal_frames": [
+        1291
+      ],
+      "terminal_vx": [
+        0.0
+      ],
+      "terminal_yaw": [
+        0.0
+      ],
+      "terminal_target_count_by_offset": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1
+      ],
+      "terminal_in_executed_prefix": 0,
+      "terminal_observation_centers": 0,
+      "total_stationary_raw_frames": 921,
+      "last_three_commands": [
+        {
+          "vx": 0.43864384293556213,
+          "vy": 0.0,
+          "yaw": 0.0180666446685791
+        },
+        {
+          "vx": 0.43819671869277954,
+          "vy": 0.0,
+          "yaw": 0.018777966499328613
+        },
+        {
+          "vx": 0.0,
+          "vy": 0.0,
+          "yaw": 0.0
+        }
+      ],
+      "terminal_measured_displacement_m": 0.0
+    },
+    {
+      "seed": 16042,
+      "frames": 1283,
+      "windows": 1252,
+      "terminal_frames": [
+        1282
+      ],
+      "terminal_vx": [
+        0.0
+      ],
+      "terminal_yaw": [
+        0.0
+      ],
+      "terminal_target_count_by_offset": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1
+      ],
+      "terminal_in_executed_prefix": 0,
+      "terminal_observation_centers": 0,
+      "total_stationary_raw_frames": 921,
+      "last_three_commands": [
+        {
+          "vx": 0.4396219253540039,
+          "vy": 0.0,
+          "yaw": 0.016510605812072754
+        },
+        {
+          "vx": 0.43921056389808655,
+          "vy": 0.0,
+          "yaw": 0.017165064811706543
+        },
+        {
+          "vx": 0.0,
+          "vy": 0.0,
+          "yaw": 0.0
+        }
+      ],
+      "terminal_measured_displacement_m": 0.0
+    }
+  ],
+  "totals": {
+    "frames": 3871,
+    "windows": 3778,
+    "terminal_frames": 3,
+    "terminal_executed_prefix_targets": 0,
+    "terminal_raw_percent": 0.07749935417204856,
+    "terminal_sequence_target_percent": 0.00248147167813658,
+    "sample_exposure_epochs": 16.94017998941239
+  },
+  "evaluations": [
+    {
+      "step": 250,
+      "seed": 16040,
+      "all": {
+        "frames": 2500,
+        "duration_s": 50.0,
+        "path_m": 8.847803306742714,
+        "net_m": 8.822439363552615,
+        "mean_vx": 0.17695645284265338,
+        "min_vx": 0.0,
+        "max_vx": 0.7798399925231934,
+        "low_speed_fraction": 0.04,
+        "final_vx": 0.28115710616111755,
+        "replans": 157,
+        "measured_mean_xy_speed": 0.17695606613485426
+      },
+      "first_pass_frame": null
+    },
+    {
+      "step": 250,
+      "seed": 16041,
+      "all": {
+        "frames": 2500,
+        "duration_s": 50.0,
+        "path_m": 9.31483040010892,
+        "net_m": 9.25512273988482,
+        "mean_vx": 0.18629660174595192,
+        "min_vx": 0.0023846386466175318,
+        "max_vx": 0.7926769852638245,
+        "low_speed_fraction": 0.0008,
+        "final_vx": 0.17845076322555542,
+        "replans": 157,
+        "measured_mean_xy_speed": 0.1862966080021784
+      },
+      "first_pass_frame": null
+    },
+    {
+      "step": 250,
+      "seed": 16042,
+      "all": {
+        "frames": 2500,
+        "duration_s": 50.0,
+        "path_m": 6.734770635007498,
+        "net_m": 6.71685725096612,
+        "mean_vx": 0.13469519753120257,
+        "min_vx": 0.0,
+        "max_vx": 0.6561629176139832,
+        "low_speed_fraction": 0.0392,
+        "final_vx": 0.17719875276088715,
+        "replans": 157,
+        "measured_mean_xy_speed": 0.13469541270014995
+      },
+      "first_pass_frame": null
+    },
+    {
+      "step": 500,
+      "seed": 16040,
+      "all": {
+        "frames": 2500,
+        "duration_s": 50.0,
+        "path_m": 4.85409194490499,
+        "net_m": 4.846743805592272,
+        "mean_vx": 0.09708195967655629,
+        "min_vx": 0.0,
+        "max_vx": 0.6739405393600464,
+        "low_speed_fraction": 0.0304,
+        "final_vx": 0.0832243412733078,
+        "replans": 157,
+        "measured_mean_xy_speed": 0.0970818388980998
+      },
+      "first_pass_frame": null
+    },
+    {
+      "step": 500,
+      "seed": 16041,
+      "all": {
+        "frames": 2500,
+        "duration_s": 50.0,
+        "path_m": 4.222263461201216,
+        "net_m": 4.215313596316036,
+        "mean_vx": 0.08444545010976726,
+        "min_vx": 0.0,
+        "max_vx": 0.5206900835037231,
+        "low_speed_fraction": 0.0408,
+        "final_vx": 0.05510831996798515,
+        "replans": 157,
+        "measured_mean_xy_speed": 0.08444526922402432
+      },
+      "first_pass_frame": null
+    },
+    {
+      "step": 500,
+      "seed": 16042,
+      "all": {
+        "frames": 2500,
+        "duration_s": 50.0,
+        "path_m": 4.864361813594723,
+        "net_m": 4.835337752094531,
+        "mean_vx": 0.09728686768400949,
+        "min_vx": 0.0,
+        "max_vx": 0.7926769852638245,
+        "low_speed_fraction": 0.0392,
+        "final_vx": 0.060425806790590286,
+        "replans": 157,
+        "measured_mean_xy_speed": 0.09728723627189445
+      },
+      "first_pass_frame": null
+    },
+    {
+      "step": 1000,
+      "seed": 16040,
+      "all": {
+        "frames": 2500,
+        "duration_s": 50.0,
+        "path_m": 11.733646198659955,
+        "net_m": 11.706192984875178,
+        "mean_vx": 0.23467295171599836,
+        "min_vx": 0.005682141054421663,
+        "max_vx": 0.7569766640663147,
+        "low_speed_fraction": 0.0004,
+        "final_vx": 0.24476134777069092,
+        "replans": 157,
+        "measured_mean_xy_speed": 0.23467292397319908
+      },
+      "first_pass_frame": 830,
+      "first_pass_s": 16.6,
+      "post_pass": {
+        "frames": 1670,
+        "duration_s": 33.4,
+        "path_m": 8.825632130059226,
+        "net_m": 8.82167510808694,
+        "mean_vx": 0.26424037163497177,
+        "min_vx": 0.013461987487971783,
+        "max_vx": 0.744710385799408,
+        "low_speed_fraction": 0.0,
+        "final_vx": 0.24476134777069092,
+        "replans": 105,
+        "measured_mean_xy_speed": 0.26424048293590496
+      },
+      "post_queue_horizon": {
+        "frames": 1654,
+        "duration_s": 33.08,
+        "path_m": 8.646477338078515,
+        "net_m": 8.643146563230182,
+        "mean_vx": 0.26138070228249466,
+        "min_vx": 0.013461987487971783,
+        "max_vx": 0.6809472441673279,
+        "low_speed_fraction": 0.0,
+        "final_vx": 0.24476134777069092,
+        "replans": 104,
+        "measured_mean_xy_speed": 0.26138081433127314
+      },
+      "last_two_seconds": {
+        "frames": 100,
+        "duration_s": 2.0,
+        "path_m": 0.504983450905315,
+        "net_m": 0.5049834200338169,
+        "mean_vx": 0.25248822167515755,
+        "min_vx": 0.15630485117435455,
+        "max_vx": 0.3566034436225891,
+        "low_speed_fraction": 0.0,
+        "final_vx": 0.24476134777069092,
+        "replans": 7,
+        "measured_mean_xy_speed": 0.2524917254526575
+      },
+      "first_pass_command": {
+        "vx": 0.6084638237953186,
+        "vy": 0.0,
+        "yaw": 0.01747487299144268
+      },
+      "last_through_distance_m": 8.734889333175847
+    },
+    {
+      "step": 1000,
+      "seed": 16041,
+      "all": {
+        "frames": 2500,
+        "duration_s": 50.0,
+        "path_m": 9.250014986760952,
+        "net_m": 9.248963079732205,
+        "mean_vx": 0.18500026976206574,
+        "min_vx": 0.0,
+        "max_vx": 0.7926769852638245,
+        "low_speed_fraction": 0.1456,
+        "final_vx": 0.1125742495059967,
+        "replans": 157,
+        "measured_mean_xy_speed": 0.18500029973521906
+      },
+      "first_pass_frame": null
+    },
+    {
+      "step": 1000,
+      "seed": 16042,
+      "all": {
+        "frames": 2500,
+        "duration_s": 50.0,
+        "path_m": 11.260907237008595,
+        "net_m": 11.239382220273434,
+        "mean_vx": 0.22521767892511563,
+        "min_vx": 0.0,
+        "max_vx": 0.784695029258728,
+        "low_speed_fraction": 0.0032,
+        "final_vx": 0.7200430631637573,
+        "replans": 157,
+        "measured_mean_xy_speed": 0.2252181447401719
+      },
+      "first_pass_frame": 1018,
+      "first_pass_s": 20.36,
+      "post_pass": {
+        "frames": 1482,
+        "duration_s": 29.64,
+        "path_m": 8.359320196507039,
+        "net_m": 8.35542745080646,
+        "mean_vx": 0.2820275699400548,
+        "min_vx": 0.06694823503494263,
+        "max_vx": 0.755573570728302,
+        "low_speed_fraction": 0.0,
+        "final_vx": 0.7200430631637573,
+        "replans": 93,
+        "measured_mean_xy_speed": 0.28202834671076377
+      },
+      "post_queue_horizon": {
+        "frames": 1466,
+        "duration_s": 29.32,
+        "path_m": 8.16060344916349,
+        "net_m": 8.157388396486546,
+        "mean_vx": 0.2783281310356005,
+        "min_vx": 0.06694823503494263,
+        "max_vx": 0.755573570728302,
+        "low_speed_fraction": 0.0,
+        "final_vx": 0.7200430631637573,
+        "replans": 92,
+        "measured_mean_xy_speed": 0.2783289034503237
+      },
+      "last_two_seconds": {
+        "frames": 100,
+        "duration_s": 2.0,
+        "path_m": 0.8303250537345064,
+        "net_m": 0.8303250190397881,
+        "mean_vx": 0.4151598784327507,
+        "min_vx": 0.2951669991016388,
+        "max_vx": 0.755573570728302,
+        "low_speed_fraction": 0.0,
+        "final_vx": 0.7200430631637573,
+        "replans": 7,
+        "measured_mean_xy_speed": 0.4151625268672532
+      },
+      "first_pass_command": {
+        "vx": 0.6839984059333801,
+        "vy": 0.0,
+        "yaw": 0.01161140762269497
+      },
+      "last_through_distance_m": 8.260016813735328
+    }
+  ],
+  "inputs_sha256": {
+    "experiments/float-push/20261014-forward-v3-small3/reference/seed_16040/execution.jsonl": "212370bfae3b0e92868e772948e7c1decabcc02e5f92b4487f95158c684ee1d0",
+    "experiments/float-push/20261014-forward-v3-small3/data/raw/episode_000000.npz": "a5a0fe6a3e0e141bc26db2d1685caefbf4bbe67bc567a14e8e60cbaf79dd1f7d",
+    "experiments/float-push/20261014-forward-v3-small3/reference/seed_16041/execution.jsonl": "36378513b3e3c5a0ba7236f1a9f3772aa156b289b2c7d8c6b15b2abd7bc2c2f1",
+    "experiments/float-push/20261014-forward-v3-small3/data/raw/episode_000001.npz": "b85caf9ae1745d2487a18d8447fd37ff451a7bbcb378c4967e0b84171625e6d4",
+    "experiments/float-push/20261014-forward-v3-small3/reference/seed_16042/execution.jsonl": "4f8719b65b60d04738eca05a5d19c5ea69b6e646fac2fbde9203f6751d2b40a0",
+    "experiments/float-push/20261014-forward-v3-small3/data/raw/episode_000002.npz": "919f489b8362cb06713422b53026850d8a5e63f5530fc1464f6960772a5517b6",
+    "experiments/float-push/20261014-forward-v3-small3/evaluation/step_000250/seed_16040/execution.jsonl": "0c2a12bc214eee222f4386a83a0f164097c344169f4370ff641eff36999fa01a",
+    "experiments/float-push/20261014-forward-v3-small3/evaluation/step_000250/seed_16041/execution.jsonl": "c7353dfa08e822ffd5cea05a6e4228c808647fb779faa63f6bbd12ead5b24988",
+    "experiments/float-push/20261014-forward-v3-small3/evaluation/step_000250/seed_16042/execution.jsonl": "27c8e051361193008833807509fada8b74ab92bef152b03a79fea1ce0d7e53f3",
+    "experiments/float-push/20261014-forward-v3-small3/evaluation/step_000500/seed_16040/execution.jsonl": "8ab0d3c465a7eae680edd308509e70ffcd7cdc5a23f79001155df3f0ae06821e",
+    "experiments/float-push/20261014-forward-v3-small3/evaluation/step_000500/seed_16041/execution.jsonl": "3c042e46c8296dd2d05e52084c4e8c9e30a521edf26b0ec42d4cb56892acd236",
+    "experiments/float-push/20261014-forward-v3-small3/evaluation/step_000500/seed_16042/execution.jsonl": "264aeb06911ececd2ca483a04a432e2d4469eb22191da3085731772e45506ca6",
+    "experiments/float-push/20261014-forward-v3-small3/evaluation/step_001000/seed_16040/execution.jsonl": "94ad6a4e66ef71baa538ccf60697ece5e3d126d185eb65be0ba3ebeffa2672e3",
+    "experiments/float-push/20261014-forward-v3-small3/evaluation/step_001000/seed_16041/execution.jsonl": "4a0812db7caf6a9a0a360712969f41347aaac78fcaa584b778a86af35b9c38f5",
+    "experiments/float-push/20261014-forward-v3-small3/evaluation/step_001000/seed_16042/execution.jsonl": "c914500dc20f08393de284e68b3662310065a23720115e31eb5c70c5dbe46c96"
+  }
+}

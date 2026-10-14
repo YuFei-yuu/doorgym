@@ -1,0 +1,37 @@
+BUDGET {"stage": "normal", "elapsed_sec": 0.015956758987158537, "exit_code": 0, "physical_gpu": null}
+BUDGET {"stage": "timeout", "elapsed_sec": 3.0012308340519667, "exit_code": 124, "physical_gpu": null}
+BUDGET {"stage": "unlimited", "elapsed_sec": 0.00843694806098938, "exit_code": 0, "physical_gpu": null}
+test_legacy_stats_and_windows_unchanged (test_action_contract.ActionContractTests) ... ok
+test_new_controller_requires_frozen_scheduler_and_rejects_wrong_clipping (test_action_contract.ActionContractTests) ... ok
+test_new_windows_start_at_zero_and_never_cross_episode (test_action_contract.ActionContractTests) ... ok
+test_numpy_torch_roundtrip_constant_and_geometry (test_action_contract.ActionContractTests) ... ok
+test_streaming_observations_match_training_padding_and_signs (test_action_contract.ActionContractTests) ... ok
+test_unknown_or_incomplete_checkpoint_contract_rejected (test_action_contract.ActionContractTests) ... ok
+test_reject_changed_data (test_training_state.ResumeTest) ... ok
+test_stochastic_updates (test_training_state.ResumeTest) ... ok
+test_legacy_clipping_and_checkpoint_guard (test_diagnostic_contract.DiagnosticContractTests) ... ok
+test_minmax_coverage_roundtrip_and_constant (test_diagnostic_contract.DiagnosticContractTests) ... ok
+test_quaternion_sign_and_invalid (test_diagnostic_contract.DiagnosticContractTests) ... ok
+test_windows_have_full_future (test_diagnostic_contract.DiagnosticContractTests) ... ok
+test_failures_stay_in_denominator (test_forward_results.ResultTest) ... ok
+test_script_takeover_is_not_autonomous_success (test_forward_results.ResultTest) ... ok
+test_empty_and_truncated_logs_are_explicit (test_review_fixes.FailureReportTests) ... ok
+test_incomplete_execution_stays_in_result_denominator (test_review_fixes.FailureReportTests) ... ok
+test_missing_first_log_does_not_break_csv (test_review_fixes.FailureReportTests) ... ok
+test_missing_video_is_reported_without_aborting_delivery (test_review_fixes.FailureReportTests) ... ok
+test_dead_child_restores_real_ledger_exit_code (test_review_fixes.IntegrityTests) ... {"passed": true, "checks": ["normal_exit", "TERM_timeout_accounting", "lock", "reserve", "stage_limit", "dead_process_reconciliation", "no_double_accounting"]}
+{"seed": 16100, "robot_x": 3.9, "robot_y": -0.06, "folder": "/tmp/tmp1zhul0il/replay/actions/seed_16100", "exit_code": 124, "frames": 0, "complete_log": false, "autonomous": false, "opened": false, "pass_done": false, "success": false, "max_signed_door_deg": null, "final_signed_door_deg": null, "first_open_frame": null, "first_pass_frame": null, "through_distance": null, "pass_event_distance_m": null, "dp_frames": 0, "script_frames": 0, "snap_events": 0, "invalid_image_frames": null, "pass_align_frames": 0, "backward_travel_after80_m": null, "yaw_travel_after80_deg": null, "replan_latency_p50_ms": null, "replan_latency_p95_ms": null, "end_reason": "process_failure", "error": null, "log_error": null, "replay_mode": "actions", "expected_frames": 100, "autonomous_policy": false, "replay_horizon_complete": false}
+ok
+test_external_log_is_portable_after_move (test_review_fixes.IntegrityTests) ... ok
+test_live_child_cannot_be_finalized (test_review_fixes.IntegrityTests) ... ok
+test_run_lock_excludes_second_supervisor (test_review_fixes.IntegrityTests) ... ok
+test_source_helpers_frozen_and_drift_rejected (test_review_fixes.IntegrityTests) ... ok
+test_no_automatic_extra_target (test_small_forward_v3.SmallPilotTests) ... ok
+test_only_three_targets_and_random_first_stage (test_small_forward_v3.SmallPilotTests) ... ok
+test_resume_is_only_from_this_runs_preceding_checkpoint (test_small_forward_v3.SmallPilotTests) ... ok
+test_occupied_gpu_and_nice_inheritance (test_launch.LaunchTests) ... ok
+
+----------------------------------------------------------------------
+Ran 27 tests in 0.949s
+
+OK

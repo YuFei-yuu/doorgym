@@ -38,8 +38,11 @@ def reconcile(root):
         raise RuntimeError('Prior process may still be alive; inspect active_command.json')
     # A lost supervisor cannot prove the exact death time. Charge the entire
     # assigned hard timeout, avoiding silent under-accounting after a disconnect.
-    row.update(elapsed_sec=row['hard_timeout_sec'], exit_code=None, reconciled=True,
-               accounting='conservative full assigned timeout after supervisor loss')
+    hard = row.get('hard_timeout_sec')
+    row.update(elapsed_sec=hard if hard is not None else max(0, time.time()-row['started']),
+               exit_code=None, reconciled=True,
+               accounting=('conservative full assigned timeout after supervisor loss' if hard is not None
+                           else 'upper bound from start to reconciliation; exact runtime unknown'))
     with (root/'budget.jsonl').open('a') as log:
         log.write(json.dumps(row)+'\n')
         log.flush()
@@ -54,7 +57,10 @@ def run(root, stage, command, timeout, total=21600, reserve=0, gpu=None,
     with (root/'budget.lock').open('a') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         reconcile(root)
-        hard = min(float(timeout), total-used(root)-reserve)
+        hard = float(timeout) if timeout is not None else None
+        if total is not None:
+            available = total-used(root)-reserve
+            hard = min(hard, available) if hard is not None else available
         limits_path = root/'budget_limits.json'
         if limits_path.exists():
             limits = json.loads(limits_path.read_text())
@@ -63,12 +69,13 @@ def run(root, stage, command, timeout, total=21600, reserve=0, gpu=None,
                 raise ValueError('Unbudgeted stage category: '+category)
             consumed = sum(r['elapsed_sec'] for r in read_rows(root)
                            if r['stage'].split('__', 1)[0] == category)
-            hard = min(hard, float(limits[category])-consumed)
-        if hard <= grace+2:
+            available = float(limits[category])-consumed
+            hard = min(hard, available) if hard is not None else available
+        if hard is not None and hard <= grace+2:
             raise RuntimeError('Insufficient budget, including shutdown reserve')
         row = dict(command_id='%d-%d' % (time.time_ns(), os.getpid()), stage=stage,
                    command=list(map(str, command)), started=time.time(),
-                   hard_timeout_sec=hard, term_after_sec=hard-grace,
+                   hard_timeout_sec=hard, term_after_sec=hard-grace if hard is not None else None,
                    physical_gpu=gpu, gpu_uuid=gpu_uuid, supervisor_pid=os.getpid())
         active = root/'active_command.json'
         atomic_json(active, row)
@@ -86,7 +93,8 @@ def run(root, stage, command, timeout, total=21600, reserve=0, gpu=None,
                 row['proc_start_ticks'] = Path('/proc/%s/stat' % child.pid).read_text().split()[21]
                 atomic_json(active, row)
                 try:
-                    code = child.wait(timeout=max(.01, hard-grace-(time.monotonic()-started)))
+                    code = child.wait(timeout=(max(.01, hard-grace-(time.monotonic()-started))
+                                               if hard is not None else None))
                 except subprocess.TimeoutExpired:
                     row['timed_out'] = True
                     os.killpg(child.pid, signal.SIGTERM)
@@ -101,7 +109,8 @@ def run(root, stage, command, timeout, total=21600, reserve=0, gpu=None,
             if child is not None and child.poll() is None:
                 os.killpg(child.pid, signal.SIGTERM)
                 try:
-                    child.wait(timeout=max(.01, hard-(time.monotonic()-started)-1))
+                    child.wait(timeout=(max(.01, hard-(time.monotonic()-started)-1)
+                                        if hard is not None else grace))
                 except subprocess.TimeoutExpired:
                     os.killpg(child.pid, signal.SIGKILL)
                     child.wait()

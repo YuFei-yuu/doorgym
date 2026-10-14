@@ -1,0 +1,10 @@
+{
+  "live_source_matches_frozen": {
+    "high-level/dp/train_door_dp.py": true,
+    "high-level/dp/door_dp_common.py": true,
+    "high-level/play_b1z1_push_with_door_asset_camera.py": true,
+    "high-level/float_ik/learning/wholebody_float.py": true
+  },
+  "checkpoint_sha256": "ea20f964c96099115c3ee326475210eae5f4f48a8ac3f1601d8116575b2c0f06",
+  "checkpoint_matches_delivery": true
+}

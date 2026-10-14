@@ -11,7 +11,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 
-def paired_video(expert,policy,output):
+def paired_video(expert,policy,output,updates=5000):
     import cv2
     import imageio_ffmpeg
     cv2.setNumThreads(2)
@@ -29,7 +29,8 @@ def paired_video(expert,policy,output):
     if any(abs(m['fps']-25)>1e-5 for m in meta):raise ValueError('Expected source 25fps video sampling')
     counts=[s['frames']//2 for s in summaries]
     total=max(counts);last=[None,None]
-    destination=output/'comparison_seed_14400.mp4'
+    seed=summaries[0]['seed']
+    destination=output/('comparison_seed_%d.mp4'%seed)
     cmd=[imageio_ffmpeg.get_ffmpeg_exe(),'-v','error','-n','-f','rawvideo','-pix_fmt','rgb24',
          '-s','1200x400','-r','25','-i','pipe:0','-an','-c:v','libx264','-threads','2',
          '-crf','20','-pix_fmt','yuv420p','-movflags','+faststart',str(destination)]
@@ -41,7 +42,7 @@ def paired_video(expert,policy,output):
                 if frame<counts[j]:
                     raw=next(reader);w,h=m['size'];last[j]=np.frombuffer(raw,np.uint8).reshape(h,w,3).copy()
                 panel=cv2.resize(last[j],(600,400))
-                label=('EXPERT' if j==0 else 'DP - 5000 updates')+' | seed 14400'
+                label=('EXPERT' if j==0 else 'DP - %d updates'%updates)+' | seed %d'%seed
                 cv2.rectangle(panel,(0,372),(599,399),(0,0,0),-1)
                 cv2.putText(panel,label,(8,391),cv2.FONT_HERSHEY_SIMPLEX,.5,(255,255,0),1)
                 if frame>=counts[j]:

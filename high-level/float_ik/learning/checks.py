@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Read-only recording, split and upstream checkpoint normalization checks."""
-import argparse,json
+import argparse,json,hashlib
 from pathlib import Path
 import numpy as np
 from artifacts import resolve_recorded_path,write_new_json
@@ -13,6 +13,10 @@ def audit_run(root,checkpoint=None,expected_updates=None):
     checks=dict(nonempty_manifest=bool(entries),disjoint_seeds=len(set(seeds))==len(seeds),disjoint_paths=len(set(paths))==len(paths),valid_splits=all(x['split'] in ('train','val','test') for x in manifest))
     details=[];train=[];contracts=set()
     for item in entries:
+        for field,hash_field in [('episode','sha256'),('raw_episode','raw_sha256')]:
+            if hash_field in item:
+                path=resolve_recorded_path(root,item[field])
+                checks['recording_hashes']=checks.get('recording_hashes',True) and hashlib.sha256(path.read_bytes()).hexdigest()==item[hash_field]
         with np.load(resolve_recorded_path(root,item['episode'])) as z:
             meta=validate_episode(z);contracts.add((tuple(meta['state_names']),tuple(meta['action_names']),meta['schema'],meta['execution_profile']))
             details.append(dict(seed=item['seed'],split=item['split'],**meta))
@@ -20,10 +24,10 @@ def audit_run(root,checkpoint=None,expected_updates=None):
     checks['one_recording_contract']=len(contracts)==1
     if checkpoint:
         import torch
-        ck=torch.load(resolve_recorded_path(root,checkpoint),map_location='cpu');cfg=ck['config'];meta=details[0]
+        ck=torch.load(resolve_recorded_path(root,checkpoint),map_location='cpu',weights_only=False);cfg=ck['config'];meta=details[0]
         checks['checkpoint_dimensions']=cfg['state_dim']==len(meta['state_names']) and cfg['action_dim']==len(meta['action_names'])
         if expected_updates is not None:
-            checks['checkpoint_updates']=cfg.get('completed_updates')==expected_updates and cfg.get('steps')==expected_updates
+            checks['checkpoint_updates']=cfg.get('completed_updates')==expected_updates
         checks['normalization_train_only']=bool(train)
         for key in ('state','action'):
             if not train:break

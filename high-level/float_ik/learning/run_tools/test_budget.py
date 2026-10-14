@@ -37,4 +37,7 @@ with tempfile.TemporaryDirectory() as directory:
     count = len((root/'budget.jsonl').read_text().splitlines())
     reconcile(root)
     assert len((root/'budget.jsonl').read_text().splitlines()) == count
+    assert run(root, 'unlimited', [sys.executable,'-c','pass'], None, total=None) == 0
+    latest = json.loads((root/'budget.jsonl').read_text().splitlines()[-1])
+    assert latest['hard_timeout_sec'] is None and latest['term_after_sec'] is None
 print(json.dumps(dict(passed=True,checks=['normal_exit','TERM_timeout_accounting','lock','reserve','stage_limit','dead_process_reconciliation','no_double_accounting'])))

@@ -2,6 +2,8 @@ import argparse
 import json
 import time
 import random
+import os
+import shutil
 from pathlib import Path
 
 import numpy as np
@@ -12,9 +14,15 @@ from torch.utils.data import DataLoader, Dataset
 try:
     from .door_dp_common import ACTION_NAMES, IMAGE_HEIGHT, IMAGE_WIDTH, import_lerobot_or_raise
     from .models.door_diffusion_policy import DoorDiffusionPolicy
+    from .training_state import ResumableBatchSampler, capture_rng, restore_rng
+    from .action_contract import (LEGACY, FORWARD_V3, quaternion_sign, observation_indices,
+                                  normalize_action, checkpoint_version)
 except ImportError:
     from door_dp_common import ACTION_NAMES, IMAGE_HEIGHT, IMAGE_WIDTH, import_lerobot_or_raise
     from models.door_diffusion_policy import DoorDiffusionPolicy
+    from training_state import ResumableBatchSampler, capture_rng, restore_rng
+    from action_contract import (LEGACY, FORWARD_V3, quaternion_sign, observation_indices,
+                                 normalize_action, checkpoint_version)
 
 
 DP_ROOT = Path(__file__).resolve().parent
@@ -29,7 +37,7 @@ def parse_args():
     parser.add_argument("--steps", type=int, default=100000)
     parser.add_argument("--batch_size", type=int, default=64)
     parser.add_argument("--lr", type=float, default=1e-4)
-    parser.add_argument("--num_workers", type=int, default=4)
+    parser.add_argument("--num_workers", type=int, default=0)
     parser.add_argument("--device", type=str, default="cuda:0")
     parser.add_argument("--obs_horizon", type=int, default=16)
     parser.add_argument("--pred_horizon", type=int, default=32)
@@ -45,6 +53,9 @@ def parse_args():
     parser.add_argument("--seed", type=int, default=None)
     parser.add_argument("--output_dir", type=str, default=None)
     parser.add_argument("--recording_metadata", type=str, default=None)
+    parser.add_argument("--resume", type=str, default=None, help="Full-state checkpoint to continue.")
+    parser.add_argument('--action_contract', choices=['legacy', 'forward_v3'], default='legacy')
+    parser.add_argument('--wandb_mode', choices=['offline', 'disabled'], default='offline')
     return parser.parse_args()
 
 
@@ -126,14 +137,20 @@ def _scalar_int(x, default=0):
 
 
 class DoorDPSequenceDataset(Dataset):
-    def __init__(self, root, repo_id, obs_horizon, pred_horizon):
+    def __init__(self, root, repo_id, obs_horizon, pred_horizon, contract_version=LEGACY):
         self.dataset = _load_lerobot_dataset(root, repo_id)
+        self.contract_version = contract_version
         self.obs_horizon = int(obs_horizon)
         self.pred_horizon = int(pred_horizon)
         self.length = len(self.dataset)
-        if self.length < self.obs_horizon + self.pred_horizon:
+        minimum = self.pred_horizon if contract_version == FORWARD_V3 else self.obs_horizon+self.pred_horizon
+        if self.length < minimum:
             raise ValueError("Dataset is too short for the requested horizons.")
         self.episodes = []
+        self.state_signs, self.action_signs, self.episode_starts = [], [], []
+        previous_episode = None
+        previous_state_quat = previous_action_quat = None
+        start = 0
         for i in range(self.length):
             frame = self.dataset[i]
             try:
@@ -141,7 +158,25 @@ class DoorDPSequenceDataset(Dataset):
             except Exception:
                 ep = 0
             self.episodes.append(ep)
+            if ep != previous_episode:
+                start = i
+                previous_state_quat = previous_action_quat = None
+            self.episode_starts.append(start)
+            if contract_version == FORWARD_V3:
+                state_q = _as_numpy(_field(frame, 'observation.state'))[-5:-1]
+                action_q = _as_numpy(_field(frame, 'action'))[5:9]
+                state_sign = quaternion_sign(state_q, previous_state_quat)
+                action_sign = quaternion_sign(action_q, previous_action_quat)
+                self.state_signs.append(state_sign); self.action_signs.append(action_sign)
+                previous_state_quat = state_q*state_sign
+                previous_action_quat = action_q*action_sign
+            previous_episode = ep
         self.indices = self._build_indices()
+        self.state_stats_mask = np.zeros(self.length, dtype=bool)
+        self.action_stats_mask = np.zeros(self.length, dtype=bool)
+        for center in self.indices:
+            self.state_stats_mask[max(self.episode_starts[center], center-self.obs_horizon+1):center+1] = True
+            self.action_stats_mask[center:center+self.pred_horizon] = True
 
     def _build_indices(self):
         indices = []
@@ -151,7 +186,7 @@ class DoorDPSequenceDataset(Dataset):
             end = start + 1
             while end < self.length and self.episodes[end] == ep:
                 end += 1
-            first = start + self.obs_horizon - 1
+            first = start if self.contract_version == FORWARD_V3 else start + self.obs_horizon - 1
             last = end - self.pred_horizon
             indices.extend(range(first, max(last + 1, first)))
             start = end
@@ -162,17 +197,30 @@ class DoorDPSequenceDataset(Dataset):
     def _frame(self, idx):
         return self.dataset[int(idx)]
 
+    def state_value(self, frame, idx):
+        result = torch.as_tensor(_as_numpy(_field(frame, 'observation.state')), dtype=torch.float32).clone()
+        if self.contract_version == FORWARD_V3:
+            result[-5:-1] *= self.state_signs[int(idx)]
+        return result
+
+    def action_value(self, frame, idx):
+        result = torch.as_tensor(_as_numpy(_field(frame, 'action')), dtype=torch.float32).clone()
+        if self.contract_version == FORWARD_V3:
+            result[5:9] *= self.action_signs[int(idx)]
+        return result
+
     def __len__(self):
         return len(self.indices)
 
     def __getitem__(self, item):
         center = self.indices[item]
-        obs_ids = range(center - self.obs_horizon + 1, center + 1)
+        obs_ids = (observation_indices(center, self.obs_horizon, self.episode_starts[center])
+                   if self.contract_version == FORWARD_V3 else range(center-self.obs_horizon+1, center+1))
         action_ids = range(center, center + self.pred_horizon)
         states, masks, depths, front_masks, front_depths = [], [], [], [], []
         for idx in obs_ids:
             frame = self._frame(idx)
-            states.append(torch.as_tensor(_as_numpy(_field(frame, "observation.state")), dtype=torch.float32))
+            states.append(self.state_value(frame, idx))
             masks.append(_image_or_zeros(frame, "observation.images.wrist_handle_mask"))
             depths.append(_image_or_zeros(frame, "observation.images.wrist_masked_depth"))
             front_masks.append(_image_or_zeros(frame, "observation.images.front_handle_mask"))
@@ -180,7 +228,7 @@ class DoorDPSequenceDataset(Dataset):
         actions = []
         for idx in action_ids:
             frame = self._frame(idx)
-            actions.append(torch.as_tensor(_as_numpy(_field(frame, "action")), dtype=torch.float32))
+            actions.append(self.action_value(frame, idx))
         return {
             "state": torch.stack(states, dim=0),
             "mask": torch.stack(masks, dim=0),
@@ -196,23 +244,28 @@ def compute_stats(seq_dataset):
     states, actions = [], []
     for i in range(len(base)):
         frame = base[i]
-        states.append(torch.as_tensor(_as_numpy(_field(frame, "observation.state")), dtype=torch.float32))
-        actions.append(torch.as_tensor(_as_numpy(_field(frame, "action")), dtype=torch.float32))
+        if seq_dataset.contract_version == LEGACY or seq_dataset.state_stats_mask[i]:
+            states.append(seq_dataset.state_value(frame, i))
+        if seq_dataset.contract_version == LEGACY or seq_dataset.action_stats_mask[i]:
+            actions.append(seq_dataset.action_value(frame, i))
     states = torch.stack(states, dim=0)
     actions = torch.stack(actions, dim=0)
-    return {
+    result = {
         "state_mean": states.mean(dim=0),
         "state_std": states.std(dim=0).clamp_min(1e-6),
         "action_mean": actions.mean(dim=0),
         "action_std": actions.std(dim=0).clamp_min(1e-6),
     }
+    if seq_dataset.contract_version == FORWARD_V3:
+        result.update(action_min=actions.amin(0), action_max=actions.amax(0))
+    return result
 
 
-def normalize_batch(batch, stats, device):
+def normalize_batch(batch, stats, device, contract_version=LEGACY):
     state = batch["state"].to(device)
     action = batch["action"].to(device)
     state = (state - stats["state_mean"].to(device)) / stats["state_std"].to(device)
-    action = (action - stats["action_mean"].to(device)) / stats["action_std"].to(device)
+    action = normalize_action(action, stats, contract_version)
     return (
         state,
         batch["mask"].to(device),
@@ -223,23 +276,42 @@ def normalize_batch(batch, stats, device):
     )
 
 
-def save_checkpoint(path, model, optimizer, stats, config, feature_names):
+def save_checkpoint(path, model, optimizer, stats, config, feature_names, sampler, elapsed_sec):
     path.parent.mkdir(parents=True, exist_ok=True)
-    torch.save(
-        {
+    payload = {
             "model": model.state_dict(),
             "optimizer": optimizer.state_dict(),
             "stats": {k: v.cpu() for k, v in stats.items()},
             "config": config,
             "feature_names": feature_names,
             "action_names": ACTION_NAMES,
-        },
-        path,
-    )
+            "training_state": dict(sampler=sampler.state_dict(), rng=capture_rng(),
+                                   elapsed_sec=elapsed_sec),
+        }
+    # A step checkpoint is immutable. model_latest is only a convenience pointer.
+    with path.open('xb') as stream:
+        torch.save(payload, stream)
+        stream.flush()
+        os.fsync(stream.fileno())
+    path.chmod(0o444)
+    latest = path.with_name('model_latest.pt')
+    temporary = latest.with_suffix('.pt.tmp')
+    shutil.copyfile(path, temporary)
+    temporary.replace(latest)
 
 
 def main():
     args = parse_args()
+    if args.steps <= 0 or args.save_interval <= 0 or args.log_interval <= 0:
+        raise ValueError('Update and logging intervals must be positive')
+    if args.num_workers != 0:
+        raise ValueError('Exact sample-position resume requires num_workers=0')
+    torch.set_num_threads(2)
+    # Fresh processes must choose reproducible kernels as well as restore RNG.
+    os.environ.setdefault('CUBLAS_WORKSPACE_CONFIG', ':4096:8')
+    torch.backends.cudnn.benchmark = False
+    torch.backends.cudnn.deterministic = True
+    torch.use_deterministic_algorithms(True)
     if args.seed is not None:
         random.seed(args.seed)
         np.random.seed(args.seed)
@@ -251,8 +323,12 @@ def main():
     device = torch.device(args.device if torch.cuda.is_available() or not args.device.startswith("cuda") else "cpu")
     dataset_root = _resolve_lerobot_root(args.root, args.repo_id)
     print(f"Using LeRobot dataset root: {dataset_root}", flush=True)
-    dataset = DoorDPSequenceDataset(dataset_root, args.repo_id, args.obs_horizon, args.pred_horizon)
-    stats = compute_stats(dataset)
+    contract_version = FORWARD_V3 if args.action_contract == 'forward_v3' else LEGACY
+    dataset = DoorDPSequenceDataset(dataset_root, args.repo_id, args.obs_horizon, args.pred_horizon, contract_version)
+    checkpoint = torch.load(args.resume, map_location='cpu', weights_only=False) if args.resume else None
+    if checkpoint and checkpoint_version(checkpoint['config']) != contract_version:
+        raise ValueError('Resume action contract differs; use random initialization in a new run')
+    stats = checkpoint['stats'] if checkpoint else compute_stats(dataset)
     sidecar = dataset_root / "door_dp_feature_names.json"
     if sidecar.exists():
         with open(sidecar, "r", encoding="utf-8") as f:
@@ -260,13 +336,15 @@ def main():
     else:
         feature_names = [f"state_{i}" for i in range(stats["state_mean"].numel())]
 
+    sampler = ResumableBatchSampler(len(dataset), args.batch_size,
+                                    (args.seed if args.seed is not None else torch.initial_seed()) + 1)
     loader = DataLoader(
         dataset,
-        batch_size=args.batch_size,
-        shuffle=True,
+        batch_sampler=sampler,
         num_workers=args.num_workers,
         pin_memory=device.type == "cuda",
-        drop_last=True,
+        # Iterator construction must not consume model/noise RNG on resume.
+        generator=torch.Generator().manual_seed(0),
     )
     if len(loader) == 0:
         raise ValueError("No complete training batch; dataset must contain at least batch_size sequences")
@@ -282,11 +360,18 @@ def main():
         clip_sample=True,
         prediction_type="epsilon",
     )
+    if checkpoint and contract_version == FORWARD_V3:
+        noise_scheduler = DDPMScheduler.from_config(checkpoint['config']['diffusion_scheduler'])
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-6)
     run_dir = Path(args.output_dir) if args.output_dir else Path(__file__).resolve().parent / "logs" / "door-dp" / args.run_name
     run_dir.mkdir(parents=True, exist_ok=True)
     ckpt_dir = run_dir / "checkpoints"
     config = vars(args).copy()
+    config.update(action_normalization_version=contract_version,
+                  observation_padding='repeat_first' if contract_version == FORWARD_V3 else 'none',
+                  quaternion_rule='largest_component_positive_then_continuous' if contract_version == FORWARD_V3 else 'recorded')
+    if contract_version == FORWARD_V3:
+        config['diffusion_scheduler'] = dict(noise_scheduler.config)
     if args.recording_metadata:
         config["recording_metadata"] = json.loads(Path(args.recording_metadata).read_text())
     config.update(
@@ -297,6 +382,30 @@ def main():
             "image_width": IMAGE_WIDTH,
         }
     )
+    config['dataset_sequences'] = len(dataset)
+    config['dataset_frames'] = dataset.length
+    config['deterministic_algorithms'] = True
+    step, prior_elapsed = 0, 0.0
+    if checkpoint:
+        if 'training_state' not in checkpoint:
+            raise ValueError('Checkpoint lacks exact resume state; refusing approximate resume')
+        keys = ['root', 'repo_id', 'batch_size', 'lr', 'obs_horizon', 'pred_horizon',
+                'action_horizon', 'num_diffusion_iters', 'seed', 'state_dim', 'action_dim',
+                'recording_metadata', 'dataset_sequences', 'dataset_frames', 'deterministic_algorithms']
+        if any(config.get(k) != checkpoint['config'].get(k) for k in keys):
+            raise ValueError('Training contract changed during resume')
+        if checkpoint['feature_names'] != feature_names:
+            raise ValueError('Resume feature names changed')
+        model.load_state_dict(checkpoint['model'])
+        optimizer.load_state_dict(checkpoint['optimizer'])
+        sampler.load_state_dict(checkpoint['training_state']['sampler'])
+        step = int(checkpoint['config']['completed_updates'])
+        prior_elapsed = float(checkpoint['training_state']['elapsed_sec'])
+        if args.steps <= step:
+            raise ValueError('Resume target must exceed completed updates')
+        restore_rng(checkpoint['training_state']['rng'])
+    elif (run_dir / 'metrics.jsonl').exists() or (ckpt_dir / 'model_latest.pt').exists():
+        raise FileExistsError('Fresh training requires a new output directory')
     wandb_run = None
     if args.wandb:
         try:
@@ -304,6 +413,7 @@ def main():
         except ImportError as exc:
             raise ImportError("Install wandb in the training env, e.g. `pip install wandb`.") from exc
         wandb_run = wandb.init(
+            mode=args.wandb_mode,
             project=args.wandb_project,
             entity=args.wandb_entity,
             group=args.wandb_group,
@@ -314,11 +424,10 @@ def main():
         wandb.define_metric("train/step")
         wandb.define_metric("train/*", step_metric="train/step")
 
-    step = 0
     t0 = time.time()
     while step < args.steps:
         for batch in loader:
-            state, mask, masked_depth, front_mask, front_masked_depth, action = normalize_batch(batch, stats, device)
+            state, mask, masked_depth, front_mask, front_masked_depth, action = normalize_batch(batch, stats, device, contract_version)
             noise = torch.randn_like(action)
             timesteps = torch.randint(
                 0,
@@ -340,10 +449,10 @@ def main():
                 progress = run_dir / "progress.json"
                 temporary = progress.with_suffix(".tmp")
                 temporary.write_text(json.dumps({"step": step, "target_steps": args.steps,
-                                                  "elapsed_sec": time.time() - t0}))
+                                                  "elapsed_sec": prior_elapsed + time.time() - t0}))
                 temporary.replace(progress)
             if step % args.log_interval == 0:
-                elapsed = time.time() - t0
+                elapsed = prior_elapsed + time.time() - t0
                 metrics = {"train/step": step, "train/loss": float(loss.item()),
                            "train/lr": float(optimizer.param_groups[0]["lr"]),
                            "train/elapsed_sec": float(elapsed)}
@@ -360,12 +469,12 @@ def main():
                         }
                     )
             if step % args.save_interval == 0 or step == args.steps:
-                save_checkpoint(ckpt_dir / "model_latest.pt", model, optimizer, stats, config, feature_names)
+                save_checkpoint(ckpt_dir / ('step_%06d.pt' % step), model, optimizer,
+                                stats, config, feature_names, sampler, prior_elapsed + time.time() - t0)
                 if wandb_run is not None and args.wandb_save_checkpoints:
                     wandb_run.save(str(ckpt_dir / "model_latest.pt"))
             if step >= args.steps:
                 break
-    save_checkpoint(ckpt_dir / "model_latest.pt", model, optimizer, stats, config, feature_names)
     if wandb_run is not None and args.wandb_save_checkpoints:
         wandb_run.save(str(ckpt_dir / "model_latest.pt"))
     if wandb_run is not None:

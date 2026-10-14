@@ -460,9 +460,15 @@ class DoorDPPolicyController:
             from models.door_diffusion_policy import DoorDiffusionPolicy
 
         self.device = torch.device(device or ("cuda:0" if torch.cuda.is_available() else "cpu"))
-        ckpt = torch.load(checkpoint, map_location=self.device)
+        ckpt = torch.load(checkpoint, map_location=self.device, weights_only=False)
         self.config = ckpt["config"]
+        try:
+            from .action_contract import checkpoint_version, validate_stats, FORWARD_V3
+        except ImportError:
+            from action_contract import checkpoint_version, validate_stats, FORWARD_V3
+        self.contract_version = checkpoint_version(self.config)
         self.stats = {k: v.to(self.device) for k, v in ckpt["stats"].items()}
+        validate_stats(self.stats, self.contract_version)
         self.obs_horizon = int(self.config.get("obs_horizon", 16))
         self.pred_horizon = int(self.config.get("pred_horizon", 32))
         self.action_horizon = int(action_horizon or self.config.get("action_horizon", 16))
@@ -475,12 +481,20 @@ class DoorDPPolicyController:
         ).to(self.device)
         self.model.load_state_dict(ckpt["model"])
         self.model.eval()
-        self.noise_scheduler = DDPMScheduler(
-            num_train_timesteps=int(self.config.get("num_diffusion_iters", 100)),
-            beta_schedule="squaredcos_cap_v2",
-            clip_sample=True,
-            prediction_type="epsilon",
-        )
+        if self.contract_version == FORWARD_V3:
+            if 'diffusion_scheduler' not in self.config:
+                raise ValueError('forward_v3 checkpoint lacks frozen diffusion scheduler configuration')
+            self.noise_scheduler = DDPMScheduler.from_config(self.config['diffusion_scheduler'])
+            if (not self.noise_scheduler.config.clip_sample or self.noise_scheduler.config.clip_sample_range != 1. or
+                    self.noise_scheduler.config.prediction_type != 'epsilon'):
+                raise ValueError('forward_v3 requires epsilon prediction and normalized sample clipping to [-1, 1]')
+        else:
+            self.noise_scheduler = DDPMScheduler(
+                num_train_timesteps=int(self.config.get("num_diffusion_iters", 100)),
+                beta_schedule="squaredcos_cap_v2",
+                clip_sample=True,
+                prediction_type="epsilon",
+            )
         self.noise_scheduler.set_timesteps(int(num_inference_steps or self.noise_scheduler.config.num_train_timesteps))
         self.obs_buffer = deque(maxlen=self.obs_horizon)
         self.action_queue = deque()
@@ -490,12 +504,29 @@ class DoorDPPolicyController:
         return (state - self.stats["state_mean"]) / self.stats["state_std"]
 
     def _normalize_action(self, action):
-        return (action - self.stats["action_mean"]) / self.stats["action_std"]
+        try:
+            from .action_contract import normalize_action
+        except ImportError:
+            from action_contract import normalize_action
+        return normalize_action(action, self.stats, self.contract_version)
 
     def _denormalize_action(self, action):
-        return action * self.stats["action_std"] + self.stats["action_mean"]
+        try:
+            from .action_contract import denormalize_action
+        except ImportError:
+            from action_contract import denormalize_action
+        return denormalize_action(action, self.stats, self.contract_version)
 
     def append_observation(self, state, mask_rgb, masked_depth_rgb, front_mask_rgb=None, front_masked_depth_rgb=None):
+        try:
+            from .action_contract import FORWARD_V3, quaternion_sign
+        except ImportError:
+            from action_contract import FORWARD_V3, quaternion_sign
+        if self.contract_version == FORWARD_V3:
+            state = np.array(state, dtype=np.float32, copy=True)
+            previous = getattr(self, '_previous_state_quaternion', None) if self.obs_buffer else None
+            state[-5:-1] *= quaternion_sign(state[-5:-1], previous)
+            self._previous_state_quaternion = state[-5:-1].copy()
         state = self._normalize_state(state)
         mask = torch.as_tensor(mask_rgb, dtype=torch.uint8, device=self.device).permute(2, 0, 1)
         depth = torch.as_tensor(masked_depth_rgb, dtype=torch.uint8, device=self.device).permute(2, 0, 1)
