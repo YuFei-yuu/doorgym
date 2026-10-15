@@ -1,5 +1,5 @@
 {
-  "preparation_status": "blocked_torchcodec_ffmpeg_shared_libraries",
+  "preparation_status": "preparation_checks_passed_pending_acceptance",
   "source_commit": "096938c44ecc1c7602304d42502f96658e46eb25",
   "old_commit": "64b1bcc162c4997dbe39fd3f76b61500573d69a8",
   "door_cfg": "high-level/data/cfg/b1z1_opendoor.yaml",

@@ -2,11 +2,17 @@
 
 2026-10-15。仅准备环境、命令和无仿真检查，未采集、训练、仿真或验证策略效果。
 
-**状态：BLOCKED，已按用户停止条件封存现场。** 默认 TorchCodec 视频读取检查失败，未继续安装依赖或改用其他解码器。本工作区不能声明为完整可运行基线。
+**状态：迁移准备复核通过，等待独立验收。** 本轮仅补齐新 ACT 环境内的 FFmpeg 共享库及必要依赖；未采集、训练、仿真或策略推理。通过的是准备检查，真实数据和策略效果仍待后续授权验证。
 
-`video-codec-check.log` 显示：PyAV H264 编码已完成，但作者默认 `torchcodec` 解码器导入失败，依次找不到 FFmpeg7/6/5 的 `libavutil.so.59/58/57`，以及FFmpeg4的 `libavdevice.so.58`。`pip check` 通过并不代表这些动态库可加载。当前 Torch2.7.1+cu128、TorchCodec0.4.0、PyAV15.1.0；没有改动作者默认解码选择。
+上一轮 `preparation-20261015/video-codec-check.log` 的共享库缺失证据保留原样。按本轮任务书补库后，原 `check_video.py`（文件哈希不变）仍使用作者默认 TorchCodec，H264 两帧按0和0.04秒采样、25Hz，输出 `[2,3,480,640]`，均值约0.250980407和0.501960814；形状、时间容差1e-4及数值断言全部通过，未放宽检查。
 
-建议下一轮单独授权：仅在新ACT环境补齐与现有TorchCodec匹配的FFmpeg共享库，再重跑这一个失败的CPU视频检查及必要依赖检查。此建议未执行；若仍失败，继续报告，不自动切换PyAV、Torch版本或数据编码方式。
+新 ACT prefix 新增 defaults 渠道 `ffmpeg=6.1.1=hecf7045_5` 及41项依赖，没有移除或改变原有包记录。安装前冻结求解并审查，再按42个精确URL及校验值安装。FFmpeg7的首份冻结求解与现有库约束冲突，未安装；改用同一TorchCodec支持的FFmpeg6，不切换解码器。Torch2.7.1+cu128、TorchCodec0.4.0、PyAV15.1.0、NumPy2.2.6与定制LeRobot0.4.4保持不变。
+
+实际解码加载新 ACT prefix 内 `libtorchcodec_decoder6.so`、`libavutil.so.58.29.100`、`libavcodec.so.60.31.102` 等库；PyAV原有带哈希文件名的vendored库用于编码，同进程加载路径、库版本和SHA256见本轮 `loaded-shared-libraries.json`。`pip check`、定制ACT类导入与Python3.8→作者worker启动/消息协议复核通过；未构造模型或加载checkpoint，未重复资产审计。
+
+本轮证据：本地 `/Users/yu/Data/Video2Door/reproduction/wc4-act/ffmpeg-recheck-20261015/`；服务器 `/data/zyf/wc4-act-evidence/ffmpeg-recheck-20261015/`。包括安装前后快照、求解/安装日志、精确安装清单、原脚本输出、共享库映射、环境差异和恢复方案。第一次前后探测的用户级包可见性不同，原输出保留；同条件复核证明pip freeze、核心包元数据及旧环境分布完全一致。
+
+恢复本次补库时使用本轮证据中的 `rollback-additions-only.sh`：仅移除安装前不存在的42个包。已dry-run验证只有这42项UNLINK、无LINK，尚未执行。不要使用早期 `rollback.sh` 的revision恢复：其dry-run会重装Conda记录中的packaging/setuptools，覆盖已有pip版本。恢复后视频依赖将回到上一轮阻塞状态。
 
 ## 版本与隔离
 
