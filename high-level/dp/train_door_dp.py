@@ -4,6 +4,7 @@ import time
 import random
 import os
 import shutil
+import hashlib
 from pathlib import Path
 
 import numpy as np
@@ -54,6 +55,15 @@ def parse_args():
     parser.add_argument("--output_dir", type=str, default=None)
     parser.add_argument("--recording_metadata", type=str, default=None)
     parser.add_argument("--resume", type=str, default=None, help="Full-state checkpoint to continue.")
+    parser.add_argument('--resume_lr_from', type=float, default=None, help='Explicit controlled LR change: expected source LR; all other resume checks retained.')
+    parser.add_argument('--resume_audit_only', action='store_true', help='Save fully restored pre-update state and exit.')
+    parser.add_argument('--verify_restored_state', type=str, default=None, help='Compare restored full state against own preflight snapshot before optimizing.')
+    parser.add_argument('--initialize_weights', type=str, default=None,
+                        help='New branch: load model and fixed statistics only; reset optimizer, sampler and RNG.')
+    parser.add_argument('--initialization_only', action='store_true',
+                        help='Save an untrained fresh/random or weight-initialized audit checkpoint and exit.')
+    parser.add_argument('--verify_random_initialization', type=str, default=None,
+                        help='Compare fresh random weights/stats/RNG to this run\'s zero-update audit; never load its weights.')
     parser.add_argument('--action_contract', choices=['legacy', 'forward_v3'], default='legacy')
     parser.add_argument('--wandb_mode', choices=['offline', 'disabled'], default='offline')
     parser.add_argument('--stop_on_nonfinite_loss', action='store_true',
@@ -307,8 +317,91 @@ def require_finite_loss(loss, next_step):
         raise FloatingPointError('Nonfinite loss before optimizer update %d' % next_step)
 
 
+def initialize_branch(model, checkpoint, config, feature_names):
+    """Validate unchanged model/preprocessing, without reading saved optimizer or RNG."""
+    keys = ['state_dim', 'action_dim', 'obs_horizon', 'pred_horizon', 'action_horizon',
+            'num_diffusion_iters', 'image_height', 'image_width',
+            'action_normalization_version', 'observation_padding', 'quaternion_rule']
+    if any(config.get(k) != checkpoint['config'].get(k) for k in keys):
+        raise ValueError('Weight initialization model/preprocessing contract changed')
+    if feature_names != checkpoint['feature_names']:
+        raise ValueError('Weight initialization feature names changed')
+    for tensor in list(checkpoint['model'].values()) + list(checkpoint['stats'].values()):
+        if tensor.is_floating_point() and not torch.isfinite(tensor).all():
+            raise ValueError('Nonfinite initialization weights/statistics')
+    model.load_state_dict(checkpoint['model'], strict=True)
+
+
+def verify_random_initialization(model, optimizer, stats, sampler, config, expected):
+    """Only compare a zero-update audit; no state is installed from the audit."""
+    if expected['config'].get('completed_updates') != 0 or expected['optimizer']['state']:
+        raise ValueError('Random initialization audit must be untrained')
+    for key in ['root','repo_id','seed','batch_size','lr','obs_horizon','pred_horizon','action_horizon',
+                'num_diffusion_iters','dataset_frames','dataset_sequences','action_normalization_version']:
+        if expected['config'].get(key) != config.get(key):
+            raise ValueError('Random initialization audit contract differs: '+key)
+    if optimizer.state or any(not torch.equal(value.cpu(),expected['model'][name]) for name,value in model.state_dict().items()):
+        raise ValueError('Fresh model/optimizer differs from random initialization audit')
+    if set(stats) != set(expected['stats']) or any(not torch.equal(value.cpu(),expected['stats'][name]) for name,value in stats.items()):
+        raise ValueError('Fresh training-only statistics differ from initialization audit')
+    current=sampler.state_dict();saved=expected['training_state']['sampler']
+    if any(current[k]!=saved[k] for k in ['length','batch_size','cursor','epoch']) or current['order'] is not None or saved['order'] is not None or not torch.equal(current['generator'],saved['generator']):
+        raise ValueError('Fresh sampler differs from initialization audit')
+    rng=capture_rng();prior=expected['training_state']['rng']
+    if rng['python']!=prior['python'] or rng['numpy'][0]!=prior['numpy'][0] or not np.array_equal(rng['numpy'][1],prior['numpy'][1]) or rng['numpy'][2:]!=prior['numpy'][2:]:
+        raise ValueError('Fresh Python/NumPy RNG differs')
+    if not torch.equal(rng['torch'],prior['torch']) or len(rng['cuda'])!=len(prior['cuda']) or not all(torch.equal(a,b) for a,b in zip(rng['cuda'],prior['cuda'])):
+        raise ValueError('Fresh Torch/CUDA RNG differs')
+
+
+def exact_state(a, b):
+    if isinstance(a, torch.Tensor):
+        return isinstance(b, torch.Tensor) and a.dtype == b.dtype and a.shape == b.shape and torch.equal(a.cpu(), b.cpu())
+    if isinstance(a, np.ndarray):
+        return isinstance(b, np.ndarray) and np.array_equal(a, b)
+    if isinstance(a, dict):
+        return isinstance(b, dict) and a.keys() == b.keys() and all(exact_state(a[k], b[k]) for k in a)
+    if isinstance(a, (list, tuple)):
+        return type(a) == type(b) and len(a) == len(b) and all(exact_state(x, y) for x, y in zip(a, b))
+    return a == b
+
+
+def validate_resume_contract(config, checkpoint, feature_names, lr_from=None):
+    keys = ['root', 'repo_id', 'batch_size', 'lr', 'obs_horizon', 'pred_horizon',
+            'action_horizon', 'num_diffusion_iters', 'seed', 'state_dim', 'action_dim',
+            'recording_metadata', 'dataset_sequences', 'dataset_frames', 'deterministic_algorithms']
+    old = checkpoint['config']
+    for key in keys:
+        if key == 'lr' and lr_from is not None:
+            if old['lr'] != lr_from or config['lr'] >= lr_from or config['lr'] <= 0:
+                raise ValueError('Controlled LR override requires exact source LR and positive lower target')
+        elif config.get(key) != old.get(key):
+            raise ValueError('Training contract changed during resume: ' + key)
+    if checkpoint['feature_names'] != feature_names:
+        raise ValueError('Resume feature names changed')
+    if any(group['lr'] != old['lr'] for group in checkpoint['optimizer']['param_groups']):
+        raise ValueError('Saved optimizer/config learning rates disagree')
+
+
+def verify_full_restoration(model, optimizer, stats, sampler, expected):
+    current = dict(model=model.state_dict(), optimizer=optimizer.state_dict(), stats=stats,
+                   sampler=sampler.state_dict(), rng=capture_rng())
+    saved = dict(model=expected['model'], optimizer=expected['optimizer'], stats=expected['stats'],
+                 sampler=expected['training_state']['sampler'], rng=expected['training_state']['rng'])
+    if not exact_state(current, saved):
+        raise ValueError('Full restoration differs from preflight state')
+
+
 def main():
     args = parse_args()
+    if (args.resume_lr_from is not None or args.resume_audit_only or args.verify_restored_state) and not args.resume:
+        raise ValueError('Controlled restore options require full-state resume')
+    if args.resume and args.initialize_weights:
+        raise ValueError('Weight initialization and full-state resume are mutually exclusive')
+    if args.initialization_only and args.resume:
+        raise ValueError('Initialization-only cannot resume optimized training')
+    if args.verify_random_initialization and (args.resume or args.initialize_weights):
+        raise ValueError('Random initialization verification prohibits loading training state or weights')
     if args.steps <= 0 or args.save_interval <= 0 or args.log_interval <= 0:
         raise ValueError('Update and logging intervals must be positive')
     if args.num_workers != 0:
@@ -332,7 +425,8 @@ def main():
     print(f"Using LeRobot dataset root: {dataset_root}", flush=True)
     contract_version = FORWARD_V3 if args.action_contract == 'forward_v3' else LEGACY
     dataset = DoorDPSequenceDataset(dataset_root, args.repo_id, args.obs_horizon, args.pred_horizon, contract_version)
-    checkpoint = torch.load(args.resume, map_location='cpu', weights_only=False) if args.resume else None
+    source_path = args.resume or args.initialize_weights
+    checkpoint = torch.load(source_path, map_location='cpu', weights_only=False) if source_path else None
     if checkpoint and checkpoint_version(checkpoint['config']) != contract_version:
         raise ValueError('Resume action contract differs; use random initialization in a new run')
     stats = checkpoint['stats'] if checkpoint else compute_stats(dataset)
@@ -393,26 +487,63 @@ def main():
     config['dataset_frames'] = dataset.length
     config['deterministic_algorithms'] = True
     step, prior_elapsed = 0, 0.0
-    if checkpoint:
+    if args.initialize_weights:
+        initialize_branch(model, checkpoint, config, feature_names)
+        config['initialization'] = dict(mode='weights_and_fixed_stats_new_branch',
+            source_checkpoint=str(Path(args.initialize_weights).resolve()),
+            source_sha256=hashlib.sha256(Path(args.initialize_weights).read_bytes()).hexdigest(),
+            source_completed_updates=int(checkpoint['config']['completed_updates']),
+            optimizer_reset=True, sampler_reset=True, rng_reset=True)
+        if (run_dir / 'metrics.jsonl').exists() or ckpt_dir.exists():
+            raise FileExistsError('Weight initialization requires a new training directory')
+        config['completed_updates'] = 0
+        save_checkpoint(ckpt_dir / 'step_000000.pt', model, optimizer, stats,
+                        config, feature_names, sampler, 0.)
+        if args.initialization_only:
+            return
+    elif checkpoint:
         if 'training_state' not in checkpoint:
             raise ValueError('Checkpoint lacks exact resume state; refusing approximate resume')
-        keys = ['root', 'repo_id', 'batch_size', 'lr', 'obs_horizon', 'pred_horizon',
-                'action_horizon', 'num_diffusion_iters', 'seed', 'state_dim', 'action_dim',
-                'recording_metadata', 'dataset_sequences', 'dataset_frames', 'deterministic_algorithms']
-        if any(config.get(k) != checkpoint['config'].get(k) for k in keys):
-            raise ValueError('Training contract changed during resume')
-        if checkpoint['feature_names'] != feature_names:
-            raise ValueError('Resume feature names changed')
+        validate_resume_contract(config, checkpoint, feature_names, args.resume_lr_from)
         model.load_state_dict(checkpoint['model'])
         optimizer.load_state_dict(checkpoint['optimizer'])
+        if args.resume_lr_from is not None:
+            for group in optimizer.param_groups:
+                group['lr'] = args.lr
+            config['controlled_lr_change'] = dict(source_checkpoint=str(Path(args.resume).resolve()),
+                source_sha256=hashlib.sha256(Path(args.resume).read_bytes()).hexdigest(),
+                source_completed_updates=checkpoint['config']['completed_updates'],
+                old_lr=args.resume_lr_from, new_lr=args.lr, changed_optimizer_fields=['param_groups.lr'])
+        elif 'controlled_lr_change' in checkpoint['config']:
+            config['controlled_lr_change'] = checkpoint['config']['controlled_lr_change']
         sampler.load_state_dict(checkpoint['training_state']['sampler'])
         step = int(checkpoint['config']['completed_updates'])
         prior_elapsed = float(checkpoint['training_state']['elapsed_sec'])
         if args.steps <= step:
             raise ValueError('Resume target must exceed completed updates')
         restore_rng(checkpoint['training_state']['rng'])
+        if 'initialization' in checkpoint['config']:
+            config['initialization'] = checkpoint['config']['initialization']
     elif (run_dir / 'metrics.jsonl').exists() or (ckpt_dir / 'model_latest.pt').exists():
         raise FileExistsError('Fresh training requires a new output directory')
+    if not checkpoint and (args.initialization_only or args.verify_random_initialization):
+        config['initialization']=dict(mode='random_seeded_training_data_stats',seed=args.seed,
+            source_checkpoint=None,stats_source=str(dataset_root),optimizer_reset=True,sampler_reset=True,rng_reset=True)
+        config['completed_updates']=0
+        if args.verify_random_initialization:
+            expected=torch.load(args.verify_random_initialization,map_location='cpu',weights_only=False)
+            verify_random_initialization(model,optimizer,stats,sampler,config,expected)
+        save_checkpoint(ckpt_dir/'step_000000.pt',model,optimizer,stats,config,feature_names,sampler,0.)
+        if args.initialization_only:
+            return
+    if args.resume:
+        config['completed_updates'] = step
+        if args.verify_restored_state:
+            audit = torch.load(args.verify_restored_state, map_location='cpu', weights_only=False)
+            verify_full_restoration(model, optimizer, stats, sampler, audit)
+        if args.resume_audit_only:
+            save_checkpoint(ckpt_dir / ('step_%06d.pt' % step), model, optimizer, stats, config, feature_names, sampler, prior_elapsed)
+            return
     wandb_run = None
     if args.wandb:
         try:
