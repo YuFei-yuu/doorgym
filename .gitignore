@@ -1,4 +1,6 @@
 **/__pycache__
+# Isolated local runtime, environment, caches and future wc4 runs.
+/.repro/
 IsaacGymEnvs/
 **/runs
 **/wandb
