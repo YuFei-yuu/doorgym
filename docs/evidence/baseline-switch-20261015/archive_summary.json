@@ -1,0 +1,237 @@
+{
+  "repo": "/data/zyf/video2door",
+  "archive": "/data/zyf/video2door-archives/20261015-baseline-switch-v1",
+  "roots": [
+    "experiments",
+    "low-level/logs/repro-smoke",
+    ".repro/logs",
+    ".repro/tmp",
+    ".repro/retained-evidence",
+    ".repro/cleanup-20261013",
+    ".repro/maintenance",
+    ".repro/commit-review-20261014",
+    ".repro/code-sync",
+    ".repro/repository-sync",
+    ".repro/sync",
+    ".repro/branch16040",
+    ".repro/smallbatch30k",
+    ".repro/lr-pair",
+    ".repro/expert-manual-review-7f8d52c-driver.log",
+    ".repro/forward-expert-grid18-driver.log",
+    ".repro/forward-pass-review-driver.log"
+  ],
+  "files": 673014,
+  "symlinks": 46,
+  "bytes": 12669479466,
+  "action": "move_outside_repo_no_deletion",
+  "preserved": [
+    "docs/",
+    "all current source/config/assets",
+    "high-level/experiments/isaacgym/b1z1_opendoor.yaml",
+    ".repro/envs/",
+    ".repro/blackwell/",
+    ".repro/cache/",
+    ".repro/conda-pkgs/",
+    ".repro root scripts",
+    "existing local evidence outside code/"
+  ],
+  "active_selected_processes": [],
+  "passed": true,
+  "at": 1792048721.4518557,
+  "all_file_hashes_and_symlinks_preserved": true,
+  "before_manifest_sha256": "ebbc9bd9660e4996656a19f191de529980210044b043fdba2fbd13a725a45f1d",
+  "after_manifest_sha256": "ebbc9bd9660e4996656a19f191de529980210044b043fdba2fbd13a725a45f1d",
+  "source_evidence_copies": [
+    {
+      "path": "docs/evidence/baseline-switch-20261015/scripts/experiments/float-push/20261013-forward-dp-v1/camera_qa.py",
+      "sha256": "7b319c8a325b645f3042f9ebab2c846bee154e7018a599d0684387dd0b847dbb"
+    },
+    {
+      "path": "docs/evidence/baseline-switch-20261015/scripts/experiments/float-push/20261013-forward-dp-v1/deliver_stop_3000.py",
+      "sha256": "ad29870b7d7be41f92e2f7aeb5e1c7fba7b85b726f01518a442ace869e871da1"
+    },
+    {
+      "path": "docs/evidence/baseline-switch-20261015/scripts/experiments/float-push/20261013-forward-dp-v1/status.py",
+      "sha256": "d838def3b276cc596bfd9508fd6ec7ad070b4eb54aab15ace7de2a64e4c77e29"
+    },
+    {
+      "path": "docs/evidence/baseline-switch-20261015/scripts/experiments/float-push/20261013-forward-dp-v1/stop_after_3000.py",
+      "sha256": "b36fd170c4e35f187f2de30f2c8b06e69e894c3c3bf6c947befa620dec3f6e21"
+    },
+    {
+      "path": "docs/evidence/baseline-switch-20261015/scripts/experiments/float-push/20261013-forward-dp-v1/test_stop_after_3000.py",
+      "sha256": "ecfc0a4207120941459019d861170d9233987a2d6f66a93a58059684c88eacf3"
+    },
+    {
+      "path": "docs/evidence/baseline-switch-20261015/scripts/experiments/float-push/20261014-small3-stop-analysis-v1/analyze_stop.py",
+      "sha256": "018cf58cbf278490876a11fa2dfb1247d6399621eadde5ffcf7586d882958ed7"
+    },
+    {
+      "path": "docs/evidence/baseline-switch-20261015/scripts/experiments/float-push/20261014-stop-tail-resume5000-v1/finalize_stop_tail_resume_delivery.py",
+      "sha256": "7068178e26c1588ddb23a27c85808c113a1272b193ce7d8e7e57775e8f1e525f"
+    },
+    {
+      "path": "docs/evidence/baseline-switch-20261015/scripts/experiments/float-push/20261014-stop-tail-small3-loss-review-v1/plot_loss.py",
+      "sha256": "c10944a498c774c9c0ff815494bae1f7974953704e3af7f7bcb34aada81c0bfe"
+    },
+    {
+      "path": "docs/evidence/baseline-switch-20261015/scripts/experiments/float-push/20261015-B16040-batch8-random30k-v1/collect_evidence.py",
+      "sha256": "655f55486a006e7b8715e1e7d925c114e58499b6cad71f8764552a12b98cdfca"
+    },
+    {
+      "path": "docs/evidence/baseline-switch-20261015/scripts/experiments/float-push/20261015-B16040-batch8-random30k-v1/finalize_evidence.py",
+      "sha256": "5725b7d4a622b7e124c9ae9c928c5ebb21270f41eda239e1fa72a57f66e1ab16"
+    },
+    {
+      "path": "docs/evidence/baseline-switch-20261015/scripts/experiments/float-push/20261015-B16040-lr-pair-v1/collect_evidence.py",
+      "sha256": "f7cf20a094a848b45ebba87f94a93720b9f0d381c14f3044be5bac17e8799051"
+    },
+    {
+      "path": "docs/evidence/baseline-switch-20261015/scripts/experiments/float-push/20261015-B16040-lr-pair-v1/finalize_evidence.py",
+      "sha256": "728081f0e41fdee036e8dc02321405160503075377f128c135c387a5bbf8eb77"
+    },
+    {
+      "path": "docs/evidence/baseline-switch-20261015/scripts/experiments/float-push/20261015-B16040-lr-pair-v1/label_videos.py",
+      "sha256": "a583321f43c838da4f25ee958ec6a12d3d3849d9fb0633528f6a897a49fa3e45"
+    },
+    {
+      "path": "docs/evidence/baseline-switch-20261015/scripts/experiments/float-push/20261015-B16040-lr-pair-v1/seal_manifest.py",
+      "sha256": "698f2424c92cd2eaf10374a7b3df4f0c7674a0fdbf16771dc66bc6355799dd05"
+    },
+    {
+      "path": "docs/evidence/baseline-switch-20261015/scripts/experiments/float-push/20261015-B16040-lr-pair-v1/visual_qa.py",
+      "sha256": "ec2fe6bc851d08538e91030ae338871218dad33ab9b72a78c553d7e45711f82e"
+    },
+    {
+      "path": "docs/evidence/baseline-switch-20261015/scripts/experiments/float-push/20261015-B16040-lr-pair-v1/visual_qa_labeled.py",
+      "sha256": "ff7c3c75a422e48e4fe4b5e2ff715387bb9077c4146985861ac7977bc3085a61"
+    },
+    {
+      "path": "docs/evidence/baseline-switch-20261015/scripts/experiments/float-push/20261015-observation-branch16040-v3/finalize_evidence.py",
+      "sha256": "550a842222dd918cb3ea06c6402c20a5a0d34db70b9b063030431fd4679deee9"
+    },
+    {
+      "path": "docs/evidence/baseline-switch-20261015/scripts/.repro/tmp/ee-ik-final-checks.py",
+      "sha256": "37107ef23b448d6e92edf7a042338f57648d6e57e84040bf0ef2f2c2719c117c"
+    },
+    {
+      "path": "docs/evidence/baseline-switch-20261015/scripts/.repro/tmp/ee-ik-run-checks.py",
+      "sha256": "11c2ec1895bff00e0a604c6576b1bb28e334cd3330ed1d5b00f13133298ca582"
+    },
+    {
+      "path": "docs/evidence/baseline-switch-20261015/scripts/.repro/tmp/extend_float_cleanup.py",
+      "sha256": "11a28da2cc3a8b83112b2c7661d2c7721566b0a2c49322948eb57ae140a3eac1"
+    },
+    {
+      "path": "docs/evidence/baseline-switch-20261015/scripts/.repro/tmp/final_sync.py",
+      "sha256": "2ece56d88f5acf8e6cff6e2b0b97a40ddb05b8e2d7be6a4604e54a3e58a87f1a"
+    },
+    {
+      "path": "docs/evidence/baseline-switch-20261015/scripts/.repro/tmp/float_cleanup_20261013.py",
+      "sha256": "b944c3a1b046138e08c4485e8d82ea0b68850ced97efefb6f0823ab8a094f1d0"
+    },
+    {
+      "path": "docs/evidence/baseline-switch-20261015/scripts/.repro/tmp/sync_commit.py",
+      "sha256": "25a30da2f68dd93d154affde0c502e3c5a6d687eac5bc1f6dd6a74bd4b6e2f74"
+    },
+    {
+      "path": "docs/evidence/baseline-switch-20261015/scripts/.repro/maintenance/20261013-handoff-cleanup/archive_admin.py",
+      "sha256": "892e3007b8983e76e77508daad0a4644cbd608bfafefc2d7e689bf07caa17500"
+    },
+    {
+      "path": "docs/evidence/baseline-switch-20261015/scripts/.repro/maintenance/20261013-handoff-cleanup/finish_verification.py",
+      "sha256": "1221d27d8d530030b2d6786a9e0f4ffc907cbff7bfd5f7a294cc64ed75146751"
+    },
+    {
+      "path": "docs/evidence/baseline-switch-20261015/scripts/.repro/code-sync/20261015-stop-tail-publish/door_code_sync_snapshot.py",
+      "sha256": "b5e8f43b0e39479579068847b8601ca1d06fbd96389f6ba5c819abe71f44795f"
+    },
+    {
+      "path": "docs/evidence/baseline-switch-20261015/scripts/.repro/code-sync/20261015-stop-tail-publish/door_git_align_preserving_worktree.py",
+      "sha256": "352cc1827a68a9f547b751a3136a7bc626cb1e22374d7655fc0829630a4a405e"
+    },
+    {
+      "path": "docs/evidence/baseline-switch-20261015/scripts/.repro/repository-sync/20261012-184254/sync_server.py",
+      "sha256": "f2c97a00cba8761d39a1d73daae85b334a479f7c72fb937724b232602ea3b2bc"
+    },
+    {
+      "path": "docs/evidence/baseline-switch-20261015/scripts/.repro/branch16040/post-analysis-revision1.py",
+      "sha256": "8aafab8f8e9bfd5b24ab0a5fe3d051095c8cc2bc5647d9313ec0beca12ca1c82"
+    },
+    {
+      "path": "docs/evidence/baseline-switch-20261015/scripts/.repro/branch16040/post-analysis-revision2.py",
+      "sha256": "ad59c20f1b7821e6c6faa21e1fa361754f13b5625ada65c28f087ae3ce5f0c0b"
+    }
+  ],
+  "moves": [
+    {
+      "old": "/data/zyf/video2door/experiments",
+      "new": "/data/zyf/video2door-archives/20261015-baseline-switch-v1/tree/experiments"
+    },
+    {
+      "old": "/data/zyf/video2door/low-level/logs/repro-smoke",
+      "new": "/data/zyf/video2door-archives/20261015-baseline-switch-v1/tree/low-level/logs/repro-smoke"
+    },
+    {
+      "old": "/data/zyf/video2door/.repro/logs",
+      "new": "/data/zyf/video2door-archives/20261015-baseline-switch-v1/tree/.repro/logs"
+    },
+    {
+      "old": "/data/zyf/video2door/.repro/tmp",
+      "new": "/data/zyf/video2door-archives/20261015-baseline-switch-v1/tree/.repro/tmp"
+    },
+    {
+      "old": "/data/zyf/video2door/.repro/retained-evidence",
+      "new": "/data/zyf/video2door-archives/20261015-baseline-switch-v1/tree/.repro/retained-evidence"
+    },
+    {
+      "old": "/data/zyf/video2door/.repro/cleanup-20261013",
+      "new": "/data/zyf/video2door-archives/20261015-baseline-switch-v1/tree/.repro/cleanup-20261013"
+    },
+    {
+      "old": "/data/zyf/video2door/.repro/maintenance",
+      "new": "/data/zyf/video2door-archives/20261015-baseline-switch-v1/tree/.repro/maintenance"
+    },
+    {
+      "old": "/data/zyf/video2door/.repro/commit-review-20261014",
+      "new": "/data/zyf/video2door-archives/20261015-baseline-switch-v1/tree/.repro/commit-review-20261014"
+    },
+    {
+      "old": "/data/zyf/video2door/.repro/code-sync",
+      "new": "/data/zyf/video2door-archives/20261015-baseline-switch-v1/tree/.repro/code-sync"
+    },
+    {
+      "old": "/data/zyf/video2door/.repro/repository-sync",
+      "new": "/data/zyf/video2door-archives/20261015-baseline-switch-v1/tree/.repro/repository-sync"
+    },
+    {
+      "old": "/data/zyf/video2door/.repro/sync",
+      "new": "/data/zyf/video2door-archives/20261015-baseline-switch-v1/tree/.repro/sync"
+    },
+    {
+      "old": "/data/zyf/video2door/.repro/branch16040",
+      "new": "/data/zyf/video2door-archives/20261015-baseline-switch-v1/tree/.repro/branch16040"
+    },
+    {
+      "old": "/data/zyf/video2door/.repro/smallbatch30k",
+      "new": "/data/zyf/video2door-archives/20261015-baseline-switch-v1/tree/.repro/smallbatch30k"
+    },
+    {
+      "old": "/data/zyf/video2door/.repro/lr-pair",
+      "new": "/data/zyf/video2door-archives/20261015-baseline-switch-v1/tree/.repro/lr-pair"
+    },
+    {
+      "old": "/data/zyf/video2door/.repro/expert-manual-review-7f8d52c-driver.log",
+      "new": "/data/zyf/video2door-archives/20261015-baseline-switch-v1/tree/.repro/expert-manual-review-7f8d52c-driver.log"
+    },
+    {
+      "old": "/data/zyf/video2door/.repro/forward-expert-grid18-driver.log",
+      "new": "/data/zyf/video2door-archives/20261015-baseline-switch-v1/tree/.repro/forward-expert-grid18-driver.log"
+    },
+    {
+      "old": "/data/zyf/video2door/.repro/forward-pass-review-driver.log",
+      "new": "/data/zyf/video2door-archives/20261015-baseline-switch-v1/tree/.repro/forward-pass-review-driver.log"
+    }
+  ],
+  "archive_does_not_free_filesystem_space": true
+}
