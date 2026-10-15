@@ -38,7 +38,7 @@ def build(stage, run_id, gpu=None, seed=1000, max_rollouts=None, train_steps=Non
         if not max_rollouts or max_rollouts < 1:
             raise ValueError('record requires --max-rollouts (future approved attempt budget)')
         kind = 'gym'
-        cmd = ['python', 'high-level/dp/record/record_door_dp_dataset_a2w_state10.py',
+        cmd = ['python', 'migration/wc4_act/record_with_overview.py',
                '--mode', 'ikpush', '--state_action_mode', 'joint_state9', '--num_episodes', '50',
                '--raw_root', str(raw), '--run_log_root', str(root / 'record-logs'),
                '--num_envs', '16', '--record_all_envs', '--steps', str(c['rollout_steps']),
@@ -80,7 +80,7 @@ def build(stage, run_id, gpu=None, seed=1000, max_rollouts=None, train_steps=Non
         if not trials or trials < 1:
             raise ValueError('evaluate requires --trials (future approved trial budget)')
         kind = 'gym'
-        cmd = ['python', 'high-level/dp/eval/eval_door_policy_success.py',
+        cmd = ['python', 'migration/wc4_act/evaluate_with_overview.py',
                '--checkpoint', str(wrapped / 'model_latest.pt'), '--mode', 'ikpush', '--robot_body', 'a2wz1',
                '--door_cfg', str(ROOT / c['door_cfg']), '--num_envs', '16', '--total_trials', str(trials),
                '--parallel_batches', '1', '--steps', str(c['rollout_steps']), '--base_seed', str(seed),

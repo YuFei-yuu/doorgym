@@ -1,5 +1,9 @@
 # wc4 ACT Joint9：迁移准备
 
+人工闭环审查视频统一采用第三视角RGB整体录像 `rollout.mp4`，成功和失败均保留；前置/腕部深度视频仅为补充。录制入口默认使用相反两侧观察相机拼接（1920×640、25fps），避免门墙遮挡通过后的机器人。`commands.py record/evaluate` 已接入录像包装器，作者控制器、策略输入、skill和物理配置未修改。
+自定义编排必须使用 `overview.install_live` 或相同包装器。每个并行环境都有独立完整视频；帧数不足会保留部分录像并报错。录像标注 `LIVE EXECUTION`，包含帧号、时间、阶段和门角。
+历史漏录可用 `replay_with_overview.py OUTPUT -- --raw_episode NPZ --mode ikpush --replay_mode state --headless --no_show_seg --no_real_time` 补录，标注 `RECORDED STATE REPLAY`，不能作为新增闭环成功结果。本次补录证据在本地 `reproduction/wc4-act/overview-review-20261015/` 和服务器 `/data/zyf/wc4-act-evidence/overview-review-20261015/`。
+
 2026-10-15。仅准备环境、命令和无仿真检查，未采集、训练、仿真或验证策略效果。
 
 **状态：迁移准备复核通过，等待独立验收。** 本轮仅补齐新 ACT 环境内的 FFmpeg 共享库及必要依赖；未采集、训练、仿真或策略推理。通过的是准备检查，真实数据和策略效果仍待后续授权验证。
