@@ -1,0 +1,27 @@
+{
+  "status": "accepted_training_complete",
+  "accepted_date": "2026-10-20",
+  "source_commit": "096938c44ecc1c7602304d42502f96658e46eb25",
+  "execution_commit": "5ca33bf00bf7f0bd4e0484db8cbeb48c84cb7f7f",
+  "dataset_run": "wc4-joint9-skill50-s62000-20261015",
+  "model_run": "wc4-act-resume40k-50k-s1000-20261015",
+  "episodes": 50,
+  "frames": 27500,
+  "training_updates": 50000,
+  "model_sha256": "3f1f32f96eb3a78abd215f6affa6786d7b2cf76b94def6b8268bdeefe3bfbdb9",
+  "successes": 48,
+  "trials": 64,
+  "success_rate": 0.75,
+  "criterion": "max absolute hinge angle >= 80 degrees",
+  "raw_data_server": "/data/zyf/video2door-wc4-act/.repro/runs/wc4-joint9-skill50-s62000-20261015/raw",
+  "dataset_server": "/data/zyf/video2door-wc4-act/.repro/runs/wc4-joint9-skill50-s62000-20261015/lerobot/local/wc4_joint9_skill_wc4-joint9-skill50-s62000-20261015",
+  "checkpoint_server": "/data/zyf/video2door-wc4-act/.repro/runs/wc4-act-resume40k-50k-s1000-20261015/train/checkpoints/050000",
+  "door_manifest_server": "/data/zyf/video2door-wc4-act/.repro/runs/wc4-act-resume40k-50k-s1000-20261015/checkpoints/050000/door-checkpoint/model_latest.pt",
+  "wandb_training": "https://wandb.ai/fi-yu-individual/door-dp-stop-tail/runs/xobd7ef0",
+  "wandb_evaluation": "https://wandb.ai/fi-yu-individual/door-dp-stop-tail/runs/lj85duyv",
+  "limitations": [
+    "Fixed evaluation set; no independent generalization claim.",
+    "Opening is accepted; traversal, collision realism and parking are not part of this success criterion."
+  ],
+  "cleanup": "Keep successful dataset, final50k checkpoint/optimizer/RNG, Door export, complete final64 logs and representative videos. Earlier runs, intermediate checkpoints and failed preparation archives removed by user request."
+}

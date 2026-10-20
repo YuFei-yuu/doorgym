@@ -1,2 +1,0 @@
-from .config_sim_dual_piper_deformable import SimDualPiperDeformableConfig
-from .sim_dual_piper_deformable import SimDualPiperDeformable

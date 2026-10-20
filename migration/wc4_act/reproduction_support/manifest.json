@@ -1,0 +1,90 @@
+{
+  "purpose": "Documentation attachments: retained environment reconstruction inputs, not a new environment installation.",
+  "sources": {
+    "blackwell": "pro5000:/data/zyf/video2door/.repro/blackwell/",
+    "act": "reproduction/wc4-act/wc4-joint9-skill50-s62000-20261015/environment/",
+    "ffmpeg": "reproduction/wc4-act/ffmpeg-recheck-20261015/approved-explicit-install.txt"
+  },
+  "derived_files": [
+    "act/requirements-pinned.txt",
+    "blackwell/requirements-build-and-runtime.txt"
+  ],
+  "files": {
+    "act/act-conda-explicit.txt": {
+      "bytes": 5690,
+      "sha256": "0ba3c003748dfd33e800ca20badc9838e92c3b5636e490b3c8b4fff19db005d6"
+    },
+    "act/act-pip-freeze.txt": {
+      "bytes": 3440,
+      "sha256": "ab10cc2b31d1f148ef734d3970444452ed27756a0dd955b456803fa83b549902"
+    },
+    "act/ffmpeg-additions-explicit.txt": {
+      "bytes": 4609,
+      "sha256": "b004d17883c29fef51318b7f10db514c90e17ebef625e34342809bb2de7f336e"
+    },
+    "act/requirements-pinned.txt": {
+      "bytes": 3392,
+      "sha256": "3825a35d88a5b9bd8ad959950e3c2925d3118ac21071ef2f4dc9f75b8ff34689"
+    },
+    "blackwell/VkLayer_video2door_device_select.json": {
+      "bytes": 440,
+      "sha256": "1c6191427584882512ecb24dc2fcfbe425df2649b12e710611b3d7a67925fc07"
+    },
+    "blackwell/activate.sh": {
+      "bytes": 2598,
+      "sha256": "dd7f08326eba91e5bb7cfca2115f8324492af81f476499e254679d98ad0d241b"
+    },
+    "blackwell/build_torch.sh": {
+      "bytes": 1175,
+      "sha256": "eb83f80f3ab867b985b9eeaac28994967841635ace99c7aeff48cc6b06c3b589"
+    },
+    "blackwell/build_vulkan_filter.sh": {
+      "bytes": 431,
+      "sha256": "1637e30f06851ff98a9b8041cb7e4e963a3fd3aee9f0c0708a30282b4d492dc2"
+    },
+    "blackwell/conda-explicit.txt": {
+      "bytes": 11192,
+      "sha256": "0ff920c26d74923da423a05d7877237f17c1ea2f9b78b8fd59d98fa5af34d294"
+    },
+    "blackwell/constraints.txt": {
+      "bytes": 33,
+      "sha256": "1e77756545e9feeba809bca65aae30b5d6d5e69f401df5bc80473e6a39c7a21e"
+    },
+    "blackwell/patch_pytorch.py": {
+      "bytes": 1459,
+      "sha256": "c1f90c7ab944971f91e1be4d283aaf854f0d8153a3431de3aceb452d3afb0d95"
+    },
+    "blackwell/pip-freeze.txt": {
+      "bytes": 2334,
+      "sha256": "e556b23f89086072e363ca91c6d71022831fc21199d96ff5a8734568ab01a728"
+    },
+    "blackwell/prepare_toolchain.py": {
+      "bytes": 1088,
+      "sha256": "9829f2c6735160d50b3ad285958abedffb0d6e010a0fb2ff32e4c9731b865a0e"
+    },
+    "blackwell/probe_vulkan.c": {
+      "bytes": 1697,
+      "sha256": "ac91d0ae47eab9954c68652c6b31d230a2e2a16a301fb787df37f1b1fd10ca20"
+    },
+    "blackwell/pytorch-sm120.patch": {
+      "bytes": 2171,
+      "sha256": "1404498a4dce34de25988cfad9bb218cb6625c84e7b758f8145d0659a94fb87c"
+    },
+    "blackwell/requirements-build-and-runtime.txt": {
+      "bytes": 1536,
+      "sha256": "5880fdf32a9ff4eeca8d999a7bf6d0122246aabf5c7ccf780731c98f9b97850c"
+    },
+    "blackwell/requirements-runtime.txt": {
+      "bytes": 452,
+      "sha256": "60d5bf594241dc8fd56471e0a665d12d9bcbb1ab3056345fda6eb74cb6d7387a"
+    },
+    "blackwell/torch-wheel.sha256": {
+      "bytes": 145,
+      "sha256": "b6c5ba68fd3e4b5e896ef973bcc5f4dc108aec4048262bc11656c528b6ec5f46"
+    },
+    "blackwell/vulkan_device_filter.c": {
+      "bytes": 6957,
+      "sha256": "6707545e9e0222fb4c0d4b363a0eec0a7dce54cc3715eabf69e5673cd1d32194"
+    }
+  }
+}

@@ -1,7 +1,0 @@
-{
-  "stage_definition": "Failure stage is based on recorded replay_door_open_stage: unlock not observed, or unlock observed but max hinge<80deg. Not inferred from expert phase names; all actual control phases are dp_policy.",
-  "contact_limitation": "Positive contact flags are logged observations. Zero does not prove no contact: author getter returns zeros when body handles unavailable or contact API fails, and records no validity flag. Score may be a count proxy, not a calibrated force.",
-  "ee_error_limitation": "Joint9 logger sets EE target position from current EE observation; logged ee.pos_error is not an independent handle-goal distance and is not used to diagnose grasp.",
-  "tracking_limitation": "Joint target-vs-state RMSE on fresh 25Hz samples is actuator tracking observation, not expert-action imitation error; base displacement is commanded path, not collision-free traversal.",
-  "causality": "No new rollout, image reconstruction, causal intervention or algorithm change. Lower handle angle/absent unlock can localize observed failure stage, but cannot distinguish perception, approach, grasp, rotation or contact-maintenance root causes."
-}

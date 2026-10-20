@@ -1,91 +1,11 @@
-# Visual Whole-Body for Loco-Manipulation
+# wc4 Joint9 ACT baseline
 
-当前入口：[wc4 ACT Joint9 基线与运行说明](migration/wc4_act/README.md)。
-本工作区固定源提交为 `096938c44ecc1c7602304d42502f96658e46eb25`，采用作者 A2W 浮动底座、wc4 skill 和直接 Joint9。
-已验收50条/27500帧专家数据及ACT训练至50k；最终50k固定64回合成功48/64（75%）。36k在同一固定64集观察为52/64（81.25%），尚未进行未使用初态的独立确认。训练与仿真已停止，旧DP工作区保持独立。
-本轮代码/精简证据：[40k→50k已验收归档](migration/wc4_act/accepted_runs/20261015_resume40k_50k/README.md)。
+已完成并验收：50条成功专家轨迹、27500帧双深度数据、ACT训练至50k；最终64回合开门成功48次（75%）。当前没有待执行的续训或补采任务。
 
-https://wholebody-b1.github.io/
+- [完整复现手册](migration/wc4_act/REPRODUCTION_GUIDE.md)：从固定作者源、环境构建到采集、转换、训练、导出和闭环评测。
+- [成功基线与产物索引](migration/wc4_act/README.md)；[机器可读记录](migration/wc4_act/BASELINE.json)。
+- [环境构建附件](migration/wc4_act/reproduction_support/README.md)。
 
-Related to paper <[Visual Whole-Body Control for Legged Loco-Manipulation](https://arxiv.org/abs/2403.16967)>
+主线仅保留本次wc4/A2W浮动底座、直接Joint9、ACT baseline及其源依赖。训练量30k以上，可按任务扩大到40k～50k；无需重走历史分段训练。开门成功判据为最大绝对门角≥80°，不代表穿越、碰撞合理性或停稳已经验收。
 
-<p align="center">
-<img src="./teaser.jpg" width="80%"/>
-</p>
-
-## Model learning reference
-
-Low-level learning curves: [wandb](https://wandb.ai/ericonaldo/b1z1-low)
-
-High-level learning curves: [wandb](https://wandb.ai/ericonaldo/b1-pick-multi-teacher)
-
-Low-level model weights: https://drive.google.com/file/d/1KIfKu77QkrwbK-YllSWclqb6vJknGgjv/view?usp=sharing
-
-## Set up the environment
-```bash
-conda create -n b1z1 python=3.8 # isaacgym requires python <=3.8
-conda activate b1z1
-
-git clone git@github.com:Ericonaldo/visual_whole_body.git
-
-cd visual_whole_body
-
-pip install torch torchvision torchaudio
-
-cd third_party/isaacgym/python && pip install -e .
-
-cd ../..
-cd rsl_rl && pip install -e .
-
-cd ..
-cd skrl && pip install -e .
-
-cd ../..
-cd low-level && pip install -e .
-
-pip install numpy pydelatin tqdm imageio-ffmpeg opencv-python wandb
-```
-
-## Structure
-
-- `high-level`: codes and environments related to the visuomotor high-level policy, task-relevant
-
-- `low-level`: codes and environments related to the general low-level controller for the quadruped and the arm, the only task is to learn to walk while tracking the target ee pose and the robot velocities.
-
-Detailed code structures can be found in these directories.
-
-## How to work (roughly)
-
-- Train a low-level policy using codes and follow the descriptions in `low-level`
-
-- Put the low-level policy checkpoint into somewhere.
-
-- Train the high-level policy using codes and follow the descriptions in `high-level`, while assigning the low-level model in the config yaml file.
-
-## Acknowledgements (third-party dependencies)
-
-- [isaacgym](https://developer.nvidia.com/isaac-gym)
-- [legged_gym](https://github.com/leggedrobotics/legged_gym)
-- [rsl_rl](https://github.com/leggedrobotics/rsl_rl)
-- [skrl](https://github.com/Toni-SM/skrl)
-
-The low-level training also refers a lot to [DeepWBC](https://github.com/MarkFzp/Deep-Whole-Body-Control).
-
-## Codebase Contributions
-
-- [Minghuan Liu](https://minghuanliu.com) made efforts on improving the training efficiency, reward engineering, filling sim2real gaps, and reach expected behaviors, while cleaning and integrating the whole codebase for simplicity.
-- [Zixuan Chen](https://zixuan417.github.io) initialized the code base and made early progress on reward design, training, testing, and sim2real transferring, along with some baselines.
-- [Xuxin Cheng](https://chengxuxin.github.io/) shared a lot of domain knowledge and reward experience on locomotion and low-level policy training, and helped debug the code.
-- [Xuanbin Peng](https://github.com/xuanbinpeng) cleaned and refactored the low-level codebase to improve the readability while also finetuned the reward function for a stable walking.
-- [Yandong Ji](https://yandongji.github.io/) provided several suggestions and helped debug the code.
-
-## Citation
-If you find the code base helpful, consider to cite
-```
-@article{liu2024visual,
-    title={Visual Whole-Body Control for Legged Loco-Manipulation},
-    author={Liu, Minghuan and Chen, Zixuan and Cheng, Xuxin and Ji, Yandong and Yang, Ruihan and Wang, Xiaolong},
-    journal={arXiv preprint arXiv:2403.16967},
-    year={2024}
-}
-```
+作者代码来自 [Sivan666666/doorgym](https://github.com/Sivan666666/doorgym) 的固定提交 `096938c44ecc1c7602304d42502f96658e46eb25`。保留模块未修改作者算法；无关实验、其他门型资产和历史交接文件已从主线移除。`high-level/lerobot/src`及`third_party`作为完整依赖库保留，不能把其中可选算法或SDK例程当成本项目实验入口。许可证见 [LICENCE](LICENCE)及各依赖自身许可证。

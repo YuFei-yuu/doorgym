@@ -1,0 +1,15 @@
+{
+  "file_format_version": "1.0.0",
+  "layer": {
+    "name": "VK_LAYER_VIDEO2DOOR_device_select",
+    "type": "GLOBAL",
+    "library_path": "../libvulkan_video2door_device_select.so",
+    "api_version": "1.3.204",
+    "implementation_version": "1",
+    "description": "Expose one audited GPU for Video2Door Isaac Gym",
+    "functions": {
+      "vkNegotiateLoaderLayerInterfaceVersion": "vkNegotiateLoaderLayerInterfaceVersion"
+    }
+  }
+}
+

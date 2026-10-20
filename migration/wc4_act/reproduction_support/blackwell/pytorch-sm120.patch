@@ -1,0 +1,42 @@
+diff --git a/cmake/Modules_CUDA_fix/FindCUDNN.cmake b/cmake/Modules_CUDA_fix/FindCUDNN.cmake
+index 8213432..d66fab2 100644
+--- a/cmake/Modules_CUDA_fix/FindCUDNN.cmake
++++ b/cmake/Modules_CUDA_fix/FindCUDNN.cmake
+@@ -41,6 +41,11 @@ if (CUDNN_LIBRARY MATCHES ".*cudnn_static.a" AND NOT CUDNN_STATIC)
+   message(WARNING "CUDNN_LIBRARY points to a static library (${CUDNN_LIBRARY}) but CUDNN_STATIC is OFF.")
+ endif()
+ 
++# Honor an explicit library file, including versioned pip cuDNN libraries.
++if(EXISTS "${CUDNN_LIBRARY}" AND NOT IS_DIRECTORY "${CUDNN_LIBRARY}")
++  set(CUDNN_LIBRARY_PATH "${CUDNN_LIBRARY}" CACHE FILEPATH "cuDNN library" FORCE)
++endif()
++
+ find_library(CUDNN_LIBRARY_PATH ${CUDNN_LIBNAME}
+   PATHS ${CUDNN_LIBRARY}
+   PATH_SUFFIXES lib lib64 cuda/lib cuda/lib64 lib/x64)
+diff --git a/cmake/Modules_CUDA_fix/upstream/FindCUDA/select_compute_arch.cmake b/cmake/Modules_CUDA_fix/upstream/FindCUDA/select_compute_arch.cmake
+index 01692f6..479e5d3 100644
+--- a/cmake/Modules_CUDA_fix/upstream/FindCUDA/select_compute_arch.cmake
++++ b/cmake/Modules_CUDA_fix/upstream/FindCUDA/select_compute_arch.cmake
+@@ -186,7 +186,7 @@ function(CUDA_SELECT_NVCC_ARCH_FLAGS out_variable)
+       set(add_ptx TRUE)
+       set(arch_name ${CMAKE_MATCH_1})
+     endif()
+-    if(arch_name MATCHES "^([0-9]\\.[0-9](\\([0-9]\\.[0-9]\\))?)$")
++    if(arch_name MATCHES "^([0-9]+\\.[0-9]+(\\([0-9]+\\.[0-9]+\\))?)$")
+       set(arch_bin ${CMAKE_MATCH_1})
+       set(arch_ptx ${arch_bin})
+     else()
+diff --git a/torch/utils/cpp_extension.py b/torch/utils/cpp_extension.py
+index d3d264d..dc1a6b2 100644
+--- a/torch/utils/cpp_extension.py
++++ b/torch/utils/cpp_extension.py
+@@ -1953,7 +1953,7 @@ def _get_cuda_arch_flags(cflags: Optional[List[str]] = None) -> List[str]:
+     ])
+ 
+     supported_arches = ['3.5', '3.7', '5.0', '5.2', '5.3', '6.0', '6.1', '6.2',
+-                        '7.0', '7.2', '7.5', '8.0', '8.6', '8.7', '8.9', '9.0', '9.0a']
++                        '7.0', '7.2', '7.5', '8.0', '8.6', '8.7', '8.9', '9.0', '9.0a', '12.0']
+     valid_arch_strings = supported_arches + [s + "+PTX" for s in supported_arches]
+ 
+     # The default is sm_30 for CUDA 9.x and 10.x
