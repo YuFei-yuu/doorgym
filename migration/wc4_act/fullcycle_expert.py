@@ -1,7 +1,7 @@
 """One nominal live expert attempt; no learned policy, quota or success filter.
 
 The frozen opening expert is reused. New controls are solely Joint9 commands.
-Post-traversal arc follows a nonholonomic circle with a fixed six-axis arm pose.
+Optional compact feedback control replaces the legacy post-traversal circle.
 The lock captures measured angle only after physical closing has settled.
 """
 import argparse
@@ -70,7 +70,7 @@ def run(m, cams, output, plan, gym, sim, states, viewer, args, dt, dof_names):
     import imageio
     if len(states)!=1 or int(args.steps)*dt>180.000001: raise ValueError('Single env, <=180 seconds only')
     st=states[0];dc=m.dc;ga=m.gymapi
-    directions=route_directions(plan)
+    directions=[] if plan.get('compact_expert') else route_directions(plan)
     robot=URDF(ROOT/'high-level/data/asset/a2wz1/urdf/a2wz1.urdf', include_visual=True)
     adjacent={frozenset((j[2],j[3])) for j in robot.joints}
     # Contact labels are diagnostic; they do not disable physical collisions
@@ -85,8 +85,13 @@ def run(m, cams, output, plan, gym, sim, states, viewer, args, dt, dof_names):
     physical_gripper_lower=float(physical_properties['lower'][indices[-1]])
     physical_gripper_upper=float(physical_properties['upper'][indices[-1]])
     st._fullcycle_gym=gym;st._fullcycle_sim=sim
-    selected=plan['selected'];qclose=np.r_[selected['q'],0.]
-    radius,distance,height=[selected[k] for k in ['radius','distance','z']]
+    selected=plan['selected']
+    if plan.get('compact_expert'):
+        qclose=home[indices].copy()
+        radius=distance=height=None  # Legacy controller is not entered.
+    else:
+        qclose=np.r_[selected['q'],0.]
+        radius,distance,height=[selected[k] for k in ['radius','distance','z']]
     body_map={};robot_ids=set();end_ids=set();door_ids=set();panel_id=None;actor_names={}
     for i in range(gym.get_actor_count(st.env)):
         actor=gym.get_actor_handle(st.env,i)
@@ -114,6 +119,8 @@ def run(m, cams, output, plan, gym, sim, states, viewer, args, dt, dof_names):
     close_hold=ObservedHold();terminal_hold=ObservedHold();latch_observed_hold_s=None;simulated_steps=0
     prev_xy=None;prev_yaw=None;last_action=np.zeros(9);action=np.r_[0.,0.,home[indices]]
     previous_action=action.copy();approach=None;approach_index=0
+    compact=None;compact_diagnostics=None
+    nonzero_door_contact=False;nonzero_end_panel_contact=False
     samples=[];success=False;reason='budget_exhausted';step=-1;initial_record=None;pre_physics=None
     old_phase=''; transition_q=None;route=None;stop_error=None;blocked_self_steps=0
     def event(kind,**data):
@@ -160,6 +167,12 @@ def run(m, cams, output, plan, gym, sim, states, viewer, args, dt, dof_names):
             door_pos,door_vel=m.get_actor_dof_state(gym,st.env,st.door_actor)
             observation_pre=dict(time_s=step*dt,state=np.r_[last_action[:2],measured_q[indices]].tolist(),
                 arm_qd=measured_qd.tolist(),door_q=np.asarray(door_pos).tolist(),door_qd=np.asarray(door_vel).tolist())
+            if phase=='old_expert' and passed and plan.get('compact_expert'):
+                from fullcycle_compact import CompactExpert
+                compact=CompactExpert(robot,plan['compact_expert'],[*xy,yaw],
+                    measured_q[indices],last_action,float(door_pos[0]),step*dt,
+                    home[indices],st.yaw_traverse,dt)
+                change(compact.phase)
             if phase=='old_expert' and passed and plan.get('smooth_approach'):
                 from fullcycle_smooth_approach import build_approach
                 recipe=plan['smooth_approach']
@@ -195,7 +208,22 @@ def run(m, cams, output, plan, gym, sim, states, viewer, args, dt, dof_names):
                     transition_q=measured_q.copy()
                     transition_q[indices]=np.asarray(plan['smooth_approach']['deploy_origin_q'],float)
                     event('deploy_tail_resume',original_deploy_elapsed_s=(step-stage_start)*dt)
-            if phase not in ('old_expert','approach') and step%2==0:
+            if compact is not None:
+                action,compact_diagnostics=compact.command(step*dt,np.r_[xy,yaw],
+                    measured_q[indices],float(door_pos[0]),float(door_vel[0]),
+                    nonzero_end_panel_contact,nonzero_door_contact,latched is not None)
+                if phase!=compact.phase:
+                    change(compact.phase)
+                    if compact.route is not None and not (output/'compact-route.npy').exists():
+                        np.save(output/'compact-route.npy',compact.route)
+                if phase=='close' and close_hold.reached(.5):
+                    if panel_nonzero_contact_count==0:
+                        raise StopAttempt('missing_end_effector_physical_closing_evidence')
+                    latch_observed_hold_s=close_hold.elapsed
+                    latched=float(door_pos[0]);st.door.open_stage=False
+                    event('latch',measured_angle=latched,settled_steps=settled,
+                          observed_hold_s=latch_observed_hold_s)
+            if compact is None and phase not in ('old_expert','approach') and step%2==0:
                 v=w=0.;qtarget=home[indices].copy()
                 elapsed=(step-stage_start)*dt
                 if phase=='navigate':
@@ -356,6 +384,8 @@ def run(m, cams, output, plan, gym, sim, states, viewer, args, dt, dof_names):
             row['physical_close_observed_span_s']=close_hold.elapsed
             row['final_hold_observed_span_s']=terminal_hold.elapsed
             row['approach_command_index']=approach_index-1 if phase=='approach' else None
+            if compact is not None:
+                row['compact_expert']=compact_diagnostics
             log.write(json.dumps(serial(row))+'\n');contact_log.write(json.dumps(dict(step=step,interval_s=[step*dt,(step+1)*dt],contacts=contacts))+'\n')
             samples.append([step,(step+1)*dt,*np.r_[last_action[:2],measured_q[indices]],*action, *actual_xy,actual_yaw,*door_pos,*door_vel])
             if step%2==0:

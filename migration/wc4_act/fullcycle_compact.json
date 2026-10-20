@@ -1,0 +1,51 @@
+{
+  "status": "candidate_found",
+  "selected": {
+    "mode": "compact_nominal90_v1",
+    "meaning": "CPU-designed candidate; physical success requires the authorized live episode"
+  },
+  "nominal_robot": [4.1, 0.18, 0.5, 3.141592653589793],
+  "compact_expert": {
+    "revision": "compact_nominal90_v1",
+    "radius": 0.84,
+    "height": 0.90,
+    "pad_offset": 0.02,
+    "start_yaw_deg": 75.0,
+    "end_yaw_deg": 35.0,
+    "final_curvature_ratio": 0.7,
+    "forward_reach_start": 0.60,
+    "forward_reach_end": 0.70,
+    "lateral_reach_start": -0.15,
+    "corridor_x": 1.05,
+    "first_radius": 0.30,
+    "staging_distance": 0.22,
+    "max_speed": 0.18,
+    "max_yaw_rate": 0.50,
+    "linear_acceleration": 0.20,
+    "joint_speed": 0.70,
+    "closing_rate": 0.060,
+    "closing_lag_limit": 0.08,
+    "unload_seconds": 0.50,
+    "withdraw_seconds": 2.0,
+    "withdraw_distance": 0.14,
+    "fold_seconds": 3.0,
+    "deploy_seconds": 3.0,
+    "hover_distance": 0.04,
+    "seek_speed": 0.025,
+    "seek_travel": 0.07,
+    "release_distance": 0.10,
+    "release_seconds": 2.0,
+    "retract_seconds": 3.0
+  },
+  "scope": {
+    "approach_reference_door_deg": 90,
+    "measured_angle_replanning": false,
+    "early_closing_without_contact_allowed": true,
+    "reverse_allowed": false,
+    "in_place_rotation_allowed": true,
+    "physics_or_asset_changes": false,
+    "new_policy_inputs": [],
+    "maximum_live_episodes": 1,
+    "maximum_simulated_seconds": 180
+  }
+}
