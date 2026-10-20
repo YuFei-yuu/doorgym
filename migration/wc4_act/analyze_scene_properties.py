@@ -83,7 +83,7 @@ def main():
             rg=actor['body_shape_ranges'][i]
             shape_rows.append(dict(actor=actor['name'],body=n,environment_body_index=actor['body_indices'][i]['environment_index'],
                 actor_shape_start=rg['start'],actor_shape_count=rg['count'],
-                filters=[x['filter'] for x in actor['shape_properties'][rg['start']:rg['start']+rg['count']]))
+                filters=[x['filter'] for x in actor['shape_properties'][rg['start']:rg['start']+rg['count']]]))
     write(out/'body-shape-associations.json',shape_rows)
     pairs=[]
     for n0,n1 in [('link02','link06'),('gripperStator','fixed_frame'),('gripperStator','door_panel')]:
