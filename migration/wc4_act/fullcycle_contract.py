@@ -6,6 +6,24 @@ GEOMETRY_EPS_M = 1e-5  # numeric uncertainty band, never a penetration allowance
 FORCE_ZERO_EPS = 0.0  # only an exactly zero logged force is treated as unloaded
 
 
+def door_contact_review_flags(phase, raw_lambda, robot_to_door, end_to_panel):
+    """Diagnostic evidence, never a contact-triggered abort decision.
+
+    A nonzero SDK value is not a calibrated force or proof of who moved the
+    door. Opening contacts must not be judged by the new closing requirement.
+    """
+    if not np.isfinite(raw_lambda):
+        raise ValueError("Nonfinite contact record")
+    nonzero = raw_lambda != 0
+    return {
+        "nonzero_door_contact": bool(robot_to_door and nonzero),
+        "nonzero_end_panel_contact": bool(end_to_panel and nonzero),
+        "off_target_closing_contact": bool(
+            phase == "close" and robot_to_door and not end_to_panel and nonzero
+        ),
+    }
+
+
 def classify_contact(force, signed_gap, expected=False, reliable=False):
     """A separating-axis gap >0 proves separation; <=0 indicates hull overlap.
 
