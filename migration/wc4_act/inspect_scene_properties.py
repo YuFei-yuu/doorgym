@@ -180,13 +180,14 @@ def main():
     if hashlib.sha256(geometry.read_bytes()).hexdigest()!=GEOMETRY_SHA:raise RuntimeError('Reviewed route hash mismatch')
     plan=json.loads(geometry.read_text())
     if plan.get('navigation_revision')!='nominal_compact_reverse_v1':raise RuntimeError('Wrong navigation revision')
+    if not a.preflight and (out/'scene-creation-receipt.json').exists():
+        raise RuntimeError('Authorized scene creation already consumed; do not retry')
     write(out/('preflight-command.json' if a.preflight else 'command.json'),dict(argv=sys.argv,cwd=str(Path.cwd()),
         environment={n:os.environ.get(n) for n in ['VIDEO2DOOR_GPU','CUDA_VISIBLE_DEVICES','VK_LAYER_PATH','VK_INSTANCE_LAYERS','LD_LIBRARY_PATH']},
         geometry=str(geometry),geometry_sha256=GEOMETRY_SHA,meaning='PROPERTY INSPECTION ONLY; no dynamics or trajectory'))
     if a.preflight:
         write(out/'preflight.json',dict(guard_test=guard_test(),geometry_sha256=GEOMETRY_SHA,scene_creations=0))
         print('Guard and geometry preflight passed; no simulator created.');return
-    if (out/'scene-creation-receipt.json').exists():raise RuntimeError('Authorized scene creation already consumed; do not retry')
     sys.path.insert(0,str(ROOT/'high-level/float_ik'))
     import isaacgym_float_ik_a2w_basearn_push_door_parallel as m
     sys.argv=[str(ROOT/'high-level/float_ik/isaacgym_float_ik_a2w_basearn_push_door_parallel.py'),*argv]
