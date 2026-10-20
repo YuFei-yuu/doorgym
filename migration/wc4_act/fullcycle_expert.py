@@ -14,6 +14,7 @@ import time
 import traceback
 import numpy as np
 from fullcycle_geometry import URDF, transform, apply, close_pose
+from fullcycle_contract import smooth_gripper, timing
 
 ROOT=Path(__file__).resolve().parents[2]
 
@@ -35,6 +36,35 @@ def serial(x):
 class StopAttempt(Exception): pass
 
 
+def opening_command(m,st,step,dt,dof_names,phase,desired_xy,desired_yaw,
+                    target_pos,target_quat,gripper,xy,yaw,initial_gripper,
+                    physical_gripper_bounds):
+    """Author's per-step base -> refresh -> IK sequence, independent of video."""
+    dv=np.asarray(desired_xy)-xy
+    lateral=float(np.dot(dv,[-math.sin(yaw),math.cos(yaw)]))
+    if abs(lateral)>.001:raise StopAttempt('opening_base_requires_lateral_motion')
+    v=float(np.dot(dv,[math.cos(yaw),math.sin(yaw)]))/dt
+    w=angle_error(desired_yaw,yaw)/dt
+    gym=st._fullcycle_gym;sim=st._fullcycle_sim
+    m.set_robot_base_pose(gym,st.env,st.actor_handles,desired_xy,st.args.robot_z,desired_yaw,st.args.robot_pitch)
+    gym.refresh_rigid_body_state_tensor(sim);gym.refresh_dof_state_tensor(sim);gym.refresh_jacobian_tensors(sim)
+    if phase=='return_home':
+        if 'return_home_start_dofs' not in st.traj:st.traj['return_home_start_dofs']=st.dof_positions.copy()
+        st.dof_positions[:]=m.lerp(st.traj['return_home_start_dofs'],st.home_positions,float(st.traj.get('return_home_alpha',0)))
+    elif phase in ('walk','hold_home'):
+        st.dof_positions[:]=st.home_positions
+    else:
+        m.set_ik_target(st.ik_state,target_pos,target_quat)
+        m.update_arm_ik_targets_for_env(gym,st.env,st.arm_actor,0,st.dof_positions,st.ik_state,st.args,len(dof_names))
+        i=dof_names.index('jointGripper')
+        st.dof_positions[i]=np.clip(gripper,st.ik_state.lower[i].item(),st.ik_state.upper[i].item())
+    indices=[dof_names.index('joint%d'%i) for i in range(1,7)]+[dof_names.index('jointGripper')]
+    action=np.r_[v,w,st.dof_positions[indices]]
+    if step*dt<1.:
+        action[-1]=np.clip(smooth_gripper(initial_gripper,st.home_positions[indices[-1]],step*dt),*physical_gripper_bounds)
+    return action
+
+
 def run(m, cams, output, plan, gym, sim, states, viewer, args, dt, dof_names):
     import imageio
     if len(states)!=1 or int(args.steps)>4500: raise ValueError('Single env, <=90 seconds only')
@@ -43,6 +73,12 @@ def run(m, cams, output, plan, gym, sim, states, viewer, args, dt, dof_names):
     names=['joint%d'%i for i in range(1,7)]+['jointGripper']
     indices=[dof_names.index(n) for n in names]
     home=st.home_positions.copy()
+    initial_arm=gym.get_actor_dof_states(st.env,st.arm_actor,ga.STATE_ALL)
+    initial_gripper=float(initial_arm['pos'][indices[-1]])
+    physical_properties=gym.get_actor_dof_properties(st.env,st.arm_actor)
+    physical_gripper_lower=float(physical_properties['lower'][indices[-1]])
+    physical_gripper_upper=float(physical_properties['upper'][indices[-1]])
+    st._fullcycle_gym=gym;st._fullcycle_sim=sim
     selected=plan['selected'];qclose=np.r_[selected['q'],0.]
     radius,distance,height=[selected[k] for k in ['radius','distance','z']]
     body_map={};robot_ids=set();end_ids=set();door_ids=set();panel_id=None;actor_names={}
@@ -73,6 +109,19 @@ def run(m, cams, output, plan, gym, sim, states, viewer, args, dt, dof_names):
     old_phase=''; transition_q=None;route=None;stop_error=None
     def event(kind,**data):
         print(json.dumps(dict(event=kind,step=step,time_s=(step+1)*dt,**serial(data))),flush=True)
+    def save_stop_snapshot():
+        # Render the CURRENT stopped state; no simulate/reset/replay call.
+        target=np.asarray(st.ik_state.current_pos_np,float)
+        camera=st._fullcycle_stop_camera
+        gym.set_camera_location(camera,st.env,ga.Vec3(*(target+np.array([.8,.65,.35]))),ga.Vec3(*target))
+        gym.step_graphics(sim);gym.render_all_camera_sensors(sim)
+        im=np.asarray(gym.get_camera_image(sim,st.env,camera,ga.IMAGE_COLOR),np.uint8).reshape(720,1280,4)[:,:,:3]
+        imageio.imwrite(str(output/'stop-near-rgb.png'),im)
+        snapshot=dict(step=step,measured_post_time_s=(step+1)*dt,reason=reason,
+            pre_physics=pre_physics,door_bodies=serial(gym.get_actor_rigid_body_states(st.env,st.door_actor,ga.STATE_ALL)),
+            arm_bodies=serial(gym.get_actor_rigid_body_states(st.env,st.arm_actor,ga.STATE_ALL)),
+            base_bodies=serial(gym.get_actor_rigid_body_states(st.env,st.actor_handles[0],ga.STATE_ALL)))
+        (output/'stop-state.json').write_text(json.dumps(snapshot,indent=2)+'\n')
     def change(new):
         nonlocal phase,stage_start,transition_q
         phase=new;stage_start=step;transition_q=measured_q.copy();event('phase',phase=phase)
@@ -98,32 +147,13 @@ def run(m, cams, output, plan, gym, sim, states, viewer, args, dt, dof_names):
             arm=gym.get_actor_dof_states(st.env,st.arm_actor,ga.STATE_ALL)
             measured_q=np.asarray(arm['pos'],float);measured_qd=np.asarray(arm['vel'],float)
             door_pos,door_vel=m.get_actor_dof_state(gym,st.env,st.door_actor)
+            observation_pre=dict(time_s=step*dt,state=np.r_[last_action[:2],measured_q[indices]].tolist(),
+                arm_qd=measured_qd.tolist(),door_q=np.asarray(door_pos).tolist(),door_qd=np.asarray(door_vel).tolist())
             if phase=='old_expert':
                 old_phase,desired_xy,desired_yaw,target_pos,target_quat,gripper,handle_goal=m.trajectory_targets(step,st.args,st.door,gym,st.env,st.door_actor,st.ik_state,st.base_start,st.base_stop,st.base_push,st.base_traverse,st.yaw_start,st.yaw_push,st.yaw_traverse,st.traj)
-                # The original opening has a straight, constant-heading base
-                # trajectory. Sample at 25 Hz then hold each Joint9 action.
-                if step%2==0:
-                    ahead=min(step+1,int(args.steps)-1)
-                    # At straight-motion boundaries use current desired base,
-                    # avoiding any nonholonomic lateral interpolation.
-                    dv=np.asarray(desired_xy)-xy
-                    lateral=float(np.dot(dv,[-math.sin(yaw),math.cos(yaw)]))
-                    if abs(lateral)>.001: raise StopAttempt('opening_base_requires_lateral_motion')
-                    v=float(np.dot(dv,[math.cos(yaw),math.sin(yaw)]))/dt
-                    w=angle_error(desired_yaw,yaw)/dt
-                    # Existing straight expert v is piecewise 0/.2. Holding v
-                    # for 2 steps follows its original 50 Hz base exactly.
-                    m.set_robot_base_pose(gym,st.env,st.actor_handles,desired_xy,st.args.robot_z,desired_yaw,st.args.robot_pitch)
-                    gym.refresh_rigid_body_state_tensor(sim);gym.refresh_dof_state_tensor(sim);gym.refresh_jacobian_tensors(sim)
-                    if old_phase=='return_home':
-                        if 'return_home_start_dofs' not in st.traj: st.traj['return_home_start_dofs']=st.dof_positions.copy()
-                        st.dof_positions[:]=m.lerp(st.traj['return_home_start_dofs'],home,float(st.traj.get('return_home_alpha',0)))
-                    elif old_phase in ('walk','hold_home'): st.dof_positions[:]=home
-                    else:
-                        m.set_ik_target(st.ik_state,target_pos,target_quat)
-                        m.update_arm_ik_targets_for_env(gym,st.env,st.arm_actor,0,st.dof_positions,st.ik_state,st.args,len(dof_names))
-                        st.dof_positions[dof_names.index('jointGripper')]=np.clip(gripper,st.ik_state.lower[dof_names.index('jointGripper')].item(),st.ik_state.upper[dof_names.index('jointGripper')].item())
-                    action=np.r_[v,w,st.dof_positions[indices]]
+                action=opening_command(m,st,step,dt,dof_names,old_phase,desired_xy,desired_yaw,
+                    target_pos,target_quat,gripper,xy,yaw,initial_gripper,
+                    (physical_gripper_lower,physical_gripper_upper))
                 st.last_handle_goal=handle_goal;st.last_target_pos=target_pos;st.last_target_quat=target_quat;st.last_gripper=gripper
                 if old_phase=='hold_home':
                     if not passed: raise StopAttempt('old_expert_finished_without_full_body_traversal')
@@ -189,7 +219,10 @@ def run(m, cams, output, plan, gym, sim, states, viewer, args, dt, dof_names):
             # Exactly the existing Joint9 base integrator at each physics step.
             xy,yaw,jtargets=m.apply_float_dp_joint_action9(action,xy,yaw,dt)
             m.set_a2w_joint_targets_from_action(st.dof_positions,dof_names,jtargets,st.ik_state.lower,st.ik_state.upper)
-            m.set_robot_base_pose(gym,st.env,st.actor_handles,xy,st.args.robot_z,yaw,st.args.robot_pitch)
+            if phase=='old_expert' and step*dt<1.:
+                st.dof_positions[indices[-1]]=action[-1]
+            if phase!='old_expert':
+                m.set_robot_base_pose(gym,st.env,st.actor_handles,xy,st.args.robot_z,yaw,st.args.robot_pitch)
             gym.set_actor_dof_position_targets(st.env,st.arm_actor,st.dof_positions)
             st.traj['base_xy']=xy.copy();st.traj['yaw']=float(yaw)
             st.last_phase=old_phase if phase=='old_expert' else phase
@@ -200,6 +233,12 @@ def run(m, cams, output, plan, gym, sim, states, viewer, args, dt, dof_names):
                 st.door.open_stage=False;efforts[0]=0
             if st.door.open_stage: ever_unlocked=True
             gym.apply_actor_dof_efforts(st.env,st.door_actor,efforts)
+            pre_physics=dict(clock=timing(step,dt),door_q=np.asarray(door_pos).tolist(),door_qd=np.asarray(door_vel).tolist(),
+                arm_dof=serial(gym.get_actor_dof_states(st.env,st.arm_actor,ga.STATE_ALL)),
+                arm_bodies=serial(gym.get_actor_rigid_body_states(st.env,st.arm_actor,ga.STATE_ALL)),
+                base_bodies=serial(gym.get_actor_rigid_body_states(st.env,st.actor_handles[0],ga.STATE_ALL)),
+                door_bodies=serial(gym.get_actor_rigid_body_states(st.env,st.door_actor,ga.STATE_ALL)),
+                command=action.tolist())
             gym.simulate(sim);gym.fetch_results(sim,True)
             gym.refresh_rigid_body_state_tensor(sim);gym.refresh_dof_state_tensor(sim);gym.refresh_jacobian_tensors(sim)
             m.current_ee_pose_from_refreshed_tensors(st.ik_state)
@@ -241,7 +280,10 @@ def run(m, cams, output, plan, gym, sim, states, viewer, args, dt, dof_names):
             final_ok=bool(phase=='final_hold' and far and not any_door_contact and closed and latched is not None and not st.door.open_stage and abs(angle_error(actual_yaw,st.yaw_traverse))<=math.radians(2) and velocity<=.01 and omega<=.01 and np.all(np.abs(measured_q[:6]-home[:6])<=.03) and np.all(np.abs(measured_qd[:6])<=.05))
             final_count=final_count+1 if final_ok else 0
             row=dict(step=step,t=(step+1)*dt,phase=st.last_phase,state=np.r_[last_action[:2],measured_q[indices]],action=action.copy(),command_base=[*xy,yaw],actual_base=[*actual_xy,actual_yaw],base_measured_fd_speed=velocity,base_measured_fd_yaw_rate=omega,arm_q=measured_q.copy(),arm_qd=measured_qd.copy(),arm_command=st.dof_positions.copy(),ee_actual=st.ik_state.current_pos_np.copy(),ee_quat=st.ik_state.current_quat_np.copy(),ee_target=st.last_target_pos,ee_target_quat=st.last_target_quat,door_q=door_pos,door_qd=door_vel,door_effort=efforts,unlocked=bool(st.door.open_stage),latched=latched,whole_geometry_max_x=max_x,whole_geometry_bounds=[cloud.min(0),cloud.max(0)],passed=passed,end_panel_contact=end_panel,any_door_contact=any_door_contact,physical_close_steps=settled,final_hold_steps=final_count,root_rb=serial(rb[0]),arm_body_states=serial(rb),base_body_states=serial(gym.get_actor_rigid_body_states(st.env,base_actor,ga.STATE_ALL)))
-            log.write(json.dumps(serial(row))+'\n');contact_log.write(json.dumps(dict(step=step,contacts=contacts))+'\n')
+            row['timing']=timing(step,dt);row['pre_physics']=pre_physics
+            row['door_body_states']=serial(gym.get_actor_rigid_body_states(st.env,st.door_actor,ga.STATE_ALL))
+            row['observation_pre']=observation_pre
+            log.write(json.dumps(serial(row))+'\n');contact_log.write(json.dumps(dict(step=step,interval_s=[step*dt,(step+1)*dt],contacts=contacts))+'\n')
             samples.append([step,(step+1)*dt,*np.r_[last_action[:2],measured_q[indices]],*action, *actual_xy,actual_yaw,*door_pos,*door_vel])
             if step%2==0:
                 # install_live hooks provide synchronized original RGB.
@@ -260,9 +302,16 @@ def run(m, cams, output, plan, gym, sim, states, viewer, args, dt, dof_names):
                 success=True;reason='complete_nominal_task';break
     except StopAttempt as e:
         reason=str(e);event('stop',reason=reason)
+        try:save_stop_snapshot()
+        except Exception as snapshot_error:
+            stop_error='stop snapshot missing: '+repr(snapshot_error);reason+=';evidence_missing';event('error',reason=stop_error)
     except BaseException as e:
         reason='infrastructure_or_recording_error:'+repr(e);stop_error=traceback.format_exc();event('error',reason=reason);traceback.print_exc()
     finally:
+        if not success and step>=0 and not (output/'stop-state.json').exists():
+            try:save_stop_snapshot()
+            except Exception as snapshot_error:
+                stop_error='stop snapshot missing: '+repr(snapshot_error);reason+=';evidence_missing'
         log.close();contact_log.close();lock_log.close()
         for writer in depth.values(): writer.close()
         for camera in cams.values():
@@ -273,15 +322,33 @@ def run(m, cams, output, plan, gym, sim, states, viewer, args, dt, dof_names):
 
 
 def main():
-    p=argparse.ArgumentParser();p.add_argument('--output',required=True);p.add_argument('--geometry',required=True);p.add_argument('--preflight',action='store_true')
+    p=argparse.ArgumentParser();p.add_argument('--output',required=True);p.add_argument('--geometry',required=True);p.add_argument('--preflight',action='store_true');p.add_argument('--validation',required=True)
     a,remaining=p.parse_known_args()
+    validation=json.loads(Path(a.validation).read_text())
+    if (validation.get('status')!='all_gates_passed'
+            or not validation.get('runtime_contact_classification_certified')
+            or not validation.get('runtime_closing_evidence_certified')):
+        raise RuntimeError('R2 offline gates did not pass; no simulator may be created')
+    import hashlib
+    for name,digest in validation['source_sha256'].items():
+        if hashlib.sha256((Path(__file__).parent/name).read_bytes()).hexdigest()!=digest:
+            raise RuntimeError('Offline gate source mismatch: '+name)
     output=Path(a.output);output.mkdir(exist_ok=False)
     plan=json.loads(Path(a.geometry).read_text())
     if plan['status']!='candidate_found' or plan['selected'] is None: raise RuntimeError('Offline geometry gate not passed')
     sys.path.insert(0,str(ROOT/'high-level/float_ik'))
     from overview import load,install_live
     m=load('fullcycle_author','high-level/float_ik/isaacgym_float_ik_a2w_basearn_push_door_parallel.py')
-    cams=install_live(m,output/'overview')
+    cams=install_live(m,output/'overview',post_step_timestamps=True)
+    create=m.create_parallel_env_states
+    def create_with_stop_camera(*args,**kwargs):
+        result=create(*args,**kwargs);gym=args[0]
+        for st in result[0]:
+            cp=m.gymapi.CameraProperties();cp.width=1280;cp.height=720;cp.horizontal_fov=55
+            st._fullcycle_stop_camera=gym.create_camera_sensor(st.env,cp)
+            if st._fullcycle_stop_camera<0:raise RuntimeError('Stop camera creation failed')
+        return result
+    m.create_parallel_env_states=create_with_stop_camera
     original_parse=m.parse_args
     def parse():
         args=original_parse()

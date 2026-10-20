@@ -27,10 +27,10 @@ class Overview:
             if camera<0:raise RuntimeError('Overview camera creation failed')
             gym.set_camera_location(camera,env,gymapi.Vec3(*eye),gymapi.Vec3(*self.target))
             self.cameras.append(camera)
-        self.color=gymapi.IMAGE_COLOR;self.label=label;self.count=0;self.indices=[];self.expected=None
+        self.color=gymapi.IMAGE_COLOR;self.label=label;self.count=0;self.indices=[];self.expected=None;self.times=[]
         self.writer=imageio.get_writer(str(self.output/'rollout.mp4'),fps=25,codec='libx264',quality=7,
             macro_block_size=1,ffmpeg_params=['-threads','2','-movflags','+faststart'])
-    def capture(self,index,text='',render=False):
+    def capture(self,index,text='',render=False,time_s=None):
         if render:
             self.gym.step_graphics(self.sim);self.gym.render_all_camera_sensors(self.sim)
         views=[]
@@ -42,18 +42,18 @@ class Overview:
         for j,view_name in enumerate(['APPROACH SIDE','EXIT SIDE']):
             x=j*960;draw.rectangle((x,0,x+960,38),fill=(20,20,20))
             draw.text((x+10,5),self.label+' | '+view_name,fill=(255,235,100))
-            draw.text((x+10,22),f'frame {self.count:04d} | t={self.count/25:.2f}s | {text}',fill='white')
-        self.writer.append_data(np.asarray(im));self.count+=1;self.indices.append(int(index))
+            draw.text((x+10,22),f'frame {self.count:04d} | t={(self.count/25 if time_s is None else time_s):.2f}s | {text}',fill='white')
+        self.writer.append_data(np.asarray(im));self.times.append(self.count/25 if time_s is None else float(time_s));self.count+=1;self.indices.append(int(index))
     def close(self):
         self.writer.close()
         receipt={'video':str(self.output/'rollout.mp4'),'label':self.label,'frames':self.count,'fps':25,
             'duration_s':self.count/25,'resolution':[1920,640],'camera_eyes':self.eyes,'camera_target':self.target,
-            'source_indices':self.indices,'expected_frames':self.expected,
+            'source_indices':self.indices,'source_times_s':self.times,'expected_frames':self.expected,
             'complete':self.expected is None or self.count==self.expected,
             'meaning':'Observer RGB. State replay is visualization, not a fresh execution result.'}
         (self.output/'recording.json').write_text(json.dumps(receipt,indent=2)+'\n')
 
-def install_live(module,output):
+def install_live(module,output,post_step_timestamps=False):
     cameras={};rendered=[None];original_create=module.create_parallel_env_states;original_update=module.update_door_twin_tracker
     def create(*args,**kwargs):
         result=original_create(*args,**kwargs)
@@ -68,7 +68,7 @@ def install_live(module,output):
         dt=float(st.args.sim_dt);stride=max(1,int(round(1/(25*dt))))
         if step%stride==0:
             angle=float(np.rad2deg(np.asarray(door_pos)[0]))
-            cameras[st.index].capture(step,f'env={st.index} phase={st.last_phase} hinge={angle:.1f}deg',render=rendered[0]!=step)
+            cameras[st.index].capture(step,f'env={st.index} phase={st.last_phase} hinge={angle:.1f}deg',render=rendered[0]!=step,time_s=(step+1)*dt if post_step_timestamps else None)
             rendered[0]=step
         return result
     module.create_parallel_env_states=create;module.update_door_twin_tracker=update
