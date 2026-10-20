@@ -1,0 +1,133 @@
+{
+  "files": [
+    {
+      "path": "focus-metrics.csv",
+      "sha256": "5e6e517bd91e956c0653dfbed3216a889175017bb170ef619361431a9a9bd154",
+      "bytes": 12563
+    },
+    {
+      "path": "focus-metrics.json",
+      "sha256": "5c1f4dfa62a3533349b3bb6453d74d59e4beaca5ff424ff40adbfef266f8dfa6",
+      "bytes": 248088
+    },
+    {
+      "path": "focus.json",
+      "sha256": "b52d4cc952d7f071c126ff45e7b8f44fce71b2f338a9b6ff47f1e496098d658c",
+      "bytes": 730
+    },
+    {
+      "path": "improvement_36k_40k.png",
+      "sha256": "e39422c74f2f332077341c9d1c430e95886b9063a67e94a004bb282b6bdc199c",
+      "bytes": 85904
+    },
+    {
+      "path": "limitations.json",
+      "sha256": "75461b47c4d9ccedc7562117a68c69be7dc693e5ed650c3cac49b6e85de8ee1e",
+      "bytes": 1166
+    },
+    {
+      "path": "metrics-all320.json",
+      "sha256": "95e7425ce19c60c7b4abb8393b9fc84959c328c095757b5ce337ccd47acfbc30",
+      "bytes": 933640
+    },
+    {
+      "path": "persistent_failure_32k_40k.png",
+      "sha256": "e6454e9b7a163fd7e0f062c08c36d48ef358f06bc0d218b9e10d52eef7f1e8c5",
+      "bytes": 211488
+    },
+    {
+      "path": "regression_36k_40k.png",
+      "sha256": "c20735b65cb29df52814e3f15b1e0c3d39991ff10d5beb69e6e1f4a6ddbf2c53",
+      "bytes": 302192
+    },
+    {
+      "path": "stage-census.json",
+      "sha256": "88adada4e862a0a19a3758808721b87a634ba08e7c8befb3c41e959cbad51577",
+      "bytes": 523
+    }
+  ],
+  "source_logs": [
+    {
+      "path": "/data/zyf/video2door-wc4-act/.repro/runs/wc4-act-resume30k-40k-s1000-20261015/checkpoints/032000/evaluation/batch_000/batch_0000.jsonl",
+      "sha256": "74cd455af171fb0730fb8a5e2335e337803c2b818d99fdc52ed7082b016f99f4"
+    },
+    {
+      "path": "/data/zyf/video2door-wc4-act/.repro/runs/wc4-act-resume30k-40k-s1000-20261015/checkpoints/032000/evaluation/batch_001/batch_0000.jsonl",
+      "sha256": "f9acfb82e15b5fd98237895c04ce9b599f11616bac92770d0179e4e7479e778c"
+    },
+    {
+      "path": "/data/zyf/video2door-wc4-act/.repro/runs/wc4-act-resume30k-40k-s1000-20261015/checkpoints/032000/evaluation/batch_002/batch_0000.jsonl",
+      "sha256": "ec575d808a1b79cba2e78d77ada79a0c14031774feda810cd0d04faab1a45139"
+    },
+    {
+      "path": "/data/zyf/video2door-wc4-act/.repro/runs/wc4-act-resume30k-40k-s1000-20261015/checkpoints/032000/evaluation/batch_003/batch_0000.jsonl",
+      "sha256": "78b0f92fb0ad921e7bfa9951d4fe49e491facea863d5b6d3ffd4d98de421e023"
+    },
+    {
+      "path": "/data/zyf/video2door-wc4-act/.repro/runs/wc4-act-resume30k-40k-s1000-20261015/checkpoints/034000/evaluation/batch_000/batch_0000.jsonl",
+      "sha256": "4e116fa5762aaca1c90dc1f9ec17d3a931d25b24e55cd85f4d1bcf0966200e7e"
+    },
+    {
+      "path": "/data/zyf/video2door-wc4-act/.repro/runs/wc4-act-resume30k-40k-s1000-20261015/checkpoints/034000/evaluation/batch_001/batch_0000.jsonl",
+      "sha256": "5e46e8aa0a914d2877b4ce86e548102a1c4e38644c1372530fb2cb837d9b52e9"
+    },
+    {
+      "path": "/data/zyf/video2door-wc4-act/.repro/runs/wc4-act-resume30k-40k-s1000-20261015/checkpoints/034000/evaluation/batch_002/batch_0000.jsonl",
+      "sha256": "4599818a73f9c0b341caf64c10b06e43abf66240c7f3f840dff1f8fdc7c4a4ab"
+    },
+    {
+      "path": "/data/zyf/video2door-wc4-act/.repro/runs/wc4-act-resume30k-40k-s1000-20261015/checkpoints/034000/evaluation/batch_003/batch_0000.jsonl",
+      "sha256": "110541e7f8d9523d6afd50e5cee4d2b7bade71e7b23c0225161e8e20cb89a856"
+    },
+    {
+      "path": "/data/zyf/video2door-wc4-act/.repro/runs/wc4-act-resume30k-40k-s1000-20261015/checkpoints/036000/evaluation/batch_000/batch_0000.jsonl",
+      "sha256": "c9693ab3abc337f7fcfc4aa0b92ec551cfafa244852795a19a981fa817ef4010"
+    },
+    {
+      "path": "/data/zyf/video2door-wc4-act/.repro/runs/wc4-act-resume30k-40k-s1000-20261015/checkpoints/036000/evaluation/batch_001/batch_0000.jsonl",
+      "sha256": "aae3b3504f560a13c750d484549fa45c24b1826a9e6f8b791ab80f3e1b5f8233"
+    },
+    {
+      "path": "/data/zyf/video2door-wc4-act/.repro/runs/wc4-act-resume30k-40k-s1000-20261015/checkpoints/036000/evaluation/batch_002/batch_0000.jsonl",
+      "sha256": "e2fdf0841781a867803529b7fc1a5cc1b9f55f28c262971a06f2d6e26b5c6779"
+    },
+    {
+      "path": "/data/zyf/video2door-wc4-act/.repro/runs/wc4-act-resume30k-40k-s1000-20261015/checkpoints/036000/evaluation/batch_003/batch_0000.jsonl",
+      "sha256": "4e2b57ead0c77e06a399b4e6a1bd483fba13d22a1ab26713f620e8b152883fd4"
+    },
+    {
+      "path": "/data/zyf/video2door-wc4-act/.repro/runs/wc4-act-resume30k-40k-s1000-20261015/checkpoints/038000/evaluation/batch_000/batch_0000.jsonl",
+      "sha256": "31d3b0d568bde41bd55fbdc550a9e209f693fa96d128e7fec744f65532e8a504"
+    },
+    {
+      "path": "/data/zyf/video2door-wc4-act/.repro/runs/wc4-act-resume30k-40k-s1000-20261015/checkpoints/038000/evaluation/batch_001/batch_0000.jsonl",
+      "sha256": "7a4b01e0fb5b96d6cef35d5da907c14bb5bd1e7e801612901bc54ced44312a1f"
+    },
+    {
+      "path": "/data/zyf/video2door-wc4-act/.repro/runs/wc4-act-resume30k-40k-s1000-20261015/checkpoints/038000/evaluation/batch_002/batch_0000.jsonl",
+      "sha256": "c7e9242ab6b7bf36bc1cc58ae15366fa5781e9bbf949ef894b646a95a6b11cfa"
+    },
+    {
+      "path": "/data/zyf/video2door-wc4-act/.repro/runs/wc4-act-resume30k-40k-s1000-20261015/checkpoints/038000/evaluation/batch_003/batch_0000.jsonl",
+      "sha256": "2f1e72df3afd0955aa90f5124d3cab06c1fec38d7ebfb8449ccd006d4c7c01da"
+    },
+    {
+      "path": "/data/zyf/video2door-wc4-act/.repro/runs/wc4-act-resume30k-40k-s1000-20261015/checkpoints/040000/evaluation/batch_000/batch_0000.jsonl",
+      "sha256": "f756bfb7b6303ef8813279e64e1fc96056b964a05d04924cd746d210f801b456"
+    },
+    {
+      "path": "/data/zyf/video2door-wc4-act/.repro/runs/wc4-act-resume30k-40k-s1000-20261015/checkpoints/040000/evaluation/batch_001/batch_0000.jsonl",
+      "sha256": "bbd2cc0d5c6333708163f00e17fedbc4a2f12cec1f57f997d0a3c9beea824af3"
+    },
+    {
+      "path": "/data/zyf/video2door-wc4-act/.repro/runs/wc4-act-resume30k-40k-s1000-20261015/checkpoints/040000/evaluation/batch_002/batch_0000.jsonl",
+      "sha256": "6927ec54f03e580c41ac0d5cc9fd505904011c2670fe3962298f124568acfbb4"
+    },
+    {
+      "path": "/data/zyf/video2door-wc4-act/.repro/runs/wc4-act-resume30k-40k-s1000-20261015/checkpoints/040000/evaluation/batch_003/batch_0000.jsonl",
+      "sha256": "ef224e9c973b180f51ecbd82c49b095acd3f9ba208527a419d3466a6d2782648"
+    }
+  ],
+  "defined_before_50k_evaluation": true,
+  "no_new_simulation_or_inference": true
+}

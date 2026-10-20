@@ -1,0 +1,5 @@
+{
+  "source": "/data/zyf/video2door-wc4-act/.repro/runs/wc4-act-resume30k-40k-s1000-20261015/train/checkpoints/040000",
+  "sha256": "88fa37325c84e070d8f122bf098b006896fe75ec38e9cba3883edf202be3bcf5",
+  "all_weights_equal_before_update": true
+}

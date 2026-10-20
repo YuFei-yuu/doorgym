@@ -1,0 +1,32 @@
+[
+  {
+    "path": "checkpoint_path",
+    "before": "/data/zyf/video2door-wc4-act/.repro/runs/wc4-act-joint9-baseline50k-s1000-20261015/train/checkpoints/030000",
+    "after": "/data/zyf/video2door-wc4-act/.repro/runs/wc4-act-resume30k-40k-s1000-20261015/train/checkpoints/040000"
+  },
+  {
+    "path": "job_name",
+    "before": "wc4-act-resume30k-40k-s1000-20261015",
+    "after": "wc4-act-resume40k-50k-s1000-20261015"
+  },
+  {
+    "path": "output_dir",
+    "before": "/data/zyf/video2door-wc4-act/.repro/runs/wc4-act-resume30k-40k-s1000-20261015/train",
+    "after": "/data/zyf/video2door-wc4-act/.repro/runs/wc4-act-resume40k-50k-s1000-20261015/train"
+  },
+  {
+    "path": "policy.pretrained_path",
+    "before": "/data/zyf/video2door-wc4-act/.repro/runs/wc4-act-joint9-baseline50k-s1000-20261015/train/checkpoints/030000/pretrained_model",
+    "after": "/data/zyf/video2door-wc4-act/.repro/runs/wc4-act-resume30k-40k-s1000-20261015/train/checkpoints/040000/pretrained_model"
+  },
+  {
+    "path": "steps",
+    "before": 40000,
+    "after": 50000
+  },
+  {
+    "path": "wandb.run_id",
+    "before": "69gd85mm",
+    "after": "xobd7ef0"
+  }
+]

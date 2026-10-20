@@ -1,0 +1,62 @@
+{
+  "start_checkpoint": 40000,
+  "end_checkpoint": 50000,
+  "new_optimizer_updates": 10000,
+  "recovery_nodes": [
+    42000,
+    44000,
+    46000,
+    48000,
+    50000
+  ],
+  "only_evaluated_checkpoint": 50000,
+  "new_policy_trials": 64,
+  "batches": 4,
+  "envs_per_batch": 16,
+  "sim_steps": 1100,
+  "seeds": [
+    615455575,
+    615455576,
+    615455577,
+    615455578
+  ],
+  "old_models_read_from_logs_only": [
+    32000,
+    34000,
+    36000,
+    38000,
+    40000
+  ],
+  "no_30k_supplement": true,
+  "no_new_simulation_for_failure_analysis": true,
+  "frozen_focus_groups": {
+    "persistent": [
+      3,
+      24,
+      35,
+      43,
+      52,
+      57,
+      61
+    ],
+    "regression36_to40": [
+      7,
+      13,
+      17,
+      30,
+      33,
+      41,
+      47,
+      50
+    ],
+    "improvement36_to40": [
+      26,
+      27
+    ]
+  },
+  "videos": "earliest original success/failure within64; synchronous temporary candidates, no reruns",
+  "no_independent_confirmation_this_round": true,
+  "training_gpu": 1,
+  "evaluation_gpu": 2,
+  "source_commit": "5ca33bf00bf7f0bd4e0484db8cbeb48c84cb7f7f"
+}

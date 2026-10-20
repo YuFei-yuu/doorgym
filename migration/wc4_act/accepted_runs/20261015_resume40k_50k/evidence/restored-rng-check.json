@@ -1,0 +1,13 @@
+{
+  "all_rng_tensors_equal_after_author_restore": true,
+  "keys": [
+    "np_rng_cached_gaussian",
+    "np_rng_has_gauss",
+    "np_rng_state_index",
+    "np_rng_state_values",
+    "py_rng_state",
+    "py_rng_version",
+    "torch_cuda_rng_state",
+    "torch_rng_state"
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "step": 40000,
+  "optimizer_steps": [
+    40000.0
+  ],
+  "optimizer_step_tensors": 153,
+  "rng_restored_by_author_loader": true,
+  "rng_file_sha256": "476119f41b4db76cd13ad4a69effe6f9c7d58a35cb5aaa5918f12c65319c50d3"
+}

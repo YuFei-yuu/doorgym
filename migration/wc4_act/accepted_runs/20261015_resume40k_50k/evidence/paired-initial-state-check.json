@@ -1,0 +1,2182 @@
+{
+  "status": "passed",
+  "comparisons": [
+    {
+      "baseline": 36000,
+      "trial_index": 0,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 40000,
+      "trial_index": 0,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 36000,
+      "trial_index": 1,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 40000,
+      "trial_index": 1,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 36000,
+      "trial_index": 2,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 40000,
+      "trial_index": 2,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 36000,
+      "trial_index": 3,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 40000,
+      "trial_index": 3,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 36000,
+      "trial_index": 4,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 40000,
+      "trial_index": 4,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 36000,
+      "trial_index": 5,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 40000,
+      "trial_index": 5,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 36000,
+      "trial_index": 6,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 40000,
+      "trial_index": 6,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 36000,
+      "trial_index": 7,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 40000,
+      "trial_index": 7,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 36000,
+      "trial_index": 8,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 40000,
+      "trial_index": 8,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 36000,
+      "trial_index": 9,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 40000,
+      "trial_index": 9,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 36000,
+      "trial_index": 10,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 40000,
+      "trial_index": 10,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 36000,
+      "trial_index": 11,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 40000,
+      "trial_index": 11,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 36000,
+      "trial_index": 12,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 40000,
+      "trial_index": 12,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 36000,
+      "trial_index": 13,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 40000,
+      "trial_index": 13,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 36000,
+      "trial_index": 14,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 40000,
+      "trial_index": 14,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 36000,
+      "trial_index": 15,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 40000,
+      "trial_index": 15,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 36000,
+      "trial_index": 16,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 40000,
+      "trial_index": 16,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 36000,
+      "trial_index": 17,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 40000,
+      "trial_index": 17,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 36000,
+      "trial_index": 18,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 40000,
+      "trial_index": 18,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 36000,
+      "trial_index": 19,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 40000,
+      "trial_index": 19,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 36000,
+      "trial_index": 20,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 40000,
+      "trial_index": 20,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 36000,
+      "trial_index": 21,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 40000,
+      "trial_index": 21,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 36000,
+      "trial_index": 22,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 40000,
+      "trial_index": 22,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 36000,
+      "trial_index": 23,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 40000,
+      "trial_index": 23,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 36000,
+      "trial_index": 24,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 40000,
+      "trial_index": 24,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 36000,
+      "trial_index": 25,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 40000,
+      "trial_index": 25,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 36000,
+      "trial_index": 26,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 40000,
+      "trial_index": 26,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 36000,
+      "trial_index": 27,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 40000,
+      "trial_index": 27,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 36000,
+      "trial_index": 28,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 40000,
+      "trial_index": 28,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 36000,
+      "trial_index": 29,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 40000,
+      "trial_index": 29,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 36000,
+      "trial_index": 30,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 40000,
+      "trial_index": 30,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 36000,
+      "trial_index": 31,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 40000,
+      "trial_index": 31,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 36000,
+      "trial_index": 32,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 40000,
+      "trial_index": 32,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 36000,
+      "trial_index": 33,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 40000,
+      "trial_index": 33,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 36000,
+      "trial_index": 34,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 40000,
+      "trial_index": 34,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 36000,
+      "trial_index": 35,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 40000,
+      "trial_index": 35,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 36000,
+      "trial_index": 36,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 40000,
+      "trial_index": 36,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 36000,
+      "trial_index": 37,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 40000,
+      "trial_index": 37,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 36000,
+      "trial_index": 38,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 40000,
+      "trial_index": 38,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 36000,
+      "trial_index": 39,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 40000,
+      "trial_index": 39,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 36000,
+      "trial_index": 40,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 40000,
+      "trial_index": 40,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 36000,
+      "trial_index": 41,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 40000,
+      "trial_index": 41,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 36000,
+      "trial_index": 42,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 40000,
+      "trial_index": 42,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 36000,
+      "trial_index": 43,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 40000,
+      "trial_index": 43,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 36000,
+      "trial_index": 44,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 40000,
+      "trial_index": 44,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 36000,
+      "trial_index": 45,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 40000,
+      "trial_index": 45,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 36000,
+      "trial_index": 46,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 40000,
+      "trial_index": 46,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 36000,
+      "trial_index": 47,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 40000,
+      "trial_index": 47,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 36000,
+      "trial_index": 48,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 40000,
+      "trial_index": 48,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 36000,
+      "trial_index": 49,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 40000,
+      "trial_index": 49,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 36000,
+      "trial_index": 50,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 40000,
+      "trial_index": 50,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 36000,
+      "trial_index": 51,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 40000,
+      "trial_index": 51,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 36000,
+      "trial_index": 52,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 40000,
+      "trial_index": 52,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 36000,
+      "trial_index": 53,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 40000,
+      "trial_index": 53,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 36000,
+      "trial_index": 54,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 40000,
+      "trial_index": 54,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 36000,
+      "trial_index": 55,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 40000,
+      "trial_index": 55,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 36000,
+      "trial_index": 56,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 40000,
+      "trial_index": 56,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 36000,
+      "trial_index": 57,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 40000,
+      "trial_index": 57,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 36000,
+      "trial_index": 58,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 40000,
+      "trial_index": 58,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 36000,
+      "trial_index": 59,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 40000,
+      "trial_index": 59,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 36000,
+      "trial_index": 60,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 40000,
+      "trial_index": 60,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 36000,
+      "trial_index": 61,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 40000,
+      "trial_index": 61,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 36000,
+      "trial_index": 62,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 40000,
+      "trial_index": 62,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 36000,
+      "trial_index": 63,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    },
+    {
+      "baseline": 40000,
+      "trial_index": 63,
+      "same_randomization": true,
+      "max_errors": {
+        "state": 0.0,
+        "replay_dof_pos": 0.0,
+        "replay_dof_vel": 0.0,
+        "replay_door_root_state": 0.0,
+        "replay_door_dof_pos": 0.0,
+        "replay_door_dof_vel": 0.0,
+        "replay_ee_pos": 0.0,
+        "replay_ee_quat": 0.0,
+        "front_camera_pose_base": 0.0,
+        "wrist_camera_pose_base": 0.0
+      }
+    }
+  ],
+  "count": 128
+}

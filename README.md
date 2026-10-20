@@ -1,8 +1,9 @@
 # Visual Whole-Body for Loco-Manipulation
 
-当前迁移入口：[wc4 ACT Joint9 准备与运行说明](migration/wc4_act/README.md)。
+当前入口：[wc4 ACT Joint9 基线与运行说明](migration/wc4_act/README.md)。
 本工作区固定源提交为 `096938c44ecc1c7602304d42502f96658e46eb25`，采用作者 A2W 浮动底座、wc4 skill 和直接 Joint9。
-当前迁移准备及视频依赖复核通过，等待独立验收；尚未采集、训练或仿真。旧 DP 工作区与证据保持独立，见运行说明的历史索引。
+已验收50条/27500帧专家数据及ACT训练至50k；最终50k固定64回合成功48/64（75%）。36k在同一固定64集观察为52/64（81.25%），尚未进行未使用初态的独立确认。训练与仿真已停止，旧DP工作区保持独立。
+本轮代码/精简证据：[40k→50k已验收归档](migration/wc4_act/accepted_runs/20261015_resume40k_50k/README.md)。
 
 https://wholebody-b1.github.io/
 

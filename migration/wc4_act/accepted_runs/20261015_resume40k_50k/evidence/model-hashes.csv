@@ -1,0 +1,6 @@
+step,model_sha256,optimizer_step_tensors,closed_loop_evaluated,server_checkpoint
+42000,c3253b14f5d829fdd04de128a833f8fb5810cda38ef24c9d4e0859eb24ebcc98,153,False,/data/zyf/video2door-wc4-act/.repro/runs/wc4-act-resume40k-50k-s1000-20261015/train/checkpoints/042000
+44000,21fa501c8af16fd02b5ad4297a8cd2edaad22d3b6776928448bf85b7cd14806c,153,False,/data/zyf/video2door-wc4-act/.repro/runs/wc4-act-resume40k-50k-s1000-20261015/train/checkpoints/044000
+46000,b3e986f696e46134dd4a6ad0af498cc8017c0db20cdd6c441272b088f9a6203e,153,False,/data/zyf/video2door-wc4-act/.repro/runs/wc4-act-resume40k-50k-s1000-20261015/train/checkpoints/046000
+48000,9ce972dff8332a7241d3f7e0233111bac11cde3a60e413c0975c0d7d7a749a4a,153,False,/data/zyf/video2door-wc4-act/.repro/runs/wc4-act-resume40k-50k-s1000-20261015/train/checkpoints/048000
+50000,3f1f32f96eb3a78abd215f6affa6786d7b2cf76b94def6b8268bdeefe3bfbdb9,153,True,/data/zyf/video2door-wc4-act/.repro/runs/wc4-act-resume40k-50k-s1000-20261015/train/checkpoints/050000
