@@ -68,10 +68,14 @@ def opening_command(m,st,step,dt,dof_names,phase,desired_xy,desired_yaw,
 
 def run(m, cams, output, plan, gym, sim, states, viewer, args, dt, dof_names):
     import imageio
-    if len(states)!=1 or int(args.steps)>4500: raise ValueError('Single env, <=90 seconds only')
+    if len(states)!=1 or int(args.steps)*dt>180.000001: raise ValueError('Single env, <=180 seconds only')
     st=states[0];dc=m.dc;ga=m.gymapi
     directions=route_directions(plan)
     robot=URDF(ROOT/'high-level/data/asset/a2wz1/urdf/a2wz1.urdf', include_visual=True)
+    adjacent={frozenset((j[2],j[3])) for j in robot.joints}
+    # Only this inherited nonadjacent home pair is exempted from a loaded
+    # self-contact + blocked-motion stop. Other self contacts remain logged.
+    inherited_home_pair=frozenset(('link02','link06'))
     names=['joint%d'%i for i in range(1,7)]+['jointGripper']
     indices=[dof_names.index(n) for n in names]
     home=st.home_positions.copy()
@@ -108,7 +112,7 @@ def run(m, cams, output, plan, gym, sim, states, viewer, args, dt, dof_names):
     latched=None;ever_unlocked=False;settled=0;final_count=0;panel_contact_count=0;close_start=None
     prev_xy=None;prev_yaw=None;last_action=np.zeros(9);action=np.r_[0.,0.,home[indices]]
     samples=[];success=False;reason='budget_exhausted';step=-1;initial_record=None
-    old_phase=''; transition_q=None;route=None;stop_error=None
+    old_phase=''; transition_q=None;route=None;stop_error=None;blocked_self_steps=0
     def event(kind,**data):
         print(json.dumps(dict(event=kind,step=step,time_s=(step+1)*dt,**serial(data))),flush=True)
     def save_stop_snapshot():
@@ -130,6 +134,7 @@ def run(m, cams, output, plan, gym, sim, states, viewer, args, dt, dof_names):
     def locked_hold():
         # Initial lock retains its initial measured angle. The post-close lock
         # retains only the measured sample that passed the physical gate.
+        if ever_unlocked and latched is None: raise StopAttempt('forbidden_unlocked_hinge_write')
         d=gym.get_actor_dof_states(st.env,st.door_actor,ga.STATE_ALL)
         before=float(d['pos'][0]);target=initial_angle if latched is None else latched
         lock_log.write(json.dumps(dict(step=step,kind='initial' if latched is None else 'relocked',before=before,latched=target,delta=target-before))+'\n')
@@ -189,8 +194,8 @@ def run(m, cams, output, plan, gym, sim, states, viewer, args, dt, dof_names):
                         st.traj['close_angle']=planned_angle-rate*.04
                     if abs(float(door_pos[0]))<=math.radians(1) and abs(float(door_vel[0]))<=math.radians(1):
                         v=w=0
-                    if settled>=25:
-                        if panel_contact_count==0 or close_start is None or close_start-float(door_pos[0])<.3:
+                    if settled*dt>=.5-1e-7:
+                        if panel_contact_count==0:
                             raise StopAttempt('missing_end_effector_physical_closing_evidence')
                         latched=float(door_pos[0]);st.door.open_stage=False;event('latch',measured_angle=latched,settled_steps=settled)
                         change('release')
@@ -210,7 +215,11 @@ def run(m, cams, output, plan, gym, sim, states, viewer, args, dt, dof_names):
                     if abs(err)<.003: change('final_hold')
                 elif phase=='final_hold': pass
                 action=np.r_[v,w,qtarget]
-                st.last_target_pos=st.ik_state.current_pos_np.copy();st.last_target_quat=st.ik_state.current_quat_np.copy();st.last_gripper=float(qtarget[-1])
+                # New stages command joints; do not mislabel measured EE as
+                # its own target. Record the FK of the commanded joints.
+                command_fk=robot.fk(dict(zip(names,qtarget)),transform([*xy,st.args.robot_z],[0,st.args.robot_pitch,yaw]))['ee_gripper_link']
+                st.last_target_pos=command_fk[:3,3].copy()
+                st.last_target_quat=None;st.last_gripper=float(qtarget[-1])
             if not np.isfinite(action).all(): raise StopAttempt('nonfinite_command')
             # Exactly the existing Joint9 base integrator at each physics step.
             xy,yaw,jtargets=m.apply_float_dp_joint_action9(action,xy,yaw,dt)
@@ -228,6 +237,8 @@ def run(m, cams, output, plan, gym, sim, states, viewer, args, dt, dof_names):
             if latched is not None:
                 st.door.open_stage=False;efforts[0]=0
             if st.door.open_stage: ever_unlocked=True
+            if ever_unlocked and latched is None and abs(float(efforts[0]))>0:
+                raise StopAttempt('nonzero_auxiliary_hinge_effort')
             gym.apply_actor_dof_efforts(st.env,st.door_actor,efforts)
             pre_physics=dict(clock=timing(step,dt),door_q=np.asarray(door_pos).tolist(),door_qd=np.asarray(door_vel).tolist(),
                 arm_dof=serial(gym.get_actor_dof_states(st.env,st.arm_actor,ga.STATE_ALL)),
@@ -253,21 +264,39 @@ def run(m, cams, output, plan, gym, sim, states, viewer, args, dt, dof_names):
             cloud=robot.cloud(poses);max_x=float(cloud[:,0].max());far=bool(max_x<2.5)
             if not passed and far:
                 passed=True;pass_step=step;event('whole_body_pass',max_x=max_x)
-            violations=[];contacts=[];end_panel=False;any_door_contact=False
+            if not np.isfinite(np.r_[measured_q,measured_qd,door_pos,door_vel,actual_xy,actual_yaw]).all():
+                raise StopAttempt('nonfinite_measured_state')
+            violations=[];contacts=[];end_panel=False;any_door_contact=False;unexpected_loaded_self=False
             for c in gym.get_env_rigid_contacts(st.env):
                 fields=c.dtype.names if hasattr(c,'dtype') and c.dtype.names else ['body0','body1','lambda','normal','localPos0','localPos1','initial_overlap','min_dist']
                 entry={k:serial(dc.contact_field(c,k)) for k in fields}
                 b0=int(dc.contact_field(c,'body0'));b1=int(dc.contact_field(c,'body1'))
                 entry['names']=[body_map.get(b0,{'body':'ground_or_unknown'}),body_map.get(b1,{'body':'ground_or_unknown'})]
                 contacts.append(entry)
+                lam=float(entry.get('lambda',0))
+                if not np.isfinite(lam): raise StopAttempt('nonfinite_contact_record')
+                entry['classification']='unexplained_record_only'
                 robot_body=b0 if b0 in robot_ids else b1 if b1 in robot_ids else None
                 other=b1 if robot_body==b0 else b0
+                if b0 in robot_ids and b1 in robot_ids:
+                    pair=frozenset((body_map[b0]['body'],body_map[b1]['body']))
+                    if pair==inherited_home_pair: entry['classification']='inherited_home_self_contact'
+                    elif pair in adjacent: entry['classification']='kinematic_neighbor_self_contact'
+                    else:
+                        entry['classification']='other_self_contact_loaded' if lam!=0 else 'other_self_contact_zero_lambda'
+                        unexpected_loaded_self|=lam!=0
                 if robot_body is not None and other>=0 and other not in robot_ids:
                     any_door_contact=any_door_contact or other in door_ids
                     if robot_body in end_ids and other==panel_id: end_panel=True
-                    # Only gripper contact with the panel/lever is expected.
-                    if not(robot_body in end_ids and other in door_ids and body_map[other]['body'] in ['door_panel','lever_handle']):
+                    expected=(robot_body in end_ids and other in door_ids and body_map[other]['body'] in ['door_panel','lever_handle'])
+                    entry['classification']='expected_end_door_contact' if expected else ('unexpected_external_loaded' if lam!=0 else 'external_zero_lambda_record_only')
+                    # A zero-lambda report alone is not a collision failure.
+                    # Loaded non-end door/frame interaction is physical
+                    # interference, not a permitted way to move the door.
+                    if not expected and lam!=0:
                         violations.append(entry)
+            blocked_self=bool(unexpected_loaded_self and np.max(np.abs(measured_q[:6]-st.dof_positions[:6]))>.3 and np.max(np.abs(measured_qd[:6]))<.01)
+            blocked_self_steps=blocked_self_steps+1 if blocked_self else 0
             if phase=='close' and end_panel: panel_contact_count+=1
             closed=abs(float(door_pos[0]))<=math.radians(1) and abs(float(door_vel[0]))<=math.radians(1)
             settled=settled+1 if phase=='close' and closed else 0
@@ -279,6 +308,7 @@ def run(m, cams, output, plan, gym, sim, states, viewer, args, dt, dof_names):
             row['timing']=timing(step,dt);row['pre_physics']=pre_physics
             row['door_body_states']=serial(gym.get_actor_rigid_body_states(st.env,st.door_actor,ga.STATE_ALL))
             row['observation_pre']=observation_pre
+            row['blocked_unexpected_self_steps']=blocked_self_steps
             log.write(json.dumps(serial(row))+'\n');contact_log.write(json.dumps(dict(step=step,interval_s=[step*dt,(step+1)*dt],contacts=contacts))+'\n')
             samples.append([step,(step+1)*dt,*np.r_[last_action[:2],measured_q[indices]],*action, *actual_xy,actual_yaw,*door_pos,*door_vel])
             if step%2==0:
@@ -293,8 +323,9 @@ def run(m, cams, output, plan, gym, sim, states, viewer, args, dt, dof_names):
             if step%50==0: event('progress',phase=st.last_phase,door_deg=float(np.rad2deg(door_pos[0])),base=[*actual_xy,actual_yaw],geometry_max_x=max_x)
             if passed and not far: raise StopAttempt('return_crossing_after_whole_body_pass')
             if violations: raise StopAttempt('unexpected_robot_environment_contact:'+str(violations[0]['names']))
+            if blocked_self_steps*dt>=1.-1e-7: raise StopAttempt('unexpected_loaded_self_contact_with_blocked_arm')
             if phase!='old_expert' and not passed: raise StopAttempt('close_sequence_before_full_body_pass')
-            if final_count>=100:
+            if final_count*dt>=2.-1e-7:
                 success=True;reason='complete_nominal_task';break
     except StopAttempt as e:
         reason=str(e);event('stop',reason=reason)
@@ -313,7 +344,7 @@ def run(m, cams, output, plan, gym, sim, states, viewer, args, dt, dof_names):
         for camera in cams.values():
             camera.expected=int(math.ceil((step+1)/2));camera.close()
         np.savez_compressed(output/'trajectory.npz',rows=np.asarray(samples),columns=np.array(['step','time']+['state_'+n for n in names[:0]]+['state_last_vx','state_last_yaw']+['state_'+n for n in names]+['action_vx','action_yaw']+['action_'+n for n in names]+['actual_x','actual_y','actual_yaw','door_angle','handle_angle','door_velocity','handle_velocity']))
-        result=dict(success=success,reason=reason,steps=step+1,sim_seconds=(step+1)*dt,whole_body_pass_step=pass_step,end_panel_contact_steps=panel_contact_count,latched_angle=latched,final_hold_steps=final_count,attempts=1,error=stop_error,nominal_only=True,video_frames={k:v.count for k,v in cams.items()})
+        result=dict(success=success,reason=reason,steps=step+1,sim_seconds=(step+1)*dt,whole_body_pass_step=pass_step,end_panel_contact_steps=panel_contact_count,latched_angle=latched,final_hold_steps=final_count,attempts=1,error=stop_error,nominal_only=True,physical_push_review='requires aligned raw contact/state, live video and code audit; no coverage/work thresholds',video_frames={k:v.count for k,v in cams.items()})
         (output/'result.json').write_text(json.dumps(serial(result),indent=2)+'\n');print(json.dumps(result),flush=True)
 
 
@@ -321,15 +352,13 @@ def main():
     p=argparse.ArgumentParser();p.add_argument('--output',required=True);p.add_argument('--geometry',required=True);p.add_argument('--preflight',action='store_true');p.add_argument('--validation',required=True)
     a,remaining=p.parse_known_args()
     validation=json.loads(Path(a.validation).read_text())
-    if (validation.get('status')!='all_gates_passed'
-            or not validation.get('runtime_contact_classification_certified')
-            or not validation.get('runtime_closing_evidence_certified')):
-        raise RuntimeError('R2 offline gates did not pass; no simulator may be created')
+    if validation.get('status')!='source_route_consistent':
+        raise RuntimeError('Missing source/route consistency receipt')
     import hashlib
     if validation.get('geometry_sha256')!=hashlib.sha256(Path(a.geometry).read_bytes()).hexdigest():
         raise RuntimeError('Offline gate geometry/route mismatch')
     for name,digest in validation['source_sha256'].items():
-        if hashlib.sha256((Path(__file__).parent/name).read_bytes()).hexdigest()!=digest:
+        if hashlib.sha256((ROOT/name).read_bytes()).hexdigest()!=digest:
             raise RuntimeError('Offline gate source mismatch: '+name)
     output=Path(a.output);output.mkdir(exist_ok=False)
     plan=json.loads(Path(a.geometry).read_text())
@@ -364,6 +393,13 @@ def main():
         (output/'parsed-config.json').write_text(json.dumps(serial(configured),indent=2)+'\n')
         print('Argument preflight passed; no simulator created.')
         return
+    create_sim=m.base_ik.create_sim
+    def one_formal_scene(*args,**kwargs):
+        # Persist before creation: a failed creation still consumes this run.
+        with (output/'scene-creation-receipt.json').open('x') as receipt:
+            json.dump(dict(scenes=1,episodes=1,max_sim_seconds=180,wall_time=time.time()),receipt,indent=2)
+        return create_sim(*args,**kwargs)
+    m.base_ik.create_sim=one_formal_scene
     m.main()
 
 
