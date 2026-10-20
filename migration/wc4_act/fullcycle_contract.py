@@ -6,6 +6,30 @@ GEOMETRY_EPS_M = 1e-5  # numeric uncertainty band, never a penetration allowance
 FORCE_ZERO_EPS = 0.0  # only an exactly zero logged force is treated as unloaded
 
 
+class ObservedHold:
+    """Elapsed span between qualifying measured samples, never sample count."""
+    def __init__(self):
+        self.start_time = None
+        self.last_time = None
+
+    def observe(self, time_s, valid):
+        time_s = float(time_s)
+        if not np.isfinite(time_s) or (self.last_time is not None and time_s <= self.last_time):
+            raise ValueError("Hold observations require strictly increasing finite timestamps")
+        self.last_time = time_s
+        if not valid:
+            self.start_time = None
+        elif self.start_time is None:
+            self.start_time = time_s
+
+    @property
+    def elapsed(self):
+        return 0. if self.start_time is None else self.last_time - self.start_time
+
+    def reached(self, duration_s):
+        return self.start_time is not None and self.elapsed >= float(duration_s)
+
+
 def door_contact_review_flags(phase, raw_lambda, robot_to_door, end_to_panel):
     """Diagnostic evidence, never a contact-triggered abort decision.
 

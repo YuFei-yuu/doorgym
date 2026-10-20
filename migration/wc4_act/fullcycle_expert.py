@@ -14,7 +14,7 @@ import time
 import traceback
 import numpy as np
 from fullcycle_geometry import URDF, transform, apply, close_pose
-from fullcycle_contract import smooth_gripper, timing, door_contact_review_flags
+from fullcycle_contract import smooth_gripper, timing, door_contact_review_flags, ObservedHold
 from fullcycle_navigation import route_directions, waypoint_command
 
 ROOT=Path(__file__).resolve().parents[2]
@@ -111,11 +111,13 @@ def run(m, cams, output, plan, gym, sim, states, viewer, args, dt, dof_names):
     phase='old_expert';passed=False;pass_step=None;nav_index=0;stage_start=0
     latched=None;ever_unlocked=False;settled=0;final_count=0;panel_contact_count=0;close_start=None
     panel_nonzero_contact_count=0;off_target_closing_contact_seen=False
+    close_hold=ObservedHold();terminal_hold=ObservedHold();latch_observed_hold_s=None;simulated_steps=0
     prev_xy=None;prev_yaw=None;last_action=np.zeros(9);action=np.r_[0.,0.,home[indices]]
-    samples=[];success=False;reason='budget_exhausted';step=-1;initial_record=None
+    previous_action=action.copy();approach=None;approach_index=0
+    samples=[];success=False;reason='budget_exhausted';step=-1;initial_record=None;pre_physics=None
     old_phase=''; transition_q=None;route=None;stop_error=None;blocked_self_steps=0
     def event(kind,**data):
-        print(json.dumps(dict(event=kind,step=step,time_s=(step+1)*dt,**serial(data))),flush=True)
+        print(json.dumps(dict(event=kind,step=step,time_s=simulated_steps*dt,**serial(data))),flush=True)
     def save_stop_snapshot():
         # Render the CURRENT stopped state; no simulate/reset/replay call.
         target=np.asarray(st.ik_state.current_pos_np,float)
@@ -124,7 +126,8 @@ def run(m, cams, output, plan, gym, sim, states, viewer, args, dt, dof_names):
         gym.step_graphics(sim);gym.render_all_camera_sensors(sim)
         im=np.asarray(gym.get_camera_image(sim,st.env,camera,ga.IMAGE_COLOR),np.uint8).reshape(720,1280,4)[:,:,:3]
         imageio.imwrite(str(output/'stop-near-rgb.png'),im)
-        snapshot=dict(step=step,measured_post_time_s=(step+1)*dt,reason=reason,
+        snapshot=dict(step=step,last_completed_step=simulated_steps-1,
+            measured_post_time_s=simulated_steps*dt,reason=reason,
             pre_physics=pre_physics,door_bodies=serial(gym.get_actor_rigid_body_states(st.env,st.door_actor,ga.STATE_ALL)),
             arm_bodies=serial(gym.get_actor_rigid_body_states(st.env,st.arm_actor,ga.STATE_ALL)),
             base_bodies=serial(gym.get_actor_rigid_body_states(st.env,st.actor_handles[0],ga.STATE_ALL)))
@@ -138,7 +141,7 @@ def run(m, cams, output, plan, gym, sim, states, viewer, args, dt, dof_names):
         if ever_unlocked and latched is None: raise StopAttempt('forbidden_unlocked_hinge_write')
         d=gym.get_actor_dof_states(st.env,st.door_actor,ga.STATE_ALL)
         before=float(d['pos'][0]);target=initial_angle if latched is None else latched
-        lock_log.write(json.dumps(dict(step=step,kind='initial' if latched is None else 'relocked',before=before,latched=target,delta=target-before))+'\n')
+        lock_log.write(json.dumps(dict(step=step,time_s=step*dt,timing='pre_physics',kind='initial' if latched is None else 'relocked',before=before,latched=target,delta=target-before))+'\n')
         d['pos'][0]=target;d['vel'][0]=0
         gym.set_actor_dof_states(st.env,st.door_actor,d,ga.STATE_ALL)
     initial_d=gym.get_actor_dof_states(st.env,st.door_actor,ga.STATE_ALL)
@@ -157,6 +160,19 @@ def run(m, cams, output, plan, gym, sim, states, viewer, args, dt, dof_names):
             door_pos,door_vel=m.get_actor_dof_state(gym,st.env,st.door_actor)
             observation_pre=dict(time_s=step*dt,state=np.r_[last_action[:2],measured_q[indices]].tolist(),
                 arm_qd=measured_qd.tolist(),door_q=np.asarray(door_pos).tolist(),door_qd=np.asarray(door_vel).tolist())
+            if phase=='old_expert' and passed and plan.get('smooth_approach'):
+                from fullcycle_smooth_approach import build_approach
+                recipe=plan['smooth_approach']
+                approach=build_approach([*xy,yaw],last_action,previous_action,recipe,qclose,dt,
+                                        robot,measured_q[indices],start_step=step)
+                np.savez_compressed(output/'approach-plan.npz',
+                    **{k:v for k,v in approach.items() if isinstance(v,np.ndarray)})
+                (output/'approach-plan.json').write_text(json.dumps(serial(dict(
+                    start_step=step,start_time_s=step*dt,start_pose=[*xy,yaw],
+                    recipe=recipe,diagnostics={k:v for k,v in approach.items() if not isinstance(v,np.ndarray)},
+                    meaning='Generated from the live traversal handoff; Joint9 commands, not state replay',
+                )),indent=2)+'\n')
+                approach_index=0;change('approach')
             if phase=='old_expert':
                 old_phase,desired_xy,desired_yaw,target_pos,target_quat,gripper,handle_goal=m.trajectory_targets(step,st.args,st.door,gym,st.env,st.door_actor,st.ik_state,st.base_start,st.base_stop,st.base_push,st.base_traverse,st.yaw_start,st.yaw_push,st.yaw_traverse,st.traj)
                 action=opening_command(m,st,step,dt,dof_names,old_phase,desired_xy,desired_yaw,
@@ -167,7 +183,19 @@ def run(m, cams, output, plan, gym, sim, states, viewer, args, dt, dof_names):
                     if not passed: raise StopAttempt('old_expert_finished_without_full_body_traversal')
                     if np.max(np.abs(measured_q[:6]-home[:6]))<.03:
                         route=plan['route'];change('navigate')
-            if phase!='old_expert' and step%2==0:
+            if phase=='approach':
+                if approach_index<len(approach['actions']):
+                    action=approach['actions'][approach_index].copy();approach_index+=1
+                else:
+                    # Resume the unchanged R5 deploy formula at its original
+                    # contact-entry command, then keep the existing suffix.
+                    action=np.r_[0.,0.,approach['actions'][-1,2:]]
+                    change('deploy')
+                    stage_start=step-int(plan['smooth_approach']['deploy_entry_offset_steps'])
+                    transition_q=measured_q.copy()
+                    transition_q[indices]=np.asarray(plan['smooth_approach']['deploy_origin_q'],float)
+                    event('deploy_tail_resume',original_deploy_elapsed_s=(step-stage_start)*dt)
+            if phase not in ('old_expert','approach') and step%2==0:
                 v=w=0.;qtarget=home[indices].copy()
                 elapsed=(step-stage_start)*dt
                 if phase=='navigate':
@@ -195,10 +223,11 @@ def run(m, cams, output, plan, gym, sim, states, viewer, args, dt, dof_names):
                         st.traj['close_angle']=planned_angle-rate*.04
                     if abs(float(door_pos[0]))<=math.radians(1) and abs(float(door_vel[0]))<=math.radians(1):
                         v=w=0
-                    if settled*dt>=.5-1e-7:
+                    if close_hold.reached(.5):
                         if panel_nonzero_contact_count==0:
                             raise StopAttempt('missing_end_effector_physical_closing_evidence')
-                        latched=float(door_pos[0]);st.door.open_stage=False;event('latch',measured_angle=latched,settled_steps=settled)
+                        latch_observed_hold_s=close_hold.elapsed
+                        latched=float(door_pos[0]);st.door.open_stage=False;event('latch',measured_angle=latched,settled_steps=settled,observed_hold_s=latch_observed_hold_s)
                         change('release')
                 elif phase=='release':
                     # Reverse along same circle for 0.1m to break contact,
@@ -216,11 +245,12 @@ def run(m, cams, output, plan, gym, sim, states, viewer, args, dt, dof_names):
                     if abs(err)<.003: change('final_hold')
                 elif phase=='final_hold': pass
                 action=np.r_[v,w,qtarget]
+            if phase!='old_expert':
                 # New stages command joints; do not mislabel measured EE as
                 # its own target. Record the FK of the commanded joints.
-                command_fk=robot.fk(dict(zip(names,qtarget)),transform([*xy,st.args.robot_z],[0,st.args.robot_pitch,yaw]))['ee_gripper_link']
+                command_fk=robot.fk(dict(zip(names,action[2:])),transform([*xy,st.args.robot_z],[0,st.args.robot_pitch,yaw]))['ee_gripper_link']
                 st.last_target_pos=command_fk[:3,3].copy()
-                st.last_target_quat=None;st.last_gripper=float(qtarget[-1])
+                st.last_target_quat=None;st.last_gripper=float(action[-1])
             if not np.isfinite(action).all(): raise StopAttempt('nonfinite_command')
             # Exactly the existing Joint9 base integrator at each physics step.
             xy,yaw,jtargets=m.apply_float_dp_joint_action9(action,xy,yaw,dt)
@@ -248,6 +278,7 @@ def run(m, cams, output, plan, gym, sim, states, viewer, args, dt, dof_names):
                 door_bodies=serial(gym.get_actor_rigid_body_states(st.env,st.door_actor,ga.STATE_ALL)),
                 command=action.tolist())
             gym.simulate(sim);gym.fetch_results(sim,True)
+            simulated_steps=step+1
             gym.refresh_rigid_body_state_tensor(sim);gym.refresh_dof_state_tensor(sim);gym.refresh_jacobian_tensors(sim)
             m.current_ee_pose_from_refreshed_tensors(st.ik_state)
             arm=gym.get_actor_dof_states(st.env,st.arm_actor,ga.STATE_ALL)
@@ -306,12 +337,14 @@ def run(m, cams, output, plan, gym, sim, states, viewer, args, dt, dof_names):
             if phase=='close' and nonzero_end_panel_contact: panel_nonzero_contact_count+=1
             closed=abs(float(door_pos[0]))<=math.radians(1) and abs(float(door_vel[0]))<=math.radians(1)
             settled=settled+1 if phase=='close' and closed else 0
+            close_hold.observe((step+1)*dt,phase=='close' and closed)
             velocity=float(np.linalg.norm(actual_xy-prev_xy)/dt) if prev_xy is not None else 0
             omega=abs(angle_error(actual_yaw,prev_yaw))/dt if prev_yaw is not None else 0
             # Zero-lambda proximity reports alone do not reset the hold
             # window. Actual release/pushing still requires video/state review.
             final_ok=bool(phase=='final_hold' and far and not nonzero_door_contact and closed and latched is not None and not st.door.open_stage and abs(angle_error(actual_yaw,st.yaw_traverse))<=math.radians(2) and velocity<=.01 and omega<=.01 and np.all(np.abs(measured_q[:6]-home[:6])<=.03) and np.all(np.abs(measured_qd[:6])<=.05))
             final_count=final_count+1 if final_ok else 0
+            terminal_hold.observe((step+1)*dt,final_ok)
             row=dict(step=step,t=(step+1)*dt,phase=st.last_phase,state=np.r_[last_action[:2],measured_q[indices]],action=action.copy(),command_base=[*xy,yaw],actual_base=[*actual_xy,actual_yaw],base_measured_fd_speed=velocity,base_measured_fd_yaw_rate=omega,arm_q=measured_q.copy(),arm_qd=measured_qd.copy(),arm_command=st.dof_positions.copy(),ee_actual=st.ik_state.current_pos_np.copy(),ee_quat=st.ik_state.current_quat_np.copy(),ee_target=st.last_target_pos,ee_target_quat=st.last_target_quat,door_q=door_pos,door_qd=door_vel,door_effort=efforts,unlocked=bool(st.door.open_stage),latched=latched,whole_geometry_max_x=max_x,whole_geometry_bounds=[cloud.min(0),cloud.max(0)],passed=passed,end_panel_contact=end_panel,any_door_contact=any_door_contact,physical_close_steps=settled,final_hold_steps=final_count,root_rb=serial(rb[0]),arm_body_states=serial(rb),base_body_states=serial(gym.get_actor_rigid_body_states(st.env,base_actor,ga.STATE_ALL)))
             row['timing']=timing(step,dt);row['pre_physics']=pre_physics
             row['door_body_states']=serial(gym.get_actor_rigid_body_states(st.env,st.door_actor,ga.STATE_ALL))
@@ -320,6 +353,9 @@ def run(m, cams, output, plan, gym, sim, states, viewer, args, dt, dof_names):
             row['nonzero_door_contact']=nonzero_door_contact
             row['nonzero_end_panel_contact']=nonzero_end_panel_contact
             row['off_target_closing_contact']=off_target_closing_contact
+            row['physical_close_observed_span_s']=close_hold.elapsed
+            row['final_hold_observed_span_s']=terminal_hold.elapsed
+            row['approach_command_index']=approach_index-1 if phase=='approach' else None
             log.write(json.dumps(serial(row))+'\n');contact_log.write(json.dumps(dict(step=step,interval_s=[step*dt,(step+1)*dt],contacts=contacts))+'\n')
             samples.append([step,(step+1)*dt,*np.r_[last_action[:2],measured_q[indices]],*action, *actual_xy,actual_yaw,*door_pos,*door_vel])
             if step%2==0:
@@ -330,11 +366,11 @@ def run(m, cams, output, plan, gym, sim, states, viewer, args, dt, dof_names):
                     im=images.get(view+'_masked_depth')
                     if im is None: raise StopAttempt('missing_depth_observation')
                     depth[view].append_data(im)
-            prev_xy=actual_xy.copy();prev_yaw=actual_yaw;last_action=action.copy()
+            prev_xy=actual_xy.copy();prev_yaw=actual_yaw;previous_action=last_action.copy();last_action=action.copy()
             if step%50==0: event('progress',phase=st.last_phase,door_deg=float(np.rad2deg(door_pos[0])),base=[*actual_xy,actual_yaw],geometry_max_x=max_x)
             if passed and not far: raise StopAttempt('return_crossing_after_whole_body_pass')
             if phase!='old_expert' and not passed: raise StopAttempt('close_sequence_before_full_body_pass')
-            if final_count*dt>=2.-1e-7:
+            if terminal_hold.reached(2.):
                 success=True;reason='final_conditions_met_pending_physical_review';break
     except StopAttempt as e:
         reason=str(e);event('stop',reason=reason)
@@ -351,15 +387,18 @@ def run(m, cams, output, plan, gym, sim, states, viewer, args, dt, dof_names):
         log.close();contact_log.close();lock_log.close()
         for writer in depth.values(): writer.close()
         for camera in cams.values():
-            camera.expected=int(math.ceil((step+1)/2));camera.close()
+            camera.expected=int(math.ceil(simulated_steps/2));camera.close()
         np.savez_compressed(output/'trajectory.npz',rows=np.asarray(samples),columns=np.array(['step','time']+['state_'+n for n in names[:0]]+['state_last_vx','state_last_yaw']+['state_'+n for n in names]+['action_vx','action_yaw']+['action_'+n for n in names]+['actual_x','actual_y','actual_yaw','door_angle','handle_angle','door_velocity','handle_velocity']))
-        result=dict(success=success,reason=reason,steps=step+1,sim_seconds=(step+1)*dt,whole_body_pass_step=pass_step,end_panel_contact_steps=panel_contact_count,latched_angle=latched,final_hold_steps=final_count,attempts=1,error=stop_error,nominal_only=True,physical_push_review='requires aligned raw contact/state, live video and code audit; no coverage/work thresholds',video_frames={k:v.count for k,v in cams.items()})
+        result=dict(success=success,reason=reason,steps=simulated_steps,attempted_step=step,
+            sim_seconds=simulated_steps*dt,whole_body_pass_step=pass_step,end_panel_contact_steps=panel_contact_count,latched_angle=latched,final_hold_steps=final_count,attempts=1,error=stop_error,nominal_only=True,physical_push_review='requires aligned raw contact/state, live video and code audit; no coverage/work thresholds',video_frames={k:v.count for k,v in cams.items()})
         result.update(
             automatic_final_conditions_met=success,
             independent_task_acceptance='pending' if success else 'not_reached',
             end_panel_nonzero_contact_steps=panel_nonzero_contact_count,
             off_target_closing_contact_seen=off_target_closing_contact_seen,
             success_field_meaning='Automatic sequence/terminal checks only; physical pushing and release require independent review.',
+            latch_observed_hold_s=latch_observed_hold_s,
+            final_observed_hold_s=terminal_hold.elapsed,
         )
         (output/'result.json').write_text(json.dumps(serial(result),indent=2)+'\n');print(json.dumps(result),flush=True)
 

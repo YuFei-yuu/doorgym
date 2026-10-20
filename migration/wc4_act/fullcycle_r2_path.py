@@ -27,6 +27,8 @@ def stress_trace(source,robot,door,plan_path=None):
     args.sim_dt=.02
     plan_path=Path(plan_path) if plan_path is not None else source/'offline-v2/geometry.json'
     plan=json.loads(plan_path.read_text());chosen=plan['selected']
+    if plan.get('smooth_approach'):
+        raise ValueError("Legacy stress_trace does not model the continuous handoff; use check_fullcycle_smooth_approach.py")
     directions=route_directions(plan)
     qclose=np.r_[chosen['q'],0.];q=np.r_[np.zeros(6),-1.5707963705062866]
     home=np.r_[np.zeros(6),-1.1775000095367432]
