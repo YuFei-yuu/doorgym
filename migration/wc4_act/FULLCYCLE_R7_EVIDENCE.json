@@ -1,0 +1,84 @@
+{
+  "status": "nominal_full_task_supported_by_execution_review_awaiting_independent_acceptance",
+  "scenes": 1,
+  "attempts": 1,
+  "automatic_terminal_passes": 1,
+  "execution_review_supported_successes": 1,
+  "external_independent_acceptance": "awaiting",
+  "nominal_only": true,
+  "source_commit": "f17c437068527d3dd8787b524f34c6842064534d",
+  "source_unchanged": true,
+  "clean_worktree": true,
+  "branch": "expert/wc4-compact-r7-design-20261021",
+  "geometry_sha256": "28de1e1d5df05a35a1e523e108741d670126561dc42b118736e14fbed5f118ed",
+  "sim_seconds": 90.25999798253179,
+  "steps": 4513,
+  "first_real_end_contact": {
+    "step": 2331,
+    "physical_interval_s": [
+      46.6199989579618,
+      46.63999895751476
+    ],
+    "post_time_s": 46.63999895751476,
+    "phase": "close"
+  },
+  "pre_latch_confirmed_span_s": 0.5199999883770943,
+  "final_common_confirmed_span_s": 2.2799999490380287,
+  "released_closed_locked_span_s": 16.759999625384808,
+  "no_reverse": true,
+  "release_base_command_v": 0,
+  "no_return": true,
+  "nonend_loaded_close_intervals": [],
+  "videos": [
+    {
+      "path": "attempt_000/overview/env_0000/rollout.mp4",
+      "frames": 2257,
+      "fps": 25.0,
+      "duration_s": 90.28,
+      "width": 1920,
+      "height": 640,
+      "last_pts_s": 90.24,
+      "fully_decoded": true
+    },
+    {
+      "path": "attempt_000/front_depth.mp4",
+      "frames": 2257,
+      "fps": 25.0,
+      "duration_s": 90.28,
+      "width": 640,
+      "height": 480,
+      "last_pts_s": 90.24,
+      "fully_decoded": true
+    },
+    {
+      "path": "attempt_000/wrist_depth.mp4",
+      "frames": 2257,
+      "fps": 25.0,
+      "duration_s": 90.28,
+      "width": 640,
+      "height": 480,
+      "last_pts_s": 90.24,
+      "fully_decoded": true
+    }
+  ],
+  "comparison": [
+    "design/compact-design.png",
+    "audit/actual-vs-design-path.png",
+    "audit/actual-vs-design-path.svg",
+    "audit/actual-vs-design-path.csv"
+  ],
+  "protected_history_sha_checks": {
+    "protected-wc4-fullcycle-nominal-r1-20261020-hashcheck.txt": 60,
+    "protected-wc4-fullcycle-nominal-r2-20261020-hashcheck.txt": 77,
+    "protected-wc4-fullcycle-properties-r3-20261020-hashcheck.txt": 135,
+    "protected-wc4-fullcycle-nominal-r4-20261020-hashcheck.txt": 73,
+    "protected-wc4-fullcycle-nominal-r5-20261021-hashcheck.txt": 89,
+    "protected-wc4-fullcycle-smooth-r6-20261021-hashcheck.txt": 128
+  },
+  "postrun_source_checks": 163,
+  "no_retry": true,
+  "further_runs_authorized": false,
+  "engineering_notes": [
+    "First read-only evidence review failed because ACT environment lacks SciPy; original error/script preserved. Fixed evidence script uses the unchanged pure-NumPy pinned reference curve and equivalent distance calculation. No environment or runtime change."
+  ]
+}
