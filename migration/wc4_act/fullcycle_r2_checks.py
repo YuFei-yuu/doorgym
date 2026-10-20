@@ -128,8 +128,8 @@ def r1_contacts(source,robot,door,robot_pieces,door_pieces):
     return selected
 
 
-def full_path_checks(source,robot,door,rpieces,dpieces,out):
-    samples,budget=stress_trace(source,robot,door)
+def full_path_checks(source,robot,door,rpieces,dpieces,out,plan_path=None):
+    samples,budget=stress_trace(source,robot,door,plan_path=plan_path)
     names=['joint%d'%i for i in range(1,7)]+['jointGripper']
     legs={}
     for side in ['FL','FR','RL','RR']:
@@ -192,7 +192,7 @@ def full_path_checks(source,robot,door,rpieces,dpieces,out):
 
 
 def main():
-    p=argparse.ArgumentParser();p.add_argument('--source',required=True);p.add_argument('--output',required=True);p.add_argument('--tests-only',action='store_true');a=p.parse_args()
+    p=argparse.ArgumentParser();p.add_argument('--source',required=True);p.add_argument('--output',required=True);p.add_argument('--tests-only',action='store_true');p.add_argument('--geometry');a=p.parse_args()
     source=Path(a.source);out=Path(a.output);out.mkdir(exist_ok=False)
     (out/'source').mkdir()
     for path in [*Path(__file__).parent.glob('fullcycle*.py'),Path(__file__).parent/'overview.py']:
@@ -206,13 +206,14 @@ def main():
     (out/'r1-contact-analysis.json').write_text(json.dumps(contacts,indent=2)+'\n')
     if a.tests_only:
         print(json.dumps(dict(tests=regression,home=home,r1_contacts=contacts)),flush=True);return
-    path=full_path_checks(source,robot,door,rpieces,dpieces,out)
+    plan_path=Path(a.geometry) if a.geometry else source/'offline-v2/geometry.json'
+    path=full_path_checks(source,robot,door,rpieces,dpieces,out,plan_path=plan_path)
     # A source-geometry separation result is not enough to resolve the local
     # feature-coordinate mismatch of the first run. Keep that gate closed.
     reasons=['R1 contact local-feature coordinates do not reconcile with source collision features; action-time transforms/shape properties missing']
-    if not path['budget']['within_90s']:reasons.append('unchanged coordinated candidate and control timing exceed 90 second envelope even in ideal tracking')
+    if not path['budget']['within_90s']:reasons.append('selected route and control timing exceed 90 second envelope in ideal tracking')
     if path['convex_intersection_counts']:reasons.append('full-path convex intersection candidates require resolution')
-    gate=dict(status='offline_gates_failed',reasons=reasons,new_rollouts=0,source_sha256={p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in Path(__file__).parent.glob('fullcycle*.py')},runtime_contact_classification_certified=False,runtime_closing_evidence_certified=False)
+    gate=dict(status='offline_gates_failed',reasons=reasons,new_rollouts=0,geometry_sha256=hashlib.sha256(plan_path.read_bytes()).hexdigest(),source_sha256={p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in Path(__file__).parent.glob('fullcycle*.py')},runtime_contact_classification_certified=False,runtime_closing_evidence_certified=False)
     (out/'gate.json').write_text(json.dumps(gate,indent=2)+'\n')
     print(json.dumps(dict(targeted_tests=regression,r1_contacts=contacts,budget=path['budget'],intersection_counts=path['convex_intersection_counts'],gate=gate)),flush=True)
 

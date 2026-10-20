@@ -14,17 +14,20 @@ from scipy.spatial.transform import Rotation
 from fullcycle_geometry import transform, close_pose
 from fullcycle_expert import angle_error
 from fullcycle_contract import smooth_gripper
+from fullcycle_navigation import route_directions, waypoint_command
 
 ROOT=Path(__file__).resolve().parents[2]
 
 
-def stress_trace(source,robot,door):
+def stress_trace(source,robot,door,plan_path=None):
     sys.path.insert(0,str(ROOT/'high-level/float_ik'))
     import isaacgym_float_ik_a2w_basearn_push_door_parallel as author
     args=SimpleNamespace(**json.loads((source/'attempt_000/effective-config.json').read_text()))
     args.door_twin_skill_program=author.load_skill_program(ROOT/'high-level/float_ik/door_twin/examples/wc4_smoke_skill.json')
     args.sim_dt=.02
-    plan=json.loads((source/'offline-v2/geometry.json').read_text());chosen=plan['selected']
+    plan_path=Path(plan_path) if plan_path is not None else source/'offline-v2/geometry.json'
+    plan=json.loads(plan_path.read_text());chosen=plan['selected']
+    directions=route_directions(plan)
     qclose=np.r_[chosen['q'],0.];q=np.r_[np.zeros(6),-1.5707963705062866]
     home=np.r_[np.zeros(6),-1.1775000095367432]
     lo=np.r_[plan['joint_lower'],-1.1775];hi=np.r_[plan['joint_upper'],0.]
@@ -87,13 +90,8 @@ def stress_trace(source,robot,door):
             if phase=='navigate':
                 if nav>=len(plan['route']):phase='deploy';started=t;start_q=q.copy()
                 else:
-                    goal=np.array(plan['route'][nav]);err=goal[:2]-xy;dist=float(np.linalg.norm(err));ye=angle_error(goal[2],yaw)
-                    if dist<.003 and abs(ye)<.004:nav+=1
-                    elif dist>=.003:
-                        h=angle_error(math.atan2(err[1],err[0]),yaw)
-                        if abs(h)>.015:w=float(np.clip(2*h,-.6,.6))
-                        else:v=min(.25,dist/.04);w=float(np.clip(h,-.1,.1))
-                    else:w=float(np.clip(2*ye,-.6,.6))
+                    v,w,reached=waypoint_command(xy,yaw,plan['route'][nav],directions[nav])
+                    if reached:nav+=1
             elif phase=='deploy':
                 z=float(np.clip(elapsed/4,0,1));s=z**3*(10-15*z+6*z*z);qtarget=(1-s)*start_q+s*qclose
                 if elapsed>=5:phase='close';started=t;close_yaw_start=yaw
@@ -121,4 +119,4 @@ def stress_trace(source,robot,door):
         if phase=='close':theta=max(0,math.pi/2+yaw-close_yaw_start)
         if phase not in ['navigate','deploy','close']:theta=0.
         samples.append(dict(t=t,phase=phase,xy=np.asarray(xy).copy(),yaw=float(yaw),q=q.copy(),door=theta if phase=='close' else math.pi/2 if phase in ['navigate','deploy'] else 0.,handle=0.,ee_error=0.,target_pos=None,target_quat=None))
-    return samples,dict(method='No dynamics. Prescribed ideal opening angle and perfect joint tracking; finite-difference FK DLS, not Isaac Jacobian validation.',planned_duration_s=t,within_90s=t<=90,old_expert_program_end_s=(end+1)*.02,post_traverse_controller_unchanged=True,closing_circle_candidate=chosen)
+    return samples,dict(method='No dynamics. Prescribed ideal opening angle and perfect joint tracking; finite-difference FK DLS, not Isaac Jacobian validation.',planned_duration_s=t,within_90s=t<=90,old_expert_program_end_s=(end+1)*.02,post_traverse_controller_unchanged='navigation_revision' not in plan,navigation_plan_path=str(plan_path),navigation_revision=plan.get('navigation_revision','r1_forward_only'),closing_circle_candidate=chosen)

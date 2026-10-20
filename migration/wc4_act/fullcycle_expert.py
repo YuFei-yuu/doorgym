@@ -15,6 +15,7 @@ import traceback
 import numpy as np
 from fullcycle_geometry import URDF, transform, apply, close_pose
 from fullcycle_contract import smooth_gripper, timing
+from fullcycle_navigation import route_directions, waypoint_command
 
 ROOT=Path(__file__).resolve().parents[2]
 
@@ -69,6 +70,7 @@ def run(m, cams, output, plan, gym, sim, states, viewer, args, dt, dof_names):
     import imageio
     if len(states)!=1 or int(args.steps)>4500: raise ValueError('Single env, <=90 seconds only')
     st=states[0];dc=m.dc;ga=m.gymapi
+    directions=route_directions(plan)
     robot=URDF(ROOT/'high-level/data/asset/a2wz1/urdf/a2wz1.urdf', include_visual=True)
     names=['joint%d'%i for i in range(1,7)]+['jointGripper']
     indices=[dof_names.index(n) for n in names]
@@ -165,15 +167,9 @@ def run(m, cams, output, plan, gym, sim, states, viewer, args, dt, dof_names):
                 if phase=='navigate':
                     if nav_index>=len(route): change('deploy')
                     else:
-                        goal=np.array(route[nav_index]);error=goal[:2]-xy;dist=float(np.linalg.norm(error));yawerr=angle_error(goal[2],yaw)
-                        if dist<.003 and abs(yawerr)<.004:
+                        v,w,reached=waypoint_command(xy,yaw,route[nav_index],directions[nav_index])
+                        if reached:
                             nav_index+=1;event('navigation_waypoint',index=nav_index)
-                        elif dist>=.003:
-                            desired_heading=math.atan2(error[1],error[0]);headingerr=angle_error(desired_heading,yaw)
-                            # Each route leg is rotate-then-drive; no sideslip.
-                            if abs(headingerr)>.015: w=float(np.clip(2*headingerr,-.6,.6))
-                            else: v=min(.25,dist/.04);w=float(np.clip(headingerr,-.1,.1))
-                        else: w=float(np.clip(2*yawerr,-.6,.6))
                 elif phase=='deploy':
                     alpha=float(np.clip(elapsed/4,0,1));s=alpha**3*(10-15*alpha+6*alpha**2)
                     qtarget=(1-s)*transition_q[indices]+s*qclose
@@ -330,6 +326,8 @@ def main():
             or not validation.get('runtime_closing_evidence_certified')):
         raise RuntimeError('R2 offline gates did not pass; no simulator may be created')
     import hashlib
+    if validation.get('geometry_sha256')!=hashlib.sha256(Path(a.geometry).read_bytes()).hexdigest():
+        raise RuntimeError('Offline gate geometry/route mismatch')
     for name,digest in validation['source_sha256'].items():
         if hashlib.sha256((Path(__file__).parent/name).read_bytes()).hexdigest()!=digest:
             raise RuntimeError('Offline gate source mismatch: '+name)
