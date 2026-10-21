@@ -37,5 +37,5 @@ write(run/'readiness.json',dict(status='CPU-engineering-passed-await-independent
     r12_budget_consumption=[1122,1123],no_automatic_training_or_resume=True))
 write(run/'resource-final.json',dict(at=time.time(),cuda_visible_devices=os.environ.get('CUDA_VISIBLE_DEVICES'),
     gpu_snapshot=subprocess.check_output(['nvidia-smi','--query-gpu=index,uuid,memory.used,utilization.gpu','--format=csv'],text=True),
-    process_snapshot=subprocess.check_output(['ps','-eo','pid,ppid,args'],text=True)))
+    project_process_snapshot='\n'.join(line for line in subprocess.check_output(['ps','-eo','pid,ppid,args'],text=True).splitlines() if 'video2door-wc4-act' in line)))
 print('Sealed CPU-only readiness; all protected hashes and frozen trials unchanged; no training authorization')
