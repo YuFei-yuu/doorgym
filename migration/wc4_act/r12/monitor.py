@@ -12,12 +12,12 @@ r=read(RUN/'wandb-run.json');path=f"{r['entity']}/{r['project']}/{r['id']}"
 uuid=subprocess.check_output(['nvidia-smi','-i',os.environ['VIDEO2DOOR_GPU'],'--query-gpu=uuid','--format=csv,noheader'],text=True).strip()
 def stop(reason,event):
  write(RUN/'SYSTEMIC_STOP.json',dict(reason=reason,event=event,at=time.time()))
- os.kill(pid,signal.SIGTERM)
  # Terminate only descendants of the owned trainer, including Gym/worker children.
  table=subprocess.check_output(['ps','-eo','pid=,ppid='],text=True)
  children={pid}
  pairs=[tuple(map(int,l.split())) for l in table.splitlines()]
  for _ in range(12):children|={p for p,parent in pairs if parent in children}
+ os.kill(pid,signal.SIGTERM)
  for p in children-{pid}:
   try:os.kill(p,signal.SIGTERM)
   except ProcessLookupError:pass

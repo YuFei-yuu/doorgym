@@ -277,7 +277,7 @@ def run(m, cams, output, plan, gym, sim, states, viewer, args, dt, dof_names):
             row['final_hold_observed_span_s']=terminal_hold.elapsed
             row['physical_close_observed_span_s']=lock.hold.elapsed
             log.write(json.dumps(serial(row))+'\n');contact_log.write(json.dumps(dict(step=step,interval_s=[step*dt,(step+1)*dt],contacts=contacts))+'\n')
-            samples.append([step,(step+1)*dt,*np.r_[last_action[:2],measured_q[indices]],*action, *actual_xy,actual_yaw,*door_pos,*door_vel])
+            samples.append([step,(step+1)*dt,*np.r_[policy_state[:2],measured_q[indices]],*action, *actual_xy,actual_yaw,*door_pos,*door_vel])
             images=None
             if step%2==0:
                 # install_live hooks provide synchronized original RGB.
@@ -339,6 +339,7 @@ def main():
     def forbidden(*args,**kwargs):raise RuntimeError('Forbidden expert/old-lock entry reached')
     m.trajectory_targets=forbidden;m.update_arm_ik_targets_for_env=forbidden
     m.enforce_locked_door_hinge=forbidden
+    m.dc.enforce_locked_door_hinge=forbidden
     cams=install_live(m,output/'overview',post_step_timestamps=True) if a.record_video else {}
     create=m.create_parallel_env_states
     def with_stop_camera(*args,**kwargs):

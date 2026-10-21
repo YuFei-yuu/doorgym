@@ -6,6 +6,7 @@ sys.path.insert(0,str(SUPPORT))
 import draccus,lerobot
 from commands import build
 from lerobot.configs.train import TrainPipelineConfig
+from lerobot.policies.act.configuration_act import ACTConfig
 cmd=build('train',ID,gpu=0,seed=1000,train_steps=30000)['argv']
 cmd=[('--dataset.repo_id='+REPO if x.startswith('--dataset.repo_id=') else '--dataset.root='+str(DATA) if x.startswith('--dataset.root=') else x) for x in cmd]
 cfg=draccus.parse(TrainPipelineConfig,args=cmd[2:]);cfg.validate()
