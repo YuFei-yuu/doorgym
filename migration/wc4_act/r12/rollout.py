@@ -103,6 +103,13 @@ def run(m, cams, output, plan, gym, sim, states, viewer, args, dt, dof_names):
     samples=[];success=False;reason='budget_exhausted';step=-1;pre_physics=None
     stop_error=None;blocked_self_steps=0;final_count=0;settled=0
     policy_log=(output/'policy-inputs-actions.jsonl').open('x')
+    input_frames=[];input_first=0;input_directory=output/'policy-depth';input_directory.mkdir()
+    def flush_inputs():
+        nonlocal input_first
+        if input_frames:
+            np.savez_compressed(input_directory/('%06d.npz'%input_first),
+                front=np.stack([x[0] for x in input_frames]),wrist=np.stack([x[1] for x in input_frames]))
+            input_first+=len(input_frames);input_frames.clear()
     def event(kind,**data):
         print(json.dumps(dict(event=kind,step=step,time_s=simulated_steps*dt,**serial(data))),flush=True)
     def save_stop_snapshot():
@@ -141,6 +148,8 @@ def run(m, cams, output, plan, gym, sim, states, viewer, args, dt, dof_names):
                 gym.step_graphics(sim);gym.render_all_camera_sensors(sim)
                 policy_images=dc.capture_dp_camera_images_from_rendered(gym,sim,st.env,st.camera_handles,st.args)
                 policy_state=np.asarray(np.r_[previous_record_base,measured_q[indices]],dtype=np.float32)
+                input_frames.append(tuple(policy_images[v+'_masked_depth'].copy() for v in ['front','wrist']))
+                if len(input_frames)>=100:flush_inputs()
                 queue_before=len(controller.action_queue)
                 raw_action=np.asarray(controller.act(policy_state,None,policy_images['wrist_masked_depth'],
                     front_masked_depth_rgb=policy_images['front_masked_depth']),dtype=np.float32)
@@ -272,6 +281,7 @@ def run(m, cams, output, plan, gym, sim, states, viewer, args, dt, dof_names):
             images=None
             if step%2==0:
                 # install_live hooks provide synchronized original RGB.
+                if not cams:gym.step_graphics(sim);gym.render_all_camera_sensors(sim)
                 m.update_door_twin_tracker(st,step,door_pos)
                 images=dc.capture_dp_camera_images_from_rendered(gym,sim,st.env,st.camera_handles,st.args)
                 for view in depth:
@@ -297,7 +307,7 @@ def run(m, cams, output, plan, gym, sim, states, viewer, args, dt, dof_names):
                 stop_error='stop snapshot missing: '+repr(snapshot_error);reason+=';evidence_missing'
         log.close();contact_log.close();lock_log.close()
         for writer in depth.values(): writer.close()
-        policy_log.close();controller.close()
+        flush_inputs();policy_log.close();controller.close()
         for camera in cams.values():
             camera.expected=int(math.ceil(simulated_steps/2));camera.close()
         np.savez_compressed(output/'trajectory.npz',rows=np.asarray(samples),columns=np.array(['step','time']+['state_'+n for n in names[:0]]+['state_last_vx','state_last_yaw']+['state_'+n for n in names]+['action_vx','action_yaw']+['action_'+n for n in names]+['actual_x','actual_y','actual_yaw','door_angle','handle_angle','door_velocity','handle_velocity']))
