@@ -34,6 +34,12 @@ class Tests(unittest.TestCase):
         s,l,r=example()
         for x in s:x['any_door_contact']=True
         self.assertTrue(score(s,l,r)['measured_task_gates_pass'])
+    def test_measured_reverse_motion_on_far_side_is_allowed(self):
+        s,l,r=example()
+        for i,x in enumerate(s):
+            x['actual_base'][0]=-.002*max(0,min(i,120)-30)
+            x['base_measured_fd_speed']=.1 if 30<i<=120 else 0.
+        self.assertTrue(score(s,l,r)['measured_task_gates_pass'])
     def test_returns_fail(self):
         s,l,r=example();s[130]['whole_geometry_max_x']=1.
         self.assertIn('returned_to_original_side',score(s,l,r)['failures'])
