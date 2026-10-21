@@ -79,6 +79,17 @@ def run(m, cams, output, plan, gym, sim, states, viewer, args, dt, dof_names):
     names=['joint%d'%i for i in range(1,7)]+['jointGripper']
     indices=[dof_names.index(n) for n in names]
     home=st.home_positions.copy()
+    from fullcycle_scene import SceneFrame
+    scene=SceneFrame.from_runtime(m,st)
+    from fullcycle_pilot import audit_effective_trial
+    audit_effective_trial(gym,st,output)
+    (output/'scene-frame.json').write_text(json.dumps(scene.metadata(),indent=2)+'\n')
+    from fullcycle_task_monitor import TaskMonitor
+    task_monitor=TaskMonitor(home,st.yaw_traverse)
+    recorder=None
+    if plan.get('live_joint9_recording'):
+        from fullcycle_recording import LiveRecording
+        recorder=LiveRecording(m,st,output,dof_names,dt)
     initial_arm=gym.get_actor_dof_states(st.env,st.arm_actor,ga.STATE_ALL)
     initial_gripper=float(initial_arm['pos'][indices[-1]])
     physical_properties=gym.get_actor_dof_properties(st.env,st.arm_actor)
@@ -171,7 +182,7 @@ def run(m, cams, output, plan, gym, sim, states, viewer, args, dt, dof_names):
                 from fullcycle_compact import CompactExpert
                 compact=CompactExpert(robot,plan['compact_expert'],[*xy,yaw],
                     measured_q[indices],last_action,float(door_pos[0]),step*dt,
-                    home[indices],st.yaw_traverse,dt)
+                    home[indices],st.yaw_traverse,dt,scene=scene)
                 change(compact.phase)
             if phase=='old_expert' and passed and plan.get('smooth_approach'):
                 from fullcycle_smooth_approach import build_approach
@@ -215,11 +226,11 @@ def run(m, cams, output, plan, gym, sim, states, viewer, args, dt, dof_names):
                 if phase!=compact.phase:
                     change(compact.phase)
                     if compact.route is not None and not (output/'compact-route.npy').exists():
-                        np.save(output/'compact-route.npy',compact.route)
-                if phase=='close' and close_hold.reached(.5):
+                        np.save(output/'compact-route.npy',np.array([scene.to_world_base(p) for p in compact.route]))
+                if latched is None and task_monitor.may_latch():
                     if panel_nonzero_contact_count==0:
                         raise StopAttempt('missing_end_effector_physical_closing_evidence')
-                    latch_observed_hold_s=close_hold.elapsed
+                    latch_observed_hold_s=task_monitor.close_hold.elapsed
                     latched=float(door_pos[0]);st.door.open_stage=False
                     event('latch',measured_angle=latched,settled_steps=settled,
                           observed_hold_s=latch_observed_hold_s)
@@ -320,8 +331,11 @@ def run(m, cams, output, plan, gym, sim, states, viewer, args, dt, dof_names):
             base_actor=st.actor_handles[0]
             base_joints=gym.get_actor_dof_states(st.env,base_actor,ga.STATE_ALL)
             legs.update(dict(zip(gym.get_actor_dof_names(st.env,base_actor),base_joints['pos'])))
-            poses=robot.fk(dict(legs,**dict(zip(dof_names,measured_q))),transform([*actual_xy,st.args.robot_z],[0,st.args.robot_pitch,actual_yaw]))
-            cloud=robot.cloud(poses);max_x=float(cloud[:,0].max());far=bool(max_x<2.5)
+            from scipy.spatial.transform import Rotation
+            actual_root=np.eye(4);actual_root[:3,:3]=Rotation.from_quat(quat).as_matrix()
+            actual_root[:3,3]=[root['p'][k] for k in ['x','y','z']]
+            poses=robot.fk(dict(legs,**dict(zip(dof_names,measured_q))),actual_root)
+            cloud=robot.cloud(poses);max_x=float(cloud[:,0].max());far=bool(max_x<scene.pass_plane_x)
             if not passed and far:
                 passed=True;pass_step=step;event('whole_body_pass',max_x=max_x)
             if not np.isfinite(np.r_[measured_q,measured_qd,door_pos,door_vel,actual_xy,actual_yaw]).all():
@@ -368,6 +382,9 @@ def run(m, cams, output, plan, gym, sim, states, viewer, args, dt, dof_names):
             close_hold.observe((step+1)*dt,phase=='close' and closed)
             velocity=float(np.linalg.norm(actual_xy-prev_xy)/dt) if prev_xy is not None else 0
             omega=abs(angle_error(actual_yaw,prev_yaw))/dt if prev_yaw is not None else 0
+            task_monitor.observe((step+1)*dt,far,float(door_pos[0]),float(door_vel[0]),
+                bool(st.door.open_stage),latched,any_door_contact,nonzero_end_panel_contact,
+                measured_q,measured_qd,velocity,omega,actual_yaw)
             # Zero-lambda proximity reports alone do not reset the hold
             # window. Actual release/pushing still requires video/state review.
             final_ok=bool(phase=='final_hold' and far and not nonzero_door_contact and closed and latched is not None and not st.door.open_stage and abs(angle_error(actual_yaw,st.yaw_traverse))<=math.radians(2) and velocity<=.01 and omega<=.01 and np.all(np.abs(measured_q[:6]-home[:6])<=.03) and np.all(np.abs(measured_qd[:6])<=.05))
@@ -384,10 +401,12 @@ def run(m, cams, output, plan, gym, sim, states, viewer, args, dt, dof_names):
             row['physical_close_observed_span_s']=close_hold.elapsed
             row['final_hold_observed_span_s']=terminal_hold.elapsed
             row['approach_command_index']=approach_index-1 if phase=='approach' else None
+            row['task_monitor']=task_monitor.metadata();row['pass_plane_x']=scene.pass_plane_x
             if compact is not None:
                 row['compact_expert']=compact_diagnostics
             log.write(json.dumps(serial(row))+'\n');contact_log.write(json.dumps(dict(step=step,interval_s=[step*dt,(step+1)*dt],contacts=contacts))+'\n')
             samples.append([step,(step+1)*dt,*np.r_[last_action[:2],measured_q[indices]],*action, *actual_xy,actual_yaw,*door_pos,*door_vel])
+            images=None
             if step%2==0:
                 # install_live hooks provide synchronized original RGB.
                 m.update_door_twin_tracker(st,step,door_pos)
@@ -396,11 +415,13 @@ def run(m, cams, output, plan, gym, sim, states, viewer, args, dt, dof_names):
                     im=images.get(view+'_masked_depth')
                     if im is None: raise StopAttempt('missing_depth_observation')
                     depth[view].append_data(im)
+            if recorder is not None:
+                recorder.observe(gym,sim,step,dof_names,indices[-1],door_pos,door_vel,images)
             prev_xy=actual_xy.copy();prev_yaw=actual_yaw;previous_action=last_action.copy();last_action=action.copy()
             if step%50==0: event('progress',phase=st.last_phase,door_deg=float(np.rad2deg(door_pos[0])),base=[*actual_xy,actual_yaw],geometry_max_x=max_x)
             if passed and not far: raise StopAttempt('return_crossing_after_whole_body_pass')
             if phase!='old_expert' and not passed: raise StopAttempt('close_sequence_before_full_body_pass')
-            if terminal_hold.reached(2.):
+            if terminal_hold.reached(2.) and task_monitor.accepted():
                 success=True;reason='final_conditions_met_pending_physical_review';break
     except StopAttempt as e:
         reason=str(e);event('stop',reason=reason)
@@ -410,12 +431,13 @@ def run(m, cams, output, plan, gym, sim, states, viewer, args, dt, dof_names):
     except BaseException as e:
         reason='infrastructure_or_recording_error:'+repr(e);stop_error=traceback.format_exc();event('error',reason=reason);traceback.print_exc()
     finally:
-        if not success and step>=0 and not (output/'stop-state.json').exists():
+        if (not success or recorder is not None) and step>=0 and not (output/'stop-state.json').exists():
             try:save_stop_snapshot()
             except Exception as snapshot_error:
                 stop_error='stop snapshot missing: '+repr(snapshot_error);reason+=';evidence_missing'
         log.close();contact_log.close();lock_log.close()
         for writer in depth.values(): writer.close()
+        if recorder is not None:recorder.close(success)
         for camera in cams.values():
             camera.expected=int(math.ceil(simulated_steps/2));camera.close()
         np.savez_compressed(output/'trajectory.npz',rows=np.asarray(samples),columns=np.array(['step','time']+['state_'+n for n in names[:0]]+['state_last_vx','state_last_yaw']+['state_'+n for n in names]+['action_vx','action_yaw']+['action_'+n for n in names]+['actual_x','actual_y','actual_yaw','door_angle','handle_angle','door_velocity','handle_velocity']))
@@ -429,12 +451,14 @@ def run(m, cams, output, plan, gym, sim, states, viewer, args, dt, dof_names):
             success_field_meaning='Automatic sequence/terminal checks only; physical pushing and release require independent review.',
             latch_observed_hold_s=latch_observed_hold_s,
             final_observed_hold_s=terminal_hold.elapsed,
+            independent_task_monitor=task_monitor.metadata(),
         )
         (output/'result.json').write_text(json.dumps(serial(result),indent=2)+'\n');print(json.dumps(result),flush=True)
 
 
 def main():
     p=argparse.ArgumentParser();p.add_argument('--output',required=True);p.add_argument('--geometry',required=True);p.add_argument('--preflight',action='store_true');p.add_argument('--validation',required=True)
+    p.add_argument('--pilot-manifest');p.add_argument('--trial-index',type=int)
     a,remaining=p.parse_known_args()
     validation=json.loads(Path(a.validation).read_text())
     if validation.get('status')!='source_route_consistent':
@@ -451,6 +475,9 @@ def main():
     sys.path.insert(0,str(ROOT/'high-level/float_ik'))
     from overview import load,install_live
     m=load('fullcycle_author','high-level/float_ik/isaacgym_float_ik_a2w_basearn_push_door_parallel.py')
+    if a.pilot_manifest:
+        from fullcycle_pilot import install_frozen_trial
+        install_frozen_trial(m,Path(a.pilot_manifest),a.trial_index,output)
     cams=install_live(m,output/'overview',post_step_timestamps=True)
     create=m.create_parallel_env_states
     def create_with_stop_camera(*args,**kwargs):
@@ -481,6 +508,10 @@ def main():
     create_sim=m.base_ik.create_sim
     def one_formal_scene(*args,**kwargs):
         # Persist before creation: a failed creation still consumes this run.
+        if a.pilot_manifest:
+            claim=Path(a.pilot_manifest).parent/'scene-claims'/('trial_%02d.json'%a.trial_index)
+            claim.parent.mkdir(exist_ok=True)
+            with claim.open('x') as f:json.dump(dict(trial=a.trial_index,output=str(output),max_seconds=180),f)
         with (output/'scene-creation-receipt.json').open('x') as receipt:
             json.dump(dict(scenes=1,episodes=1,max_sim_seconds=180,wall_time=time.time()),receipt,indent=2)
         return create_sim(*args,**kwargs)

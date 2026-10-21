@@ -154,19 +154,23 @@ def forward_pose(base,goal,vmax=.12,wmax=.4):
 
 
 class CompactExpert:
-    def __init__(self,robot,recipe,base,q,action,theta,t,home,final_yaw,dt):
+    def __init__(self,robot,recipe,base,q,action,theta,t,home,final_yaw,dt,scene=None):
+        from fullcycle_scene import SceneFrame
+        self.scene=scene or SceneFrame()
+        base=self.scene.to_reference_base(base)
+        final_yaw=float(final_yaw)-self.scene.yaw_delta
         self.c=dict(DEFAULT,**recipe);self.arm=Arm(robot);self.curve=ClosingCurve(self.c)
         self.dt=dt;self.phase="compact_unload";self.since=t
         self.qcmd=np.asarray(action[2:],float).copy();self.home=np.asarray(home,float)
         self.base0=np.asarray(base,float).copy();self.q0=np.asarray(q,float).copy()
         self.v=float(action[0]);self.w=float(action[1]);self.final_yaw=float(final_yaw)
-        self.E0=transform([*base[:2],.5],[0,0,base[2]])@self.arm.fk(q)
+        self.E0=self.scene.base_transform(base)@self.arm.fk(q)
         self.withdraw_normal=np.array([math.cos(theta),math.sin(theta),0.])
         self.route=None;self.route_index=0;self.seek_offset=self.c["hover_distance"]
         self.close_parameter=None;self.target=None;self.ik={};self.events=[]
         self.last_t=t;self.closed=False;self.seen_closing_contact=False
         ref=self.curve.at(math.pi/2)
-        goal_B=transform([*ref[:2],.5],[0,0,ref[2]])
+        goal_B=self.scene.base_transform(ref[:3])
         self.hover_q,self.hover_ik=self.arm.solve(
             np.linalg.inv(goal_B)@self.curve.tool(math.pi/2,self.c["hover_distance"]),
             [0.,1.7,-1.3,-.4,0.,math.pi/2],1.,120)
@@ -174,13 +178,13 @@ class CompactExpert:
     def change(self,phase,t,q,base):
         self.events.append(dict(time_s=t,previous=self.phase,phase=phase))
         self.phase=phase;self.since=t;self.q0=np.asarray(q).copy()
-        self.E0=transform([*base[:2],.5],[0,0,base[2]])@self.arm.fk(q)
+        self.E0=self.scene.base_transform(base)@self.arm.fk(q)
         self.base0=np.asarray(base).copy()
 
     def command(self,t,base,q,theta,theta_dot,end_contact,door_contact,latched):
-        c=self.c;base=np.asarray(base,float);q=np.asarray(q,float);elapsed=t-self.since
+        c=self.c;base=self.scene.to_reference_base(base);q=np.asarray(q,float);elapsed=t-self.since
         dt=self.dt;v=w=0.;target_q=self.home.copy();self.ik={};self.target=None
-        B=transform([*base[:2],.5],[0,0,base[2]])
+        B=self.scene.base_transform(base)
         if latched and self.phase=="close":
             self.change("release",t,q,base);elapsed=0
         if self.phase=="compact_unload":
@@ -316,6 +320,6 @@ class CompactExpert:
         action=np.r_[self.v,self.w,self.qcmd]
         if not np.isfinite(action).all():raise ValueError("Nonfinite compact command")
         return action,dict(phase=self.phase,elapsed_s=t-self.since,ik=self.ik,
-            target_world=None if self.target is None else self.target.tolist(),
+            target_world=None if self.target is None else (self.scene.world_from_reference@self.target).tolist(),
             route_index=self.route_index,door_reference=self.close_parameter,
             seek_offset=self.seek_offset,expert_feedback_only=True)
