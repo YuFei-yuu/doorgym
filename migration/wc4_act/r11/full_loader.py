@@ -16,6 +16,7 @@ def rss(pid):
 
 def main():
  cfg=config();ds=make_dataset(cfg);assert len(ds)==FRAMES and torch.get_default_dtype()==torch.float32
+ assert ds.video_backend=='torchcodec' and ds.tolerance_s==1e-4
  state=np.asarray(ds.hf_dataset['observation.state']);action=np.asarray(ds.hf_dataset['action'])
  if state.ndim==1:state=np.stack(state)
  if action.ndim==1:action=np.stack(action)

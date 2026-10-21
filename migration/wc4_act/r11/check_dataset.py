@@ -25,6 +25,8 @@ def main():
  assert ROOT/'high-level/lerobot/src' in pathlib.Path(lerobot.__file__).parents
  cfg=config()
  start=time.perf_counter();ds=make_dataset(cfg);factory_seconds=time.perf_counter()-start
+ assert ds.video_backend=='torchcodec' and ds.tolerance_s==1e-4
+ write(out/'resolved-reader.json',dict(backend=ds.video_backend,tolerance_s=ds.tolerance_s,comparison='strict < unchanged',default_dtype=str(torch.get_default_dtype())))
  (out/'factory-config.json').write_text(json.dumps(cfg.to_dict(),indent=2,default=str)+'\n')
  keys=list(ds.features);visual=[k for k in keys if k.startswith('observation.images.')]
  assert len(visual)==2 and 'observation.state' in keys
