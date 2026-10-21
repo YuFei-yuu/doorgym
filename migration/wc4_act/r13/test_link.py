@@ -7,7 +7,7 @@ from accelerate import Accelerator
 from safetensors.torch import load_file
 from runtime import *
 sys.path.insert(0,str(SUPPORT))
-from training_guard import TrainingGuard
+from training_guard import TrainingGuard,metric_values
 from stopping import BoundaryStop,request_stop
 from test_stopping import Toy,Config,Processor
 from lerobot.scripts.lerobot_train import update_policy
@@ -37,6 +37,10 @@ stopped=read(run/'STOPPED.json');assert stopped['completed_updates']==1
 cp=Path(stopped['checkpoint']['path'])
 restore=Toy();restore.load_state_dict(load_file(str(cp/'pretrained_model/model.safetensors')))
 restore_opt=torch.optim.AdamW(restore.parameters(),lr=1e-3)
+from lerobot.utils.logging_utils import MetricsTracker,AverageMeter
+tracker=MetricsTracker(16,159529,72,{k:AverageMeter(k) for k in ['loss','lr','grad_norm','update_s']})
+for k in tracker.metrics:setattr(tracker,k,.125)
+assert set(metric_values(tracker).values())=={.125}
 step,restore_opt,sched=load_training_state(cp,restore_opt,None);assert step==1 and sched is None
 assert validate_checkpoint(cp)==1
 original=(cp/'pretrained_model/pre.safetensors').read_bytes()

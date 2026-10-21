@@ -12,6 +12,7 @@ commands=[
  ('supervision',[sys.executable,'-B',str(SUPPORT/'r13/test_supervision.py'),str(attempt/'supervision')]),
  ('contacts',[sys.executable,'-B',str(SUPPORT/'r13/test_contacts.py'),str(attempt/'contacts')]),
  ('link',[sys.executable,'-B',str(SUPPORT/'r13/test_link.py'),str(attempt/'link')]),
+ ('normalization',[sys.executable,'-B',str(SUPPORT/'r13/test_normalization.py'),str(attempt/'normalization')]),
  ('r11-regression',[sys.executable,'-B',str(SUPPORT/'r11/test_criteria.py')]),
 ]
 records=[]

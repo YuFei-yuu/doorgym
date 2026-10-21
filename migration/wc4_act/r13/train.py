@@ -3,7 +3,7 @@ import sys,os,time,subprocess,math
 from runtime import *
 sys.path.insert(0,str(SUPPORT))
 from stopping import BoundaryStop,atomic_json,request_stop
-from training_guard import TrainingGuard
+from training_guard import TrainingGuard,metric_values
 RUN,ORDER=authorized_run()
 import torch
 from accelerate import Accelerator
@@ -54,9 +54,7 @@ def logged_update(*a,**k):
     if guard.boundary.completed>=30000:raise RuntimeError('Update budget exhausted')
     result=update(*a,**k);t=result[0]
     row=dict(update=guard.boundary.completed+1,at=time.time())
-    # MetricsTracker may wrap assigned values as AverageMeter.
-    for name in ['loss','lr','grad_norm','update_s']:
-        value=getattr(t,name);row[name]=float(getattr(value,'val',value))
+    row.update(metric_values(t))
     if not all(math.isfinite(row[k]) for k in ['loss','lr','grad_norm']):raise FloatingPointError('Nonfinite metric after update; unsafe boundary')
     metrics.write(__import__('json').dumps(row)+'\n');metrics.flush();os.fsync(metrics.fileno())
     if row['update']%100==0 or row['update']==1:atomic_json(RUN/'train-progress.json',row)

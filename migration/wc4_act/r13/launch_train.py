@@ -6,6 +6,8 @@ from supervision import supervise
 from stopping import request_stop,atomic_json
 RUN,ORDER=authorized_run()
 if not Path('/proc/self/fd/9').exists() or 'FLOCK' not in Path('/proc/self/fdinfo/9').read_text():raise RuntimeError('Shared GPU UUID lease FD9 must be inherited from parent shell')
+uuid=subprocess.check_output(['nvidia-smi','-i',os.environ['VIDEO2DOOR_GPU'],'--query-gpu=uuid','--format=csv,noheader'],text=True).strip()
+if Path(os.readlink('/proc/self/fd/9')).name!=uuid+'.lock':raise RuntimeError('Lease UUID differs from selected physical GPU')
 if (RUN/'train-command.json').exists():raise RuntimeError('No automatic replacement/retry')
 cmd=training_argv(RUN)
 if ORDER.get('resume_checkpoint'):

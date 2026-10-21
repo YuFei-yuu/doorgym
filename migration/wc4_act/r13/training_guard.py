@@ -42,3 +42,9 @@ class TrainingGuard:
         after=serialize_rng_state()
         if set(before)!=set(after) or not all(torch.equal(before[k],after[k]) for k in before):raise RuntimeError('Checkpoint serialization changed trainer RNG')
         return receipt
+
+
+def metric_values(metrics):
+    """Author MetricsTracker meters and simple engineering fixtures share a path."""
+    return {name:float(getattr(getattr(metrics,name),'val',getattr(metrics,name)))
+            for name in ['loss','lr','grad_norm','update_s']}
