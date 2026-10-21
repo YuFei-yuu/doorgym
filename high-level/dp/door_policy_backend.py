@@ -3640,7 +3640,7 @@ class _RemoteObsBufferProxy:
         self.controller.reset()
 
     def __len__(self) -> int:
-        return 0
+        return int(self.controller.queue_state()["observation_queue_depth"])
 
 
 class _RemoteActionQueueProxy:
@@ -3651,7 +3651,7 @@ class _RemoteActionQueueProxy:
         self.controller._request({"cmd": "clear_action_queue"})
 
     def __len__(self) -> int:
-        return 0
+        return int(self.controller.queue_state()["action_queue_depth"])
 
 
 class DoorPolicySubprocessController:
@@ -3695,6 +3695,7 @@ class DoorPolicySubprocessController:
         self._set_metadata(response["metadata"])
         self.obs_buffer = _RemoteObsBufferProxy(self)
         self.action_queue = _RemoteActionQueueProxy(self)
+        self.last_action_evidence = None
 
     def _set_metadata(self, meta: Mapping[str, Any]) -> None:
         self.config = dict(meta.get("config", {}))
@@ -3722,7 +3723,11 @@ class DoorPolicySubprocessController:
             raise RuntimeError(error)
         return response
 
+    def queue_state(self) -> Mapping[str, Any]:
+        return self._request({"cmd": "queue_state"})["queue_state"]
+
     def reset(self) -> None:
+        self.last_action_evidence = None
         self._request({"cmd": "reset"})
         self.multi_camera_gates.clear()
         self.last_camera_gates = None
@@ -3849,6 +3854,7 @@ class DoorPolicySubprocessController:
         self.last_interaction_state = (
             None if interaction is None else np.asarray(interaction, dtype=np.float32).reshape(1, -1)
         )
+        self.last_action_evidence = response.get("action_evidence")
         return np.asarray(response["action"], dtype=np.float32)
 
     def act_batch(

@@ -29,6 +29,7 @@ sys.stdout = sys.stderr
 warnings.filterwarnings("ignore", category=DeprecationWarning, message=".*numpy\\.core.*")
 
 from door_policy_backend import DoorPolicyController  # noqa: E402
+from door_action_evidence import WorkerActionEvidence
 
 
 def write_message(payload: Mapping[str, Any]) -> None:
@@ -117,6 +118,7 @@ def interaction_state_payload(controller: DoorPolicyController, env_ids=None):
 
 def main() -> None:
     controller = None
+    evidence = None
     while True:
         request = {}
         try:
@@ -130,14 +132,18 @@ def main() -> None:
                     action_horizon=request.get("action_horizon"),
                     noise_scheduler_type=request.get("noise_scheduler_type"),
                 )
+                evidence = WorkerActionEvidence(controller)
                 ok(metadata=metadata(controller))
             elif cmd == "reset":
                 controller.reset()
+                evidence.reset()
                 ok()
             elif cmd == "reset_envs":
                 env_ids = request.get("env_ids")
                 controller.reset_envs(None if env_ids is None else [int(x) for x in env_ids])
                 ok()
+            elif cmd == "queue_state":
+                ok(queue_state=evidence.queue_state())
             elif cmd == "clear_action_queue":
                 controller.action_queue.clear()
                 ok()
@@ -174,7 +180,7 @@ def main() -> None:
                     interaction_state=interaction_state_payload(controller),
                 )
             elif cmd == "act":
-                action = controller.act(
+                action = evidence.act(
                     np.asarray(request["state"], dtype=np.float32),
                     request["mask_rgb"],
                     request["masked_depth_rgb"],
@@ -185,6 +191,7 @@ def main() -> None:
                 )
                 ok(
                     action=np.asarray(action, dtype=np.float32).tolist(),
+                    action_evidence=evidence.last,
                     camera_gates=camera_gates_payload(controller),
                     interaction_state=interaction_state_payload(controller),
                 )
