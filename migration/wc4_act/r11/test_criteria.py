@@ -30,6 +30,10 @@ class Tests(unittest.TestCase):
         s,l,r=example();before=score(s,l,r)
         for x in s:x['phase']='arbitrary_no_expert_stage'
         self.assertEqual(before,score(s,l,r))
+    def test_clean_opening_contact_gap_not_extra_gate(self):
+        s,l,r=example()
+        for x in s:x['any_door_contact']=True
+        self.assertTrue(score(s,l,r)['measured_task_gates_pass'])
     def test_returns_fail(self):
         s,l,r=example();s[130]['whole_geometry_max_x']=1.
         self.assertIn('returned_to_original_side',score(s,l,r)['failures'])

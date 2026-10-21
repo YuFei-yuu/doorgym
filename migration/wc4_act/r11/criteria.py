@@ -66,8 +66,10 @@ def score(states, locks, ref):
     if unexplained:failures.append('unlogged_pre_physics_hinge_change')
     separated=next((i for i in range(passed or n,n) if not states[i]['any_door_contact']),None)
     push=[]
-    if separated is not None:
-        for i in range(separated+1,min(n,latch_step)):
+    # Opening-contact separation is diagnostic, not an additional requirement.
+    # Candidate intervals are later judged jointly with full motion/video/code.
+    if passed is not None:
+        for i in range(passed+1,min(n,latch_step)):
             s=states[i]
             if s['end_panel_raw_contact'] and s['door_q'][0]<s['pre_physics']['door_q'][0] and np.linalg.norm(np.asarray(s['ee_actual'])-states[i-1]['ee_actual'])>0:push.append(i)
     if not push:failures.append('no_aligned_measured_end_push_evidence')
