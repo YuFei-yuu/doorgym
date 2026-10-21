@@ -357,8 +357,10 @@ def decode_video_frames_torchcodec(
         if log_loaded_timestamps:
             logging.info(f"Frame loaded at timestamp={pts:.4f}")
 
-    query_ts = torch.tensor(timestamps)
-    loaded_ts = torch.tensor(loaded_ts)
+    # Keep original seconds/PTS precision: long-video float32 rounding can
+    # exceed tolerance_s even when the selected frame is correctly aligned.
+    query_ts = torch.tensor(timestamps, dtype=torch.float64)
+    loaded_ts = torch.tensor(loaded_ts, dtype=torch.float64)
 
     # compute distances between each query timestamp and loaded timestamps
     dist = torch.cdist(query_ts[:, None], loaded_ts[:, None], p=1)
