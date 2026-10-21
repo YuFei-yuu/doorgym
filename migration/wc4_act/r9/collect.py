@@ -44,7 +44,7 @@ def prepare(run):
     source = read(OLD/'consistency.json')['source_sha256'].copy()
     for name, digest in source.items():
         assert sha(ROOT/name) == digest, 'Frozen R8 source changed: '+name
-    for p in Path(__file__).parent.iterdir():
+    for p in Path(__file__).resolve().parent.iterdir():
         if p.is_file(): source[str(p.relative_to(ROOT))] = sha(p)
     for name in ['geometry.json', 'frozen-r7-physics.yaml']:
         shutil.copyfile(OLD/name, run/name)
