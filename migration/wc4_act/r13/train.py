@@ -65,7 +65,10 @@ m.update_policy=logged_update
 guard=TrainingGuard(m,RUN,lambda:cfg_holder['cfg']);guard.boundary.install_signals()
 restore=m.load_training_state
 def restored(*a,**k):
-    result=restore(*a,**k);guard.boundary.completed=result[0]
+    result=restore(*a,**k)
+    expected=validate_checkpoint(Path(ORDER['resume_checkpoint']))
+    if result[0]!=expected:raise RuntimeError('Restored update differs from committed boundary')
+    guard.boundary.completed=result[0]
     return result
 m.load_training_state=restored
 last=m.update_last_checkpoint

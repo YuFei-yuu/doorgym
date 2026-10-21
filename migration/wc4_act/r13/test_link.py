@@ -38,6 +38,13 @@ cp=Path(stopped['checkpoint']['path'])
 restore=Toy();restore.load_state_dict(load_file(str(cp/'pretrained_model/model.safetensors')))
 restore_opt=torch.optim.AdamW(restore.parameters(),lr=1e-3)
 step,restore_opt,sched=load_training_state(cp,restore_opt,None);assert step==1 and sched is None
+assert validate_checkpoint(cp)==1
+original=(cp/'pretrained_model/pre.safetensors').read_bytes()
+(cp/'pretrained_model/pre.safetensors').write_bytes(b'fixture-corruption')
+try:validate_checkpoint(cp)
+except RuntimeError:pass
+else:raise AssertionError('Corrupted snapshot accepted for resume')
+finally:(cp/'pretrained_model/pre.safetensors').write_bytes(original)
 assert all(float(v['step'])==1. for v in restore_opt.state.values())
 # The real argv builders/parsers agree on the original recipe and checkpoint paths.
 cmd=training_argv(out/'future-run-never-started');cfg=draccus.parse(TrainPipelineConfig,args=cmd[3:]);cfg.validate()

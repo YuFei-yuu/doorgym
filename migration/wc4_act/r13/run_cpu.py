@@ -9,6 +9,7 @@ commands=[
  ('ipc-act',[sys.executable,'-B',str(SUPPORT/'r13/test_ipc.py'),str(attempt/'ipc-act')]),
  ('ipc-gym',['bash','-c','source migration/wc4_act/activate.sh gym >/dev/null && export CUDA_VISIBLE_DEVICES="" && exec python -B "$@"','r13',str(SUPPORT/'r13/test_ipc.py'),str(attempt/'ipc-gym')]),
  ('stopping',[sys.executable,'-B',str(SUPPORT/'r13/test_stopping.py'),str(attempt/'stopping')]),
+ ('supervision',[sys.executable,'-B',str(SUPPORT/'r13/test_supervision.py'),str(attempt/'supervision')]),
  ('contacts',[sys.executable,'-B',str(SUPPORT/'r13/test_contacts.py'),str(attempt/'contacts')]),
  ('link',[sys.executable,'-B',str(SUPPORT/'r13/test_link.py'),str(attempt/'link')]),
  ('r11-regression',[sys.executable,'-B',str(SUPPORT/'r11/test_criteria.py')]),

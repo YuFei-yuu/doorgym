@@ -52,6 +52,10 @@ try:
  except RuntimeError:pass
  else:raise AssertionError('Corrupt boundary accepted')
  finally:bad.close()
+ partial=ActionJournal(out/'partial-final.jsonl')
+ partial.begin(receipts[0],np.array(receipts[0]['action']),np.array(receipts[0]['action']),{})
+ partial.command_applied(0,0.,np.array(receipts[0]['action']));partial.physics_completed(0,.02);partial.close()
+ end=json.loads((out/'partial-final.jsonl').read_text().splitlines()[-1]);assert end['partial_final_action'] and end['partial_final_chunk']
  (out/'receipts.json').write_text(json.dumps(receipts,indent=2)+'\n')
  result=dict(status='passed',parent_python=sys.executable,parent_version=sys.version,
      worker_python=os.environ['DOOR_DP_LEROBOT_PYTHON'],parent_pid=os.getpid(),worker_pid=receipts[0]['worker_pid'],

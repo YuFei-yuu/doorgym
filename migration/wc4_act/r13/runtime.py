@@ -30,6 +30,7 @@ def authorized_run():
     if not order.get('authorized_by_new_user_task') or not order.get('r12_consumed_budget_acknowledged'):raise RuntimeError('Missing later task/budget authorization')
     if order['seed']!=1000 or order['steps']!=30000:raise RuntimeError('Original recipe changed')
     verify_run(run)
+    if order.get('resume_checkpoint'):validate_checkpoint(Path(order['resume_checkpoint']))
     return run,order
 
 
@@ -40,3 +41,11 @@ def verify_run(run):
         if sha(Path(run)/name)!=digest:raise RuntimeError('Frozen execution parameters changed: '+name)
     if __import__('shutil').disk_usage(ROOT).free<40*1024**3:raise RuntimeError('Capacity stop')
     if read(DATA/'meta/info.json')['total_frames']!=159529:raise RuntimeError('Dataset changed')
+
+
+def validate_checkpoint(directory):
+    directory=Path(directory);manifest=read(directory/'COMMITTED.json')
+    for name,digest in manifest['files'].items():
+        if sha(directory/name)!=digest:raise RuntimeError('Incomplete/corrupt stopped checkpoint: '+name)
+    if read(directory/'training_state/training_step.json')['step']!=manifest['step']:raise RuntimeError('Checkpoint boundary mismatch')
+    return manifest['step']
