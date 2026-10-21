@@ -6,6 +6,7 @@ from common import ROOT,RUN,DATA,INDEX,EPISODES,FRAMES,read,write,sha
 
 def main():
     assert read(RUN/'pipeline-result.json')['passed']
+    assert read(RUN/'statistics-check.json')['passed']
     loader=read(RUN/'full-loader-result.json');assert loader['passed'] and loader['frames']==FRAMES
     data=read(RUN/'dataset-check/factory-loader-report.json')
     clocks=read(RUN/'dataset-check/timestamp-frame-coverage.json')
