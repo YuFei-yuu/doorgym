@@ -45,6 +45,15 @@ def init_logger(self,cfg):
  assert wandb.run is not None and not wandb.run.offline
  write(RUN/'wandb-run.json',dict(id=wandb.run.id,url=wandb.run.url,entity=wandb.run.entity,project=wandb.run.project,group=wandb.run.group))
 m.WandBLogger.__init__=init_logger
+log_dict=m.WandBLogger.log_dict
+def monitored_log(self,d,step,*a,**k):
+ d=dict(d)
+ d.update(samples_per_s=16*updates/max(time.time()-started,1e-6),
+     disk_free_gib=shutil.disk_usage(ROOT).free/1024**3,
+     cuda_allocated_gib=torch.cuda.memory_allocated()/1024**3,
+     cuda_reserved_gib=torch.cuda.memory_reserved()/1024**3)
+ return log_dict(self,d,step,*a,**k)
+m.WandBLogger.log_dict=monitored_log
 updates=0
 journal=(RUN/'updates.jsonl').open('x',buffering=1)
 update=m.update_policy

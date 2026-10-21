@@ -19,7 +19,7 @@ for index,seed in enumerate(seeds):
  verify()
  assert not (RUN/'SYSTEMIC_STOP.json').exists()
  manifest=RUN/'frozen'/str(seed)/'manifest.json';trial=read(manifest)['trials'][0]
- output=base/f'trial_{index:02d}';record=len(selected)<2
+ output=base/f'trial_{index:02d}';record=True
  claims=RUN/'evaluation-claims';claims.mkdir(exist_ok=True)
  assert len(list(claims.glob('*.json')))<80
  claim=claims/f'{step:06d}-{index:02d}.json'
@@ -57,11 +57,11 @@ for index,seed in enumerate(seeds):
   receipt=read(video.parent/'recording.json')
   assert count==receipt['frames']==(result['steps']+1)//2 and count>0
   digest=sha(video)
-  keep=category not in selected
+  keep=category=='success_candidate' or category not in selected
   write(output/'video-validation.json',dict(sha256=digest,decoded_frames=count,fps=25,kept=keep,
       physical_duration_s=result['sim_seconds'],encoded_duration_s=count/25,original_execution=True))
-  if keep:selected[category]=str(video)
-  else:video.unlink() # Only unselected RGB generated inside this run, SHA/receipt retained.
+  if keep and category not in selected:selected[category]=str(video)
+  if not keep:video.unlink() # Only unselected RGB generated inside this run, SHA/receipt retained.
  results.append(result)
  write(base/'ledger.json',dict(checkpoint_step=step,budget=len(seeds),consumed=len(results),
      measured_pass=sum(r['r11_measured_pass'] for r in results),results=results,representative_videos=selected))

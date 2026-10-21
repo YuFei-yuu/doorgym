@@ -22,6 +22,14 @@ import importlib.metadata as meta
 receipt=dict(no_simulation=True,no_model_or_optimizer_constructed=True,python=sys.executable,
  lerobot=lerobot.__file__,config=cfg.to_dict(),
  versions={k:meta.version(k) for k in ['torch','torchvision','numpy','lerobot','av','wandb','torchcodec']})
-if RUN.exists():write(RUN/'preflight-act.json',receipt)
+if RUN.exists():
+ import xml.etree.ElementTree as ET
+ stats=read(DATA/'meta/stats.json')
+ joint=next(j for j in ET.parse(ROOT/'high-level/data/asset/a2wz1/urdf/a2wz1.urdf').findall('joint') if j.attrib['name']=='jointGripper')
+ limits=joint.find('limit').attrib
+ write(RUN/'gripper-contract.json',dict(data_min=stats['action']['min'][-1],data_max=stats['action']['max'][-1],
+     urdf_limits=limits,ik_range_scale=.75,ik_soft_lower=.75*float(limits['lower']),
+     policy_target_limits='actual physical actor limits; no soft clipping or gripper latch'))
+ write(RUN/'preflight-act.json',receipt)
 else:print(json.dumps(receipt,indent=2))
 print('PASS: fresh ACT recipe and complete 72-episode input; no model, optimizer or scene created')
