@@ -5,6 +5,7 @@ run=ROOT/'.repro/runs/wc4-engineering-r13-20261022'
 number=len(list(run.glob('regression_*')))+1
 attempt=run/('regression_%03d'%number);attempt.mkdir()
 commands=[
+ ('before',[sys.executable,'-B',str(SUPPORT/'r13/test_before.py'),str(attempt/'before')]),
  ('ipc-act',[sys.executable,'-B',str(SUPPORT/'r13/test_ipc.py'),str(attempt/'ipc-act')]),
  ('ipc-gym',['bash','-c','source migration/wc4_act/activate.sh gym >/dev/null && export CUDA_VISIBLE_DEVICES="" && exec python -B "$@"','r13',str(SUPPORT/'r13/test_ipc.py'),str(attempt/'ipc-gym')]),
  ('stopping',[sys.executable,'-B',str(SUPPORT/'r13/test_stopping.py'),str(attempt/'stopping')]),

@@ -26,6 +26,9 @@ def request_stop(directory,reason,**details):
         try:os.link(str(tmp),str(path))
         except FileExistsError:pass
         finally:tmp.unlink()
+        fd=os.open(str(path.parent),os.O_RDONLY)
+        try:os.fsync(fd)
+        finally:os.close(fd)
     except OSError:
         raise RuntimeError('Could not persist stop request; no clean stop claim')
 
@@ -99,6 +102,10 @@ def commit_checkpoint(parent,step,writer):
                 for block in iter(lambda:f.read(8388608),b''):h.update(block)
                 os.fsync(f.fileno())
             digests[str(p.relative_to(staging))]=h.hexdigest()
+    for directory in sorted([p for p in staging.rglob('*') if p.is_dir()],key=lambda p:len(p.parts),reverse=True):
+        fd=os.open(str(directory),os.O_RDONLY)
+        try:os.fsync(fd)
+        finally:os.close(fd)
     atomic_json(staging/'COMMITTED.json',dict(step=step,files=digests,atomic_publish=True))
     os.rename(str(staging),str(target))
     fd=os.open(str(parent),os.O_RDONLY)

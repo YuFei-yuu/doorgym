@@ -36,6 +36,8 @@ class TrainingGuard:
             self.module.save_checkpoint(checkpoint_dir=directory,step=completed,cfg=self.cfg_getter(),
                 policy=context['accelerator'].unwrap_model(context['policy']),optimizer=context['optimizer'],
                 scheduler=context['scheduler'],preprocessor=self.processors[0],postprocessor=self.processors[1])
+            after=serialize_rng_state()
+            if set(before)!=set(after) or not all(torch.equal(before[k],after[k]) for k in before):raise RuntimeError('Serializer changed RNG; checkpoint not published')
         receipt=commit_checkpoint(self.run/'stopped-checkpoints',step,writer)
         after=serialize_rng_state()
         if set(before)!=set(after) or not all(torch.equal(before[k],after[k]) for k in before):raise RuntimeError('Checkpoint serialization changed trainer RNG')

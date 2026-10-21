@@ -13,7 +13,7 @@ class FixtureBackend:
     device=torch.device('cpu');vision_mode='depth_only';action_frame='world'
     image_keys=['observation.images.wrist_masked_depth','observation.images.front_masked_depth']
     obs_horizon=1;horizon=100;action_horizon=25;action_dim=9;uses_observation_sequence=False
-    sidecar_config={}
+    sidecar_config={'action':['vx','yaw']+['joint%d'%i for i in range(1,7)]+['jointGripper']}
     def __init__(self):self.calls=0
     def metadata(self):return {'policy_config':{}}
     def predict_action_chunks_from_batch(self,batch,noise=None):
