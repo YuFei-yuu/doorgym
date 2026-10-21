@@ -17,10 +17,11 @@ for a,b in zip(old,episodes[:6]):
 provenance=[]
 for i,e in enumerate(episodes):
     assert sha(e['candidate_npz'])==e['sha256']==sha(e['source_npz'])
+    original=e.get('original_npz',e['source_npz']);assert sha(original)==e['sha256']
     with np.load(e['candidate_npz'],allow_pickle=True) as raw:
         frames=len(raw['state']);assert raw['state'].shape==(frames,9) and raw['action'].shape==(frames,9)
     assert frames==e['frames']
-    provenance.append(dict(episode=i,trial=e['trial'],source_run=e['source_run'],source_npz=e['source_npz'],candidate_npz=e['candidate_npz'],sha256=e['sha256'],frames=frames,seed=e['seed'],parameters=e['parameters']))
+    provenance.append(dict(episode=i,trial=e['trial'],source_run=e['source_run'],source_npz=e['source_npz'],original_npz=original,candidate_npz=e['candidate_npz'],sha256=e['sha256'],frames=frames,seed=e['seed'],parameters=e['parameters']))
 write(R/'unified-provenance.json',dict(episodes=provenance,retained_r8_trials=[0,1,2,3,5,6],excluded_r8_trials=[4,7]))
 
 
