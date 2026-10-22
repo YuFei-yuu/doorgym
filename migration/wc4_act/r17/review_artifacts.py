@@ -24,10 +24,10 @@ for seed in [62215,62203,62209]:
   for i,frame in enumerate(c.decode(video=0)):
    if i in chosen:
     im=frame.to_image().convert('RGB');im.save(dest/f'{i:04d}.jpg',quality=90)
-    thumb=Image.new('RGB',(400,248),'white');thumb.paste(im.resize((400,225)),(0,23));ImageDraw.Draw(thumb).text((6,5),f'seed {seed} | RGB frame {i} | video {i/25:.2f}s',fill='black');thumbs.append(thumb);kept.append(i)
+    thumb=Image.new('RGB',(480,184),'white');thumb.paste(im.resize((480,160)),(0,23));ImageDraw.Draw(thumb).text((6,5),f'seed {seed} | RGB frame {i} | video {i/25:.2f}s',fill='black');thumbs.append(thumb);kept.append(i)
    if i>=chosen[-1]:break
- sheet=Image.new('RGB',(1600,248*math.ceil(len(thumbs)/4)),'white')
- for i,im in enumerate(thumbs):sheet.paste(im,((i%4)*400,(i//4)*248))
+ sheet=Image.new('RGB',(1920,184*math.ceil(len(thumbs)/4)),'white')
+ for i,im in enumerate(thumbs):sheet.paste(im,((i%4)*480,(i//4)*184))
  sheet.save(F/'figures'/f'failure-seed{seed}-event-sheet.jpg',quality=90)
  review.append(dict(seed=seed,original=str(video),sha256=validation['sha256'],frames=n,fps=25,selected_original_frames=kept,derived_event_sheet=f'figures/failure-seed{seed}-event-sheet.jpg',frame_time_label='Encoded RGB timestamp index/25; physical50Hz event times are in separate audited state timing',no_replay=True,new_scene_calls=0,visual_review_status='awaiting executor inspection'))
 write(F/'video-review-index.json',review)
