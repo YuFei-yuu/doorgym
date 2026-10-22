@@ -4,7 +4,7 @@ import numpy as np
 from common import *
 obs=read(RUN/'observations.json')['points'];done=read(RUN/'inference-complete.json');assert done['completed']==1536
 ledger=[json.loads(s) for s in (RUN/'forward-budget.jsonl').open()]
-claims=[s for s in ledger if s['event']=='forward_claim'];completions=[s for s in ledger if s['event']=='forward_completed']
+claims=[s for s in ledger if s['event']=='forward_claim'];assert min(s['at'] for s in claims)>read(RUN/'FROZEN.json')['at'];completions=[s for s in ledger if s['event']=='forward_completed']
 assert len(claims)==len(completions)==1536 and [s['sequence'] for s in claims]==list(range(1,1537))
 assert len(set((s['model_step'],s['observation']) for s in claims))==1536
 for s in completions:assert sha(RUN/s['prediction'])==s['prediction_sha256']
@@ -25,7 +25,7 @@ for step in pred:
  for i,p in enumerate(obs):
   a=pred[step][i];r=dict(model_step=step,id=p['id'],kind=p['kind'],group=p['group'])
   for lo,hi,label in [(0,25,'first25'),(25,100,'tail75'),(0,100,'full100')]:
-   r[label]=dict(mean_vx=float(a[lo:hi,0].mean()),mean_yaw_rate=float(a[lo:hi,1].mean()),integrated_yaw_rad=float(a[lo:hi,1].sum()/25),first_stop_offset=next((j+lo for j,x in enumerate(a[lo:hi]) if abs(x[0])<=.01 and abs(x[1])<=.01),None))
+   r[label]=dict(mean_vx=float(a[lo:hi,0].mean()),mean_yaw_rate=float(a[lo:hi,1].mean()),mean_abs_yaw_rate=float(abs(a[lo:hi,1]).mean()),active_yaw_fraction=float((abs(a[lo:hi,1])>.01).mean()),integrated_yaw_rad=float(a[lo:hi,1].sum()/25),first_stop_offset=next((j+lo for j,x in enumerate(a[lo:hi]) if abs(x[0])<=.01 and abs(x[1])<=.01),None))
   if p['kind']=='expert':
    with np.load(RUN/p['truth']) as z:y=z['action'];valid=z['valid']
    for lo,hi,label in [(0,25,'first25'),(25,100,'tail75'),(0,100,'full100')]:
@@ -36,6 +36,8 @@ for step in pred:
     if len(delta):g['errors'].append(delta)
     g['truth_stop']+=int(truthstop.sum());g['predicted_stop_on_true_stop']+=int((truthstop&predictedstop).sum());g['valid_count']+=int(mask.sum());g['false_stop_on_moving']+=int((mask&~truthstop&predictedstop).sum());g['moving_count']+=int((mask&~truthstop).sum())
     r[label]['valid_count']=int(mask.sum());r[label]['physical_mae']=abs(delta).mean(0).tolist() if len(delta) else None
+    r[label]['truth_mean_vx_yaw']=y[lo:hi][mask,:2].mean(0).tolist() if mask.any() else None
+    r[label]['prediction_mean_vx_yaw_valid']=a[lo:hi][mask,:2].mean(0).tolist() if mask.any() else None
   point_metrics.append(r)
  result=[]
  for (group,horizon),g in groups.items():
@@ -58,6 +60,8 @@ for seed in SEEDS:
  for i,row in enumerate(rows):
   r=row['worker_evidence'];assert row['frame']==i and row['applied_steps']==[2*i,2*i+1]
   assert r['new_chunk']==(i%25==0) and r['action_index']==i%25 and r['executed_horizon']==25
+  assert r['emission_seq']==r['observation_seq']==i+1 and r['sampled_observation_seq']==(i//25)*25+1
+  assert r['queue_after']==24-i%25 and r['queue_before']==(0 if i%25==0 else 25-i%25)
   if r['new_chunk']:
    expected=np.asarray(r['selected_chunk_actions'],np.float32);assert expected.shape==(25,9) and ahash(expected)==r['chunk_sha256']
   raw=np.asarray(row['policy_output'],np.float32);assert np.array_equal(raw,expected[i%25]) and np.array_equal(raw,np.asarray(r['action'],np.float32))
@@ -70,11 +74,12 @@ for seed in SEEDS:
  for line in (d/'worker-applied-evidence.jsonl').open():
   j=json.loads(line)
   if j['event']=='emitted':
-   emitted+=1;seq=j['receipt']['emission_seq'];assert seq==emitted
+   emitted+=1;seq=j['receipt']['emission_seq'];assert seq==emitted and commands==acks==2*(emitted-1)
   elif j['event']=='command_applied':
-   commands+=1;seq=j['emission_seq'];assert seq==emitted and j['substep'] in [0,1]
+   commands+=1;seq=j['emission_seq'];assert seq==emitted and j['substep']==(commands-1)%2 and j['step']==commands-1 and acks==commands-1
    assert np.array_equal(np.asarray(j['action'],np.float32),np.asarray(rows[seq-1]['applied_action'],np.float32))
-  elif j['event']=='physics_completed':acks+=1;assert j['emission_seq']==emitted
+  elif j['event']=='physics_completed':
+   acks+=1;assert j['emission_seq']==emitted and j['step']==acks-1 and j['substep']==(acks-1)%2 and acks==commands
  assert emitted==len(rows) and commands==acks==2*len(rows)
  ref=read(d/'reference.json');target=ref['old_expert_final_yaw'];tl=read(RUN/'truth'/f'failure-timeline-{seed}.json');byframe={r['frame']:r for r in tl['rows']};selected={p['frame']:p for p in obs if p['kind']=='failure' and p['seed']==seed}
  angle_integrator=[];chunk_rows=[]
@@ -82,9 +87,12 @@ for seed in SEEDS:
   block=rows[f:f+25];actions=np.asarray([r['applied_action'] for r in block]);before=byframe[f]['actual_base'][2]
   after=full[min(2*(f+len(block))-1,len(full)-1)]['actual_base'][2]
   angle_integrator.append(abs(float(wrap((after-before)-actions[:,1].sum()/25))))
+  physical_errors=np.r_[wrap(before-target),[wrap(s['actual_base'][2]-target) for s in full[2*f:2*(f+len(block))]]]
+  physical_cross=np.flatnonzero((physical_errors[:-1]*physical_errors[1:]<0)&(abs(np.diff(physical_errors))<np.pi))
+  physical_cross_brackets=[[f/25+k*.02,f/25+(k+1)*.02] for k in physical_cross.tolist()]
   preerr=byframe[f]['heading_error_rad'];cross=[x for x in tl['target_crossing_frames'] if f<=x<min(f+25,len(rows))];nears=[x for x in range(f,min(f+25,len(rows))) if abs(byframe[x]['heading_error_rad'])<=math.radians(2)]
   if f>=tl['tail_start']:
-   chunk_rows.append(dict(seed=seed,frame=f,time_s=f/25,chunk_id=block[0]['worker_evidence']['chunk_id'],pre_error_deg=math.degrees(preerr),near_at_replan=abs(preerr)<=math.radians(2),near_inside_committed_chunk=bool(nears),near_only_inside_chunk=bool(nears) and abs(preerr)>math.radians(2),target_crossing_frames=cross,first25_mean_yaw_rate=float(actions[:,1].mean()),first25_mean_vx=float(actions[:,0].mean()),segment_yaw_integral_deg=math.degrees(float(actions[:,1].sum()/25)),post_error_deg=math.degrees(float(wrap(after-target))),continued_rotation_near_at_replan=abs(preerr)<=math.radians(2) and abs(actions[:,1].mean())>.01,selected_for_R16=f in selected))
+   chunk_rows.append(dict(seed=seed,frame=f,time_s=f/25,chunk_id=block[0]['worker_evidence']['chunk_id'],pre_error_deg=math.degrees(preerr),near_at_replan=abs(preerr)<=math.radians(2),near_inside_committed_chunk=bool(nears),near_only_inside_chunk=bool(nears) and abs(preerr)>math.radians(2),target_crossing_frames=cross,physical_50hz_crossing_brackets_s=physical_cross_brackets,first25_mean_yaw_rate=float(actions[:,1].mean()),first_yaw_rate=float(actions[0,1]),first25_mean_abs_yaw_rate=float(abs(actions[:,1]).mean()),first25_active_yaw_fraction=float((abs(actions[:,1])>.01).mean()),first25_mean_vx=float(actions[:,0].mean()),segment_yaw_integral_deg=math.degrees(float(actions[:,1].sum()/25)),post_error_deg=math.degrees(float(wrap(after-target))),continued_rotation_near_at_replan=abs(preerr)<=math.radians(2) and abs(actions[:,1].mean())>.01,selected_for_R16=f in selected))
  for f,p in selected.items():
   i=index[p['id']];archive=np.asarray(rows[f]['worker_evidence']['selected_chunk_actions'],np.float32);a=pred[50000][i,:25];delta=abs(a-archive)
   comparisons.append(dict(seed=seed,frame=f,id=p['id'],max_abs_all9=float(delta.max()),max_abs_base2=float(delta[:,:2].max()),mean_abs_yaw=float(delta[:,1].mean()),historical_device='cuda',new_device='cpu',same_original_input=True,original_worker_chunk_id=rows[f]['worker_evidence']['chunk_id'],new_mean_yaw_first25=float(a[:,1].mean()),worker_mean_yaw_first25=float(archive[:,1].mean())))
