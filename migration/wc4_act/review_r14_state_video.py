@@ -54,14 +54,19 @@ def main():
      row=json.loads(line)
      if row['step']%2:continue
      frame_error=0.
+     # The floating base and arm share an articulation. Restore the entire
+     # environment in one native call rather than incomplete actor segments.
+     body=gym.get_env_rigid_body_states(st.env,ga.STATE_ALL)
+     assert body.dtype.itemsize==52
+     target_all=body.view(np.float32).reshape(len(body),13).copy()
      for actor,key in [(st.actor_handles[0],'base_body_states'),(st.arm_actor,'arm_body_states'),(st.door_actor,'door_body_states')]:
-      body=gym.get_actor_rigid_body_states(st.env,actor,ga.STATE_ALL)
       target=np.asarray([flatten(v) for v in row[key]],dtype=np.float32)
-      assert body.dtype.itemsize==52 and target.shape==(len(body),13)
-      body.view(np.float32).reshape(len(body),13)[:]=target
-      gym.set_actor_rigid_body_states(st.env,actor,body,ga.STATE_ALL)
-      actual=gym.get_actor_rigid_body_states(st.env,actor,ga.STATE_ALL).view(np.float32).reshape(len(body),13)
-      frame_error=max(frame_error,float(np.max(np.abs(actual-target))))
+      ids=[gym.get_actor_rigid_body_index(st.env,actor,i,ga.DOMAIN_ENV) for i in range(len(target))]
+      target_all[ids]=target
+     body.view(np.float32).reshape(len(body),13)[:]=target_all
+     gym.set_env_rigid_body_states(st.env,body,ga.STATE_ALL)
+     actual=gym.get_env_rigid_body_states(st.env,ga.STATE_ALL).view(np.float32).reshape(len(body),13)
+     frame_error=float(np.max(np.abs(actual-target_all)))
      assert frame_error<1e-5,('Stored body restore mismatch',row['step'],frame_error)
      angle=math.degrees(row['door_q'][0]);locked=row['latched'] is not None and not row['unlocked']
      cam.capture(row['step'],f'R14 030000 | door={angle:.3f}deg | measured_latched={locked}',render=True,time_s=row['t'])
