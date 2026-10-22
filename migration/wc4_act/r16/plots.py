@@ -11,9 +11,10 @@ fig,ax=plt.subplots(1,3,figsize=(12,3.6),layout='constrained')
 for q,step in enumerate(steps):
  entries={x['group']:x for x in e[str(step)] if x['horizon']=='first25'}
  for k,col in enumerate([0,1]):ax[k].bar(np.arange(4)+(q-1)*.24,[entries[g]['physical_mae'][col] for g in groups],width=.23,color=colors[q],label=f'{step//1000}k')
- ax[2].bar(np.arange(4)+(q-1)*.24,[entries[g]['predicted_stop_on_true_stop']/max(1,entries[g]['truth_stop']) for g in groups],width=.23,color=colors[q],label=f'{step//1000}k')
+ ax[2].bar(np.arange(4)+(q-1)*.24,[entries[g]['predicted_stop_on_true_stop']/entries[g]['truth_stop'] if entries[g]['truth_stop'] else float('nan') for g in groups],width=.23,color=colors[q],label=f'{step//1000}k')
 for a,title in zip(ax,['Forward speed MAE (m/s)','Yaw rate MAE (rad/s)','Stop recall on true stop frames']):
  a.set_title(title);a.set_xticks(range(4),['Exit turn','Restore','Stop switch','Final hold'],rotation=20);a.legend()
+ax[2].text(0,.5,'N/A: no true stop',ha='center',va='center',fontsize=7,rotation=90)
 fig.suptitle('72 expert episodes, 4 frozen observations each; deployed inference, first 25 valid actions')
 fig.savefig(figdir/'expert-errors.png');fig.savefig(figdir/'expert-errors.svg');plt.close(fig)
 chunks=read(RUN/'chunk-target-timelines.json');fig,axes=plt.subplots(4,1,figsize=(11,10),layout='constrained')
