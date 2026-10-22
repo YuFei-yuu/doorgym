@@ -64,9 +64,9 @@ def main():
       ids=[gym.get_actor_rigid_body_index(st.env,actor,i,ga.DOMAIN_ENV) for i in range(len(target))]
       target_all[ids]=target
      body.view(np.float32).reshape(len(body),13)[:]=target_all
-     gym.set_env_rigid_body_states(st.env,body,ga.STATE_ALL)
+     gym.set_env_rigid_body_states(st.env,body,ga.STATE_POS)
      actual=gym.get_env_rigid_body_states(st.env,ga.STATE_ALL).view(np.float32).reshape(len(body),13)
-     frame_error=float(np.max(np.abs(actual-target_all)))
+     frame_error=float(np.max(np.abs(actual[:,:7]-target_all[:,:7])))
      assert frame_error<1e-5,('Stored body restore mismatch',row['step'],frame_error)
      angle=math.degrees(row['door_q'][0]);locked=row['latched'] is not None and not row['unlocked']
      cam.capture(row['step'],f'R14 030000 | door={angle:.3f}deg | measured_latched={locked}',render=True,time_s=row['t'])
@@ -75,7 +75,7 @@ def main():
   finally:cam.close()
   assert cam.count==cam.expected
   assert all(sha(source/n)==digest for n,digest in provenance.items())
-  receipt=dict(source=str(source),seed=seed,checkpoint='030000',meaning='Stored-state RGB visualization, not original live RGB, new policy evaluation or proof of contact forces',source_sha256=provenance,frames=cam.count,fps=25,source_time_range_s=[cam.times[0],cam.times[-1]],max_body_state_restore_error=max(errors),physics_integration_steps=0,policy_forward_calls=0,optimizer_updates=0,additional_evaluation_episodes=0,render_only_scenes=1,source_scoring_unchanged=True,video=str(a.output/'overview/rollout.mp4'))
+  receipt=dict(source=str(source),seed=seed,checkpoint='030000',meaning='Stored-body-pose RGB visualization, not original live RGB, new policy evaluation or proof of contact forces',source_sha256=provenance,frames=cam.count,fps=25,source_time_range_s=[cam.times[0],cam.times[-1]],max_body_pose_restore_error=max(errors),restored_fields='Recorded world positions/quaternions for all bodies; velocities are not replayed or integrated',physics_integration_steps=0,policy_forward_calls=0,optimizer_updates=0,additional_evaluation_episodes=0,render_only_scenes=1,source_scoring_unchanged=True,video=str(a.output/'overview/rollout.mp4'))
   (a.output/'provenance.json').write_text(json.dumps(receipt,indent=2)+'\n')
  m.run_parallel_demo=render
  argv=command['argv'].copy();sys.argv=argv
