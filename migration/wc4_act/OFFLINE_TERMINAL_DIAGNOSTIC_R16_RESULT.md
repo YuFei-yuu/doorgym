@@ -110,6 +110,6 @@
 
 使用`source migration/wc4_act/activate.sh act`，CVD空；`nice -n 10 python -B migration/wc4_act/r16/{prepare,predict,analyze,observability,plots}.py`。完整argv、cwd、版本和退出码见commands/commands-final及原始日志。首次准备缺SciPy（改用直接四元数公式），随后分别遇到可跳过的专家阶段和锁存角/null格式假设；准备失败现场和日志均保留，0前向，最终清单在修正之后才冻结。首次CPU汇总遇NumPy int64 JSON序列化错误，修正后退出0；未改预测、模型、数据或增加前向。预测一次退出0，最终分析/绘图退出0。
 
-服务器权威run：`/data/zyf/video2door-wc4-act/.repro/runs/wc4-act-terminal-diagnostic-r16-20261023`。本地交付：`/Users/yu/Data/Video2Door/reproduction/wc4-act/wc4-act-terminal-diagnostic-r16-20261023`。包含冻结清单、全部512输入与有效真值、1536原始normalized/physical预测、逐次claim/completion预算账本、模型/源码/输入哈希、误差、720个原历史chunk时序、回执应用审计、相似度例证、静态图及日志。模型原件仍位于受保护R14/R15目录，未重复导出或改写。
+服务器权威run：`/data/zyf/video2door-wc4-act/.repro/runs/wc4-act-terminal-diagnostic-r16-20261023`。本地交付：`/Users/yu/Data/Video2Door/reproduction/wc4-act/wc4-act-terminal-diagnostic-r16-20261023`。包含冻结清单、全部512输入与有效真值、1536原始normalized/physical预测、逐次claim/completion预算账本、模型/源码/输入哈希、误差、720个原历史chunk的执行审计及重锁后关键段时序、回执应用审计、相似度例证、静态图及日志。模型原件仍位于受保护R14/R15目录，未重复导出或改写。
 
 最终以`FINAL-SEAL.json`逐文件封存，实际执行/交付提交见delivery-version，完整代码见source.bundle/patch。`LOCAL-TRANSFER-VERIFIED.json`记录本地校验。**前向预算已用完；新训练、仿真和闭环均0。冻结后交回独立验收，等待下一任务书，不自动进入下一阶段。**
