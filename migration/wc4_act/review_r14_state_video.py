@@ -56,6 +56,7 @@ def main():
   assets=a.output/'visual-assets';assets.mkdir()
   clones=[];geometry=[]
   for actor_id,names in groups.items():
+   if actor_id not in [0,1,2]:continue  # Static side walls are rebuilt below.
    matches=[(asset,path,opt) for asset,(path,opt) in list(gym.asset_sources.items()) if set(gym.get_asset_rigid_body_names(asset))==set(names)]
    assert len(matches)==1,('Ambiguous source visual asset',actor_id,names)
    _,path,opt=matches[0];xml=ET.parse(path).getroot();links={l.get('name'):l for l in xml.findall('link')}
@@ -94,6 +95,12 @@ def main():
     handle=gym.create_actor(env,asset,m.gymapi.Transform(),'stored-body-%d-%d'%(actor_id,index),0,0)
     clones.append((handle,key,index))
    geometry.append(dict(original_asset_sha256=sha(path),body_names=names,visuals=sum(map(len,visuals.values()))))
+  env_args=m.make_env_args(unused[-1],0)
+  door=m.clone_door_runtime(unused[2][0])
+  walls=m.dc.create_door_side_walls(gym,sim,env,door,env_args,0)
+  assert len(walls)==2
+  scene=json.loads((source/'scene-frame.json').read_text())
+  assert abs(env_args.door_x+env_args.door_wall_x_offset-scene['wall_plane_x'])<1e-6
   gym.prepare_sim(sim)
   (a.output/'geometry-provenance.json').write_text(json.dumps(geometry,indent=2)+'\n')
   return [SimpleNamespace(env=env,clones=clones)],'render-only'
