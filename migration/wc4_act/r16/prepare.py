@@ -8,7 +8,7 @@ from lerobot.datasets.factory import make_dataset
 import torch,lerobot
 assert not torch.cuda.is_available() and not os.environ.get('CUDA_VISIBLE_DEVICES')
 RUN.mkdir(exist_ok=False,parents=True);(RUN/'inputs').mkdir();(RUN/'truth').mkdir()
-write(RUN/'contract.json',dict(max_observations=512,max_model_observation_forwards=BUDGET,models=[30000,40000,50000],chunk=100,execution_horizon=25,device='cpu',training=0,collection=0,simulation=0,closed_loop=0,repeated_predictions_charged=True,automatic_resume=False,selection_uses_new_predictions=False,expert_points=288,failure_points=224,expert_all_72_episodes=True,selection_rule='Four points/episode: exit turn peak; moving restore-heading closest to final heading; first final_hold (stop switch); middle final_hold. 56 true replan inputs per failure: neighborhoods of measured post-relock heading approach/crossing/continued rotation and measured stopping; uniform measured-tail fill, no action-output selection. Deterministic unique frame tie-breaks.',diagnostic_thresholds=dict(heading_near_deg=2,base_speed_m_s=.01,yaw_rate_rad_s=.01,tail_similarity='descriptive only, not labels or acceptance gates')))
+write(RUN/'contract.json',dict(max_observations=512,max_model_observation_forwards=BUDGET,models=[30000,40000,50000],chunk=100,execution_horizon=25,device='cpu',training=0,collection=0,simulation=0,closed_loop=0,repeated_predictions_charged=True,automatic_resume=False,selection_uses_new_predictions=False,expert_points=288,failure_points=224,expert_all_72_episodes=True,selection_rule='Four points/episode: exit turn peak; moving restore-heading closest to final heading; first final_hold (stop switch); middle final_hold. If no restore_heading phase occurred, use the last 25 pre-hold frames for measured closest-heading selection. 56 true replan inputs per failure: neighborhoods of measured post-relock heading approach/crossing/continued rotation and measured stopping; uniform measured-tail fill, no action-output selection. Deterministic unique frame tie-breaks.',diagnostic_thresholds=dict(heading_near_deg=2,base_speed_m_s=.01,yaw_rate_rad_s=.01,tail_similarity='descriptive only, not labels or acceptance gates')))
 write(RUN/'environment.json',dict(python=sys.executable,version=sys.version,torch=torch.__version__,lerobot=lerobot.__file__,CUDA_VISIBLE_DEVICES=os.environ.get('CUDA_VISIBLE_DEVICES'),cuda_available=torch.cuda.is_available(),cpu_threads=2,source_head=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),platform=platform.platform()))
 source={str(p.relative_to(ROOT)):sha(p) for d in [ROOT/'migration/wc4_act/r16',ROOT/'migration/wc4_act/r13'] for p in d.glob('*.py')}
 for p in [ROOT/'high-level/dp/door_policy_backend.py',ROOT/'high-level/lerobot/src/lerobot/policies/act/modeling_act.py',ROOT/'high-level/lerobot/src/lerobot/datasets/video_utils.py',ROOT/'migration/wc4_act/r11/CRITERIA.md']:
@@ -33,7 +33,9 @@ for ep,e in enumerate(prov):
   q=a['replay_root_state'][:,3:7].astype(np.float64);q=q/np.linalg.norm(q,axis=1,keepdims=True);x,y,z,w=q.T
   yaw=np.arctan2(2*(w*z+x*y),1-2*(y*y+z*z));target=float(yaw[-1]);err=wrap(yaw-target)
   def ids(names_wanted):return np.flatnonzero(np.isin(phase,[names.index(x) for x in names_wanted if x in names]))
-  turn=ids(['compact_exit_turn','compact_exit_arc']);restore=ids(['restore_heading']);hold=ids(['final_hold']);assert len(turn) and len(restore) and len(hold)
+  turn=ids(['compact_exit_turn','compact_exit_arc']);restore=ids(['restore_heading']);hold=ids(['final_hold']);assert len(turn) and len(hold)
+  restore_fallback=len(restore)==0
+  if restore_fallback:restore=np.arange(max(int(turn[0]),int(hold[0])-25),int(hold[0]))
   moving=restore[np.abs(action[restore,1])>.01];moving=moving if len(moving) else restore
   choices=[('exit_turn',int(turn[np.argmax(abs(action[turn,1]))])),('heading_restore',int(moving[np.argmin(abs(err[moving]))])),('stop_switch',int(hold[0])),('final_hold',int(hold[len(hold)//2]))]
   assert len(set(f for _,f in choices))==4
@@ -50,7 +52,7 @@ for ep,e in enumerate(prov):
    assert np.array_equal(sample['action'].numpy()[:valid],truth[:valid])
    pid=f'expert-e{ep:02d}-f{f:04d}';inp=RUN/'inputs'/(pid+'.npz');np.savez_compressed(inp,**data)
    np.savez_compressed(RUN/'truth'/(pid+'.npz'),action=truth,valid=mask)
-   points.append(dict(id=pid,kind='expert',episode=ep,seed=e['seed'],frame=f,index=offset+f,group=label,phase=names[int(phase[f])],valid_future=valid,target_yaw=target,measured_yaw=float(yaw[f]),heading_error_rad=float(err[f]),time_s=f/25,input=str(inp.relative_to(RUN)),input_sha256=sha(inp),state_sha256=ahash(data['state']),images_sha256=image_hash,source=str(p),source_sha256=e['sha256'],truth=str(Path('truth')/(pid+'.npz')),image_source='actual LeRobot factory H264 decode, float32 quantized /255; deployed uint8 preprocessing verified exact',truth_cross_episode=False))
+   points.append(dict(id=pid,kind='expert',episode=ep,seed=e['seed'],frame=f,index=offset+f,group=label,phase=names[int(phase[f])],restore_label_missing=restore_fallback,valid_future=valid,target_yaw=target,measured_yaw=float(yaw[f]),heading_error_rad=float(err[f]),time_s=f/25,input=str(inp.relative_to(RUN)),input_sha256=sha(inp),state_sha256=ahash(data['state']),images_sha256=image_hash,source=str(p),source_sha256=e['sha256'],truth=str(Path('truth')/(pid+'.npz')),image_source='actual LeRobot factory H264 decode, float32 quantized /255; deployed uint8 preprocessing verified exact',truth_cross_episode=False))
  offset+=n
  print('expert frozen',ep,len(points),flush=True)
 assert offset==159529
