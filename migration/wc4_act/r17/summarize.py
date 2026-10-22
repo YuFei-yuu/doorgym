@@ -5,6 +5,12 @@ import sys,time,json,math,hashlib,fcntl,subprocess,concurrent.futures
 import numpy as np
 from common import *
 FINAL=RUN/'FINAL'
+def write(p,x):
+ def native(v):
+  if isinstance(v,np.generic):return v.item()
+  if isinstance(v,np.ndarray):return v.tolist()
+  raise TypeError(type(v).__name__)
+ Path(p).write_text(json.dumps(x,ensure_ascii=False,indent=2,allow_nan=False,default=native)+'\n')
 def wrap(x):return (x+math.pi)%(2*math.pi)-math.pi
 def distribution(x):
  a=np.asarray(x,float)
@@ -55,7 +61,10 @@ def main():
  assert read(RUN/'evaluation-exit.json')['returncode']==0
  assert not (RUN/'STOP_REQUEST.json').exists()
  p=read(RUN/'process.json');assert all(not Path('/proc',str(p[k])).exists() for k in ['supervisor','evaluation'])
- with open('/data/zyf/video2door/.repro/locks/'+p['gpu_uuid']+'.lock','a') as f:fcntl.flock(f,fcntl.LOCK_EX|fcntl.LOCK_NB);fcntl.flock(f,fcntl.LOCK_UN)
+ lock_free_now=True
+ with open('/data/zyf/video2door/.repro/locks/'+p['gpu_uuid']+'.lock','a') as f:
+  try:fcntl.flock(f,fcntl.LOCK_EX|fcntl.LOCK_NB);fcntl.flock(f,fcntl.LOCK_UN)
+  except BlockingIOError:lock_free_now=False # another user may lease the already released GPU
  verify();FINAL.mkdir(exist_ok=False);(FINAL/'timelines').mkdir()
  claims=sorted((RUN/'evaluation-claims').glob('*.json'));assert len(claims)==16
  ledger=read(RUN/'ledger.json');assert ledger['completed']==16 and ledger['automatic_candidates']==0
@@ -78,7 +87,6 @@ def main():
   records.append(dict(seed=seed,h5=pair['gates'],h25=pair['baseline_gates'],improved=pair['improved_items'],regressed=pair['regressed_items'],full_success_h5=False,full_success_h25=baseline['full_task_success'],h5_failures=score['failures'],result=r,exit=read(RUN/'evaluation'/f'trial_{i:02d}-exit.json')))
   proofs.append(dict(seed=seed,**audit))
  write(FINAL/'paired-results.json',dict(denominator=16,model_step=50000,model_sha256=MODEL_SHA,counts=counts,automatic_candidates_h5=0,reviewed_full_successes_h5=0,review_basis='All16 independently audited R11 necessary gates failed; no success candidates awaiting visual acceptance',records=records,new_h25_calls=0,new_training=0))
- work=[(str((RUN if h==5 else BASE/'evaluation/050000').joinpath('evaluation' if h==5 else '',f'trial_{i:02d}')),h,seed) for h in [5,25] for i,seed in enumerate(SEEDS)]
  # Explicit paths prevent any evaluator/model import or new scene.
  work=[(str(RUN/'evaluation'/f'trial_{i:02d}') if h==5 else str(BASE/'evaluation/050000'/f'trial_{i:02d}'),h,seed) for h in [5,25] for i,seed in enumerate(SEEDS)]
  serial=[];chunk_rows=[];samples=[];parents=[]
@@ -105,6 +113,6 @@ def main():
    warm.append(row['worker_evidence']['worker_sample_wall_s'])
  t=read(FINAL/'inference-wall-timing.json');t['worker_warm_only_s']=distribution(warm);write(FINAL/'inference-wall-timing.json',t)
  total={k:sum(p[k] for p in proofs) for k in ['emitted','new_chunks','commands','completed_physics_steps','full_chunks']}
- write(FINAL/'execution-budget-audit.json',dict(status='passed',claims=16,completed=16,scene_creation_receipts=16,evaluation_exit=read(RUN/'evaluation-exit.json'),lease_released=read(RUN/'LEASE_RELEASED.json'),live_processes_gone=True,UUID_lock_free_verified=True,total_worker_application=total,proofs=proofs,source_models_frozen_files_and_baseline_unchanged=True,new_training_updates=0,new_collection=0,extra_smoke_scenes=0,extra_offline_policy_forward=0,partial_terminal_tails=[dict(seed=s['seed'],steps=s['steps'],input_frames=s['input_frames'],partial_action=s['partial_final_action'],partial_chunk=s['partial_final_chunk']) for s in serial if s['horizon']==5 and (s['partial_final_action'] or s['partial_final_chunk'])]))
+ write(FINAL/'execution-budget-audit.json',dict(status='passed',claims=16,completed=16,scene_creation_receipts=16,evaluation_exit=read(RUN/'evaluation-exit.json'),lease_released=read(RUN/'LEASE_RELEASED.json'),live_processes_gone=True,UUID_lock_free_verified=lock_free_now,R17_lease_released=True,total_worker_application=total,proofs=proofs,source_models_frozen_files_and_baseline_unchanged=True,new_training_updates=0,new_collection=0,extra_smoke_scenes=0,extra_offline_policy_forward=0,partial_terminal_tails=[dict(seed=s['seed'],steps=s['steps'],input_frames=s['input_frames'],partial_action=s['partial_final_action'],partial_chunk=s['partial_final_chunk']) for s in serial if s['horizon']==5 and (s['partial_final_action'] or s['partial_final_chunk'])]))
  print('R17 CPU summary complete',json.dumps(counts),flush=True)
 if __name__=='__main__':main()
