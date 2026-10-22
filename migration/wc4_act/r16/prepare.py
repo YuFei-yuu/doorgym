@@ -69,7 +69,7 @@ for seed in SEEDS:
    s=json.loads(line);rows.append({k:s[k] for k in ['frame','source_physics_step','source_time_s','state','images_sha256']}|{'new_chunk':s['worker_evidence']['new_chunk'],'chunk_id':s['worker_evidence']['chunk_id']})
  assert all(r['new_chunk']==(r['frame']%25==0) for r in rows)
  # Observation at f is BEFORE physical step 2f; never use row 2f post-state as if it were pre-state.
- pre=[states[max(0,2*f-1)] for f in range(len(rows))];err=np.asarray([wrap(s['actual_base'][2]-target) for s in pre]);omega=np.asarray([s['base_measured_fd_yaw_rate'] for s in pre]);speed=np.asarray([s['base_measured_fd_speed'] for s in pre]);passed=np.asarray([s['passed'] for s in pre]);latched=np.asarray([s['latched'] for s in pre])
+ pre=[states[max(0,2*f-1)] for f in range(len(rows))];err=np.asarray([wrap(s['actual_base'][2]-target) for s in pre]);omega=np.asarray([s['base_measured_fd_yaw_rate'] for s in pre]);speed=np.asarray([s['base_measured_fd_speed'] for s in pre]);passed=np.asarray([s['passed'] for s in pre]);latched=np.asarray([s['latched'] is not None for s in pre],dtype=bool)
  tail=np.flatnonzero(passed&latched);assert len(tail);start=int(tail[0]);near=np.flatnonzero((np.arange(len(rows))>=start)&(abs(err)<=np.deg2rad(2)))
  # Crossings require small wrapped delta, to avoid treating the +/-pi branch cut as a target crossing.
  cross=np.flatnonzero((np.arange(len(err)-1)>=start)&(err[:-1]*err[1:]<0)&(abs(err[:-1]-err[1:])<np.pi))+1
