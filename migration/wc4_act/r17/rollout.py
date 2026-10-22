@@ -87,6 +87,7 @@ def run(m, cams, output, plan, gym, sim, states, viewer, args, dt, dof_names):
     import door_policy_backend as backend
     from door_policy_backend import DoorPolicySubprocessController
     backend._worker_python_command=lambda checkpoint:[os.environ['DOOR_DP_LEROBOT_PYTHON'],'-B',str(ROOT/'migration/wc4_act/r17/worker.py')]
+    os.environ['WC4_R17_TRIAL_OUTPUT']=str(output)
     controller=DoorPolicySubprocessController(plan['checkpoint'],device='cuda',action_horizon=5)
     assert controller.action_dim==9 and controller.action_horizon==5 and controller.pred_horizon==100
     assert controller.obs_horizon==1
