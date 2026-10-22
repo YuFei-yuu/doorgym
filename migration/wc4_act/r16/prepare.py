@@ -85,8 +85,10 @@ for seed in SEEDS:
  def add(f,label):
   f=int(np.clip(round(f/25)*25,0,((len(rows)-1)//25)*25))
   if len(picked)<56:picked.setdefault(f,[]).append(label)
- for f,label in anchors:
-  for off in [0,-25,25,-50,50,-100,100]:add(f+off,label)
+ # Cover every central anchor (including final state/stop) before expanding neighborhoods.
+ for f,label in anchors:add(f,label)
+ for off in [-25,25,-50,50,-100,100]:
+  for f,label in anchors:add(f+off,label)
  for f in np.linspace(start,len(rows)-1,200):add(f,'uniform_tail')
  assert len(picked)==56
  write(RUN/'truth'/f'failure-timeline-{seed}.json',dict(seed=seed,target_yaw=target,rows=[dict(frame=f,time_s=r['source_time_s'],heading_error_rad=float(err[f]),actual_base=pre[f]['actual_base'],measured_speed=float(speed[f]),measured_yaw_rate=float(omega[f]),passed=bool(passed[f]),latched=bool(latched[f]),chunk_id=r['chunk_id'],replan=r['new_chunk']) for f,r in enumerate(rows)],near_groups=groups,target_crossing_frames=cross.tolist(),tail_start=start))
