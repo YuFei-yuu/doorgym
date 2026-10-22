@@ -4,7 +4,6 @@ No policy constructed or forwarded; inputs are sealed before any R16 prediction.
 import os,sys,time,json,subprocess,platform
 import numpy as np
 from common import *
-from scipy.spatial.transform import Rotation
 from lerobot.datasets.factory import make_dataset
 import torch,lerobot
 assert not torch.cuda.is_available() and not os.environ.get('CUDA_VISIBLE_DEVICES')
@@ -31,7 +30,8 @@ for ep,e in enumerate(prov):
  with np.load(p,allow_pickle=True) as a:
   action=a['action'];state=a['state'];phase=a['subtask_index'].reshape(-1);names=list(a['phase_names']);n=len(action)
   assert action.dtype==state.dtype==np.float32 and n==e['frames']
-  q=a['replay_root_state'][:,3:7];yaw=Rotation.from_quat(q).as_euler('xyz')[:,2];target=float(yaw[-1]);err=wrap(yaw-target)
+  q=a['replay_root_state'][:,3:7].astype(np.float64);q=q/np.linalg.norm(q,axis=1,keepdims=True);x,y,z,w=q.T
+  yaw=np.arctan2(2*(w*z+x*y),1-2*(y*y+z*z));target=float(yaw[-1]);err=wrap(yaw-target)
   def ids(names_wanted):return np.flatnonzero(np.isin(phase,[names.index(x) for x in names_wanted if x in names]))
   turn=ids(['compact_exit_turn','compact_exit_arc']);restore=ids(['restore_heading']);hold=ids(['final_hold']);assert len(turn) and len(restore) and len(hold)
   moving=restore[np.abs(action[restore,1])>.01];moving=moving if len(moving) else restore
