@@ -1,5 +1,8 @@
 """Read-only W&B/resource monitor; persistent failure terminates only this trainer."""
 import sys,os,time,signal,subprocess
+from pathlib import Path
+# Keep R15 common/runtime first; stopping remains the accepted R13 module.
+sys.path.append(str(Path(__file__).resolve().parents[1]/'r13'))
 from common import *
 from stopping import request_stop
 import wandb
