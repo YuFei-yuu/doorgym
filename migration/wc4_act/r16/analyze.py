@@ -19,6 +19,7 @@ def serial(x):
  if isinstance(x,np.ndarray):return x.tolist()
  if isinstance(x,np.generic):return x.item()
  return x
+def write(p,x):Path(p).write_text(json.dumps(x,ensure_ascii=False,indent=2,allow_nan=False,default=serial)+'\n')
 # Per-point errors keep valid horizons inside the source episode; padding is never a target.
 for step in pred:
  groups={}
@@ -32,8 +33,9 @@ for step in pred:
     mask=valid[lo:hi];delta=a[lo:hi][mask]-y[lo:hi][mask]
     truthstop=(abs(y[lo:hi,0])<=.01)&(abs(y[lo:hi,1])<=.01)&mask
     predictedstop=(abs(a[lo:hi,0])<=.01)&(abs(a[lo:hi,1])<=.01)
-    key=(p['group'],label);g=groups.setdefault(key,{'errors':[],'truth_stop':0,'predicted_stop_on_true_stop':0,'valid_count':0,'false_stop_on_moving':0,'moving_count':0})
+    key=(p['group'],label);g=groups.setdefault(key,{'errors':[],'truth_stop':0,'predicted_stop_on_true_stop':0,'valid_count':0,'false_stop_on_moving':0,'moving_count':0,'moving_errors':[]})
     if len(delta):g['errors'].append(delta)
+    if (mask&~truthstop).any():g['moving_errors'].append(a[lo:hi][mask&~truthstop]-y[lo:hi][mask&~truthstop])
     g['truth_stop']+=int(truthstop.sum());g['predicted_stop_on_true_stop']+=int((truthstop&predictedstop).sum());g['valid_count']+=int(mask.sum());g['false_stop_on_moving']+=int((mask&~truthstop&predictedstop).sum());g['moving_count']+=int((mask&~truthstop).sum())
     r[label]['valid_count']=int(mask.sum());r[label]['physical_mae']=abs(delta).mean(0).tolist() if len(delta) else None
     r[label]['truth_mean_vx_yaw']=y[lo:hi][mask,:2].mean(0).tolist() if mask.any() else None
@@ -42,7 +44,8 @@ for step in pred:
  result=[]
  for (group,horizon),g in groups.items():
   errors=np.concatenate(g.pop('errors')) if g['valid_count'] else np.empty((0,9))
-  result.append(dict(group=group,horizon=horizon,physical_mae=abs(errors).mean(0).tolist() if len(errors) else None,physical_rmse=np.sqrt((errors**2).mean(0)).tolist() if len(errors) else None,**g))
+  moving_parts=g.pop('moving_errors');moving_errors=np.concatenate(moving_parts) if moving_parts else np.empty((0,9))
+  result.append(dict(group=group,horizon=horizon,physical_mae=abs(errors).mean(0).tolist() if len(errors) else None,physical_rmse=np.sqrt((errors**2).mean(0)).tolist() if len(errors) else None,moving_only_mae=abs(moving_errors).mean(0).tolist() if len(moving_errors) else None,**g))
  metrics[step]=result
 write(RUN/'expert-physical-errors.json',dict(action_order=['vx_m_s','yaw_rad_s','joint1_rad','joint2_rad','joint3_rad','joint4_rad','joint5_rad','joint6_rad','gripper_rad'],models=metrics,padding_excluded=True,not_vae_training_loss=True,episode_count=72,points_per_group=72))
 write(RUN/'point-prediction-analysis.json',point_metrics)
