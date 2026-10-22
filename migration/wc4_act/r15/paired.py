@@ -25,8 +25,7 @@ def record_diagnostics(output,states,score,seed,step):
   note='Turning/contact flags are diagnostics, not stage inputs, contact proof, collision proof or extra success gates'))
 def summarize(run,step):
  base=run/'evaluation'/f'{step:06d}';order=read(run/'TRAINING_ORDER.json')
- old=Path(order['paired_R14_records']).parents[2]/'combined-summary-030000.json'
- baseline={t['seed']:t for t in read(old)['trials'] if 62200<=t['seed']<=62215}
+ baseline={t['seed']:t for t in read(run/'baseline-030000.json')['trials']}
  assert len(baseline)==16
  records=[];counts={};prior_counts={}
  for d in sorted(base.glob('trial_*')):

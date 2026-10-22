@@ -2,7 +2,8 @@
 set -euo pipefail
 cd /data/zyf/video2door-wc4-act
 export VIDEO2DOOR_GPU=${1:?Choose idle physical GPU}
-run=$PWD/.repro/runs/wc4-fulltask-act-r15-s1000-20261022
+run=${2:-$PWD/.repro/runs/wc4-fulltask-act-r15-s1000-20261022}
+test -f "$run/prepared-command.json"
 uuid=$(nvidia-smi -i "$VIDEO2DOOR_GPU" --query-gpu=uuid --format=csv,noheader)
 exec 9>"/data/zyf/video2door/.repro/locks/$uuid.lock"
 flock -n 9
