@@ -1,6 +1,7 @@
 """Pad-centre + push-axis IK. Source kinematics only; no state/asset changes."""
 import numpy as np
 from scipy.optimize import least_squares
+from scipy.spatial.transform import Rotation, Slerp
 from fullcycle_compact import Arm, ClosingCurve
 from fullcycle_geometry import transform
 
@@ -8,6 +9,15 @@ from fullcycle_geometry import transform
 # expressed in ee_gripper_link. Box centre (0.135,0,-.020), size
 # (.030,.060,.020), ee origin (0.135,0,0), all in stator frame.
 PAD_LOCAL=np.array([.015,0.,-.020])
+
+def deployment_pose(start,goal,amount):
+    """Straight contact-centre travel with shortest continuous axis rotation."""
+    a=float(np.clip(amount,0,1))
+    p0=start[:3,3]+start[:3,:3]@PAD_LOCAL
+    p1=goal[:3,3]+goal[:3,:3]@PAD_LOCAL
+    R=Slerp([0.,1.],Rotation.from_matrix(np.stack([start[:3,:3],goal[:3,:3]])))(a).as_matrix()
+    T=np.eye(4);T[:3,:3]=R;T[:3,3]=(1-a)*p0+a*p1-R@PAD_LOCAL
+    return T
 
 class PadArm(Arm):
     def pad(self,q):

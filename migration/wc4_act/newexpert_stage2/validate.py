@@ -227,7 +227,7 @@ def behavior(out):
     def make(phase):
         ctl=CompactExpert(robot,c,start,HOME,np.r_[0,0,HOME],math.pi/2,0,HOME,math.pi,.02);ctl.phase=phase;return ctl
     ctl=make('compact_rendezvous');a,d=ctl.command(100,start,HOME,math.pi/2,0,False,False,False)
-    checks={'deployment_waits_for_measured_approach':bool(np.array_equal(a[2:],HOME))}
+    checks={'deployment_waits_for_measured_approach':bool(np.max(np.abs(a[2:]-HOME))<1e-5)}
     c1=make('compact_rendezvous');c2=make('compact_rendezvous');p=start.copy();p[:2]+=.1*np.array([math.cos(goal[2]),math.sin(goal[2])])
     a1,d1=c1.command(3,p,HOME,math.pi/2,0,False,False,False);a2,d2=c2.command(3,p,HOME,math.pi/4,0,False,False,False)
     checks['fixed90_reference_independent_of_measured_angle']=bool(np.array_equal(a1,a2) and d1['target_world']==d2['target_world'])

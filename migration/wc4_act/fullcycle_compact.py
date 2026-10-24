@@ -255,7 +255,19 @@ class CompactExpert:
             target_q=(1-a)*self.q0+a*np.r_[self.hover_q,0.]
             self.target=self.curve.tool(math.pi/2,c["hover_distance"])
             self.ik=self.hover_ik
-            if reached and self.v<.01 and max(abs(q[:6]-self.hover_q))<.04:
+            deployed=max(abs(q[:6]-self.hover_q))<.04
+            if c.get("contact_axis_ik",False):
+                from newexpert_stage2.push_geometry import deployment_pose, PAD_LOCAL
+                endpoint=self.target.copy()
+                self.target=deployment_pose(self.E0,endpoint,a)
+                solved,self.ik=self.arm.solve(np.linalg.inv(B)@self.target,self.qcmd,1.,120)
+                target_q=np.r_[solved,(1-a)*self.q0[-1]]
+                actual=B@self.arm.fk(q)
+                actual_pad=actual[:3,3]+actual[:3,:3]@PAD_LOCAL
+                goal_pad=endpoint[:3,3]+endpoint[:3,:3]@PAD_LOCAL
+                deployed=(np.linalg.norm(actual_pad-goal_pad)<.008
+                          and np.dot(actual[:3,0],endpoint[:3,0])>math.cos(.01))
+            if reached and self.v<.01 and deployed:
                 self.seek_offset=c["hover_distance"]
                 self.change("compact_seek",t,q,base)
         elif self.phase=="compact_seek":

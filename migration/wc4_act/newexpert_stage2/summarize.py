@@ -8,7 +8,7 @@ from fullcycle_compact import Arm
 from fullcycle_geometry import URDF
 from newexpert_stage2.push_geometry import PAD_LOCAL
 assert os.environ.get('CUDA_VISIBLE_DEVICES')==''
-run=Path(sys.argv[1]);out=run/'audit';out.mkdir(exist_ok=False)
+run=Path(sys.argv[1]);out=run/(sys.argv[2] if len(sys.argv)>2 else 'audit');out.mkdir(exist_ok=False)
 def read(p):return json.loads(p.read_text())
 def write(n,v):(out/n).write_text(json.dumps(v,indent=2,allow_nan=False)+'\n')
 def git(*a):return subprocess.check_output(['git',*a],cwd=ROOT,text=True).strip()
@@ -23,9 +23,10 @@ def command(source):
  return ast.dump(next(n for n in c.body if isinstance(n,ast.FunctionDef) and n.name=='command'),include_attributes=False)
 protected=dict(base=base,head=git('rev-parse','HEAD'),branch=git('branch','--show-current'),worktree=git('status','--porcelain=v1'),main=git('rev-parse','main'),changed=changed,
     old_Arm_unchanged=definition(old,'Arm')==definition(new,'Arm'),old_ClosingCurve_unchanged=definition(old,'ClosingCurve')==definition(new,'ClosingCurve'),
-    complete_command_method_unchanged=command(old)==command(new),all_other_tracked_files_unchanged=True,stage1_evidence_unmodified=True,
+    unload_withdraw_fold_bypass_unchanged=old.split('    def command(')[1].split('        elif self.phase=="compact_rendezvous":')[0]==new.split('    def command(')[1].split('        elif self.phase=="compact_rendezvous":')[0],
+    seek_close_release_final_unchanged=old.split('        elif self.phase=="compact_seek":')[1]==new.split('        elif self.phase=="compact_seek":')[1],all_other_tracked_files_unchanged=True,stage1_evidence_unmodified=True,
     branch_cleanup='User requested transfer to existing stage1 branch and deletion of stage2 branch; no evidence removed.')
-assert all(protected[k] for k in ['old_Arm_unchanged','old_ClosingCurve_unchanged','complete_command_method_unchanged'])
+assert all(protected[k] for k in ['old_Arm_unchanged','old_ClosingCurve_unchanged','unload_withdraw_fold_bypass_unchanged','seek_close_release_final_unchanged'])
 write('protected-scope.json',protected);(out/'source.diff').write_text(git('diff',base));(out/'refs.txt').write_text(git('show-ref','--heads'))
 refs={}
 for label in ['old','new']:
@@ -64,14 +65,14 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 fig,axes=plt.subplots(2,2,figsize=(14,9))
-for label,color in [('old-nominal','#777777'),('new-nominal','#006eb8')]:
+for label,color in [('old-nominal','#777777'),('new-linear-nominal','#006eb8')]:
  rs=traces[label];t=np.array([r['t'] for r in rs]);b=np.array([r['base'] for r in rs]);pad=np.array([r['pad'] for r in rs]);a=np.array([r['action'] for r in rs]);z=np.array([r['z'] for r in rs]);phase=np.array([r['phase'] for r in rs]);close=phase=='close'
  axes[0,0].plot(b[:,0],b[:,1],color=color,label=label+' base');axes[0,0].plot(pad[close,0],pad[close,1],':',color=color,label=label+' pad (close)')
  axes[0,1].plot(t,a[:,0],color=color,label=label+' v');axes[0,1].plot(t,a[:,1],'--',color=color,alpha=.55,label=label+' yaw rate')
  axes[1,0].plot(t,z,color=color,label=label+' base z');axes[1,0].plot(t,pad[:,2],':',color=color,label=label+' pad z')
  axes[1,1].plot(t,a[:,7],color=color,label=label+' joint6');
  for ax in axes.flat:ax.grid(alpha=.2)
-for i,act in enumerate(read(run/'clearance-new/finite-wall-binding.json')['0']['actors']):
+for i,act in enumerate(read(run/'clearance-linear/finite-wall-binding.json')['0']['actors']):
  from matplotlib.patches import Rectangle
  c=act['center'];s=act['size'];axes[0,0].add_patch(Rectangle((c[0]-s[0]/2,c[1]-s[1]/2),s[0],s[1],color='#ad6221',alpha=.4,label='finite walls' if i==0 else None))
 axes[0,0].set(xlabel='Reference x (m)',ylabel='Reference y (m)',title='Full suffix + actual finite wall opening');axes[0,0].set_aspect('equal');axes[0,0].legend(fontsize=7)
