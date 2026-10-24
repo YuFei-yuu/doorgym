@@ -38,7 +38,7 @@ traces={};simplicity={}
 for p in sorted(run.glob('*/trace.jsonl')):
  rs=[json.loads(s) for s in p.open()];traces[p.parent.name]=rs
  a=np.array([r['action'] for r in rs]);pad=np.array([r['pad'] for r in rs]);ee=np.array([r['ee'] for r in rs]);R=np.array([r['ee_rotation'] for r in rs]);drot=Rotation.from_matrix(R[1:]@R[:-1].transpose(0,2,1)).magnitude()
- close=[r for r in rs if r['phase']=='close'];cp=np.array([r['pad'] for r in close]);theta=np.array([r['theta'] for r in close]);norm=np.c_[np.cos(theta),np.sin(theta),np.zeros(len(theta))]
+ close=[r for r in rs if r['phase']=='close'];cp=np.array([r['pad'] for r in close]).reshape(-1,3);theta=np.array([r['theta'] for r in close]);norm=np.c_[np.cos(theta),np.sin(theta),np.zeros(len(theta))]
  along=np.sum(np.diff(cp,axis=0)*norm[:-1],axis=1)
  # q6 is not globally equal to tool roll; plot as an interpretable joint trace.
  target_z=np.array([r['z'] for r in rs]);events=[]
@@ -46,8 +46,8 @@ for p in sorted(run.glob('*/trace.jsonl')):
   if prev['phase']!=r['phase']:
    events.append(dict(t=r['t'],previous=prev['phase'],phase=r['phase'],q_delta=float(max(abs(np.array(r['q'])-prev['q']))),pad_step_m=float(np.linalg.norm(np.array(r['pad'])-prev['pad']))))
  simplicity[p.parent.name]=dict(base_z_min=float(target_z.min()),base_z_max=float(target_z.max()),base_height_constant=bool(target_z.max()==target_z.min()),
-    contact_height_close_min=float(cp[:,2].min()),contact_height_close_max=float(cp[:,2].max()),
-    close_total_backward_projection_m=float(-along[along<0].sum()),close_largest_backward_step_m=float(max(0,-along.min())),
+    contact_height_close_min=float(cp[:,2].min()) if len(cp) else None,contact_height_close_max=float(cp[:,2].max()) if len(cp) else None,
+    close_total_backward_projection_m=float(-along[along<0].sum()),close_largest_backward_step_m=float(max(0,-along.min())) if len(along) else None,
     max_ee_rotation_step_rad=float(drot.max()),max_joint_command_rate_rad_s=float(abs(np.diff(a[:,2:],axis=0)).max()/.02),events=events,
     caveat='Whole-suffix tool height changes during required fold/deploy/retract. Constant height is a closing contact design; base height is constant throughout. Rotation increment includes intentional deployment/withdrawal, not only closing.')
 write('simplicity.json',simplicity)
@@ -72,14 +72,14 @@ for label,color in [('old-nominal','#777777'),('new-linear-nominal','#006eb8')]:
  axes[1,0].plot(t,z,color=color,label=label+' base z');axes[1,0].plot(t,pad[:,2],':',color=color,label=label+' pad z')
  axes[1,1].plot(t,a[:,7],color=color,label=label+' joint6');
  for ax in axes.flat:ax.grid(alpha=.2)
-for i,act in enumerate(read(run/'clearance-linear/finite-wall-binding.json')['0']['actors']):
+for i,act in enumerate(read(run/'clearance-new/finite-wall-binding.json')['0']['actors']):
  from matplotlib.patches import Rectangle
  c=act['center'];s=act['size'];axes[0,0].add_patch(Rectangle((c[0]-s[0]/2,c[1]-s[1]/2),s[0],s[1],color='#ad6221',alpha=.4,label='finite walls' if i==0 else None))
 axes[0,0].set(xlabel='Reference x (m)',ylabel='Reference y (m)',title='Full suffix + actual finite wall opening');axes[0,0].set_aspect('equal');axes[0,0].legend(fontsize=7)
 axes[0,1].set(xlabel='Synthetic suffix time (s)',ylabel='m/s or rad/s',title='Base commands');axes[0,1].legend(fontsize=7)
 axes[1,0].set(xlabel='Synthetic suffix time (s)',ylabel='Height (m)',title='No base lift compensation');axes[1,0].legend(fontsize=7)
 axes[1,1].set(xlabel='Synthetic suffix time (s)',ylabel='Joint6 command (rad)',title='Free-roll IK still follows a continuous joint solution');axes[1,1].legend(fontsize=7)
-fig.suptitle('Stage 1 vs Stage 2 | Synthetic exact-tracking feedback, NOT physics',fontsize=15);fig.tight_layout(rect=[0,0,1,.95]);fig.savefig(out/'motion-comparison.png',dpi=170);fig.savefig(out/'motion-comparison.svg');plt.close(fig)
+fig.suptitle('Stage 1 vs final Stage 2 | DEPLOYMENT FAILED | Synthetic, NOT physics',fontsize=15);fig.tight_layout(rect=[0,0,1,.95]);fig.savefig(out/'motion-comparison.png',dpi=170);fig.savefig(out/'motion-comparison.svg');plt.close(fig)
 # Explicit face geometry illustration at nominal 45 degree target.
 from fullcycle_compact import CompactExpert
 from newexpert_stage2.push_geometry import PadArm,PadCurve
@@ -106,7 +106,10 @@ write('source-asset-sha256.json',{str(p.relative_to(ROOT)):hashlib.sha256(p.read
 write('budget.json',dict(physical_episodes=0,approved_six_trials_consumed=0,collection_episodes=0,optimizer_updates=0,policy_evaluations=0,gpu_leases=0,monitors_started=0,
     bounded_probe_ik_samples=2*3*9*31,reference_ik_samples=3006,partial_failed_reference_samples=819+1,synthetic_steps={n:len(rs) for n,rs in traces.items()},clearance_cases=len(clear),historical_handoff_states=221,
     failure='First reference output raised duplicate joint_slack_rad field TypeError after old grid; preserved reference and reference.log; output-only fix rerun in reference-complete.',branch_cleanup='Both stage2 branch refs deleted after preserving commits on stage1; no evidence deletion.'))
-write('review-status.json',dict(status='FROZEN_CPU_ONLY_FOR_INDEPENDENT_REVIEW',physical_success=False,live_authorized_this_round=False,
+write('review-status.json',dict(status='FROZEN_STOP_DEPLOYMENT_IK_FAILURE',physical_success=False,live_authorized_this_round=False,
     source_risks={k:v['nonend_overlaps_after_unload'] for k,v in clear.items()},
+    final_candidate='new-linear-nominal',final_candidate_complete=False,
+    stop_reason='Straight deployment remained in compact_rendezvous at 180 s, contact position residual 0.122878 m and joint limit saturation; no further rollout/retry authorized by this freeze.',
+    clearance_scope='All existing clearance cases precede the straight-deployment change. Finite wall construction is reusable; no clearance certification for failed new-linear-nominal.',
     limitations=['Finite sample source geometry and synthetic feedback do not certify dynamics, contact force or complete task success.','Full randomized opening was not re-executed.','Historical handoff contact explained by old raw logs; no new physical demonstration of withdrawal.','Release uses inherited lower-weight pose solve; residuals are separately reported, not silently relaxed.']))
 print(json.dumps(dict(protected=protected,reachability=refs,simplicity=simplicity,clearance={k:{kk:vv for kk,vv in v.items() if kk!='minimums'} for k,v in clear.items()}),indent=2))
