@@ -11,7 +11,8 @@ assert os.environ.get('CUDA_VISIBLE_DEVICES')==''
 out=Path(sys.argv[1]);out.mkdir(parents=True,exist_ok=False)
 c=json.loads(Path(__file__).with_name('geometry.json').read_text())['compact_expert'];robot=URDF(ROOT/'high-level/data/asset/a2wz1/urdf/a2wz1.urdf');arm=PadArm(robot)
 rows=[]
-for height in [.82,.85,.90]:
+heights=[float(x) for x in sys.argv[2:]] or [.82,.85,.90]
+for height in heights:
  for pitch in [0,2.5,5]:
   for z in [.47,.5,.53]:
    curve=PadCurve(dict(c,height=height));q=np.array([0,1.7,-1.3,-.4,0,0.])
@@ -19,7 +20,7 @@ for height in [.82,.85,.90]:
     ref=curve.at(theta);B=transform([*ref[:2],z],[0,math.radians(pitch),ref[2]])
     q,err=arm.solve(np.linalg.inv(B)@curve.tool(theta),q,1.,120)
     rows.append(dict(height=height,pitch=pitch,z=z,theta=theta,q=q.tolist(),**err))
-summary={str(h):dict(max_position_m=max(r['position_error_m'] for r in rows if r['height']==h),max_axis_rad=max(r['orientation_error_rad'] for r in rows if r['height']==h),min_joint_slack=min(r['joint_slack_rad'] for r in rows if r['height']==h)) for h in [.82,.85,.90]}
+summary={str(h):dict(max_position_m=max(r['position_error_m'] for r in rows if r['height']==h),max_axis_rad=max(r['orientation_error_rad'] for r in rows if r['height']==h),min_joint_slack=min(r['joint_slack_rad'] for r in rows if r['height']==h)) for h in heights}
 pieces=collision_pieces(robot.path);poses=robot.fk(dict(zip(arm.names+["jointGripper"],[0]*7)));E=poses['ee_gripper_link'];geom=[]
 for p in pieces:
  if p.link in ['gripperStator','gripperMover','link06','wrist_down_mount','wrist_up_mount']:
