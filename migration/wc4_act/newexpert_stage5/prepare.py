@@ -27,6 +27,7 @@ def main():
     idx,spec=next((int(i),s) for i,s in assets.items() if s.get('name')=='wc4')
     fake=SimpleNamespace(spec=spec,asset_index=idx,door_motion_sign_multiplier=spec['door_motion_sign_multiplier'],
         actor_scale=spec['actor_scale'],actor_yaw=math.pi/2,actor_position_offset=spec['actor_position_offset'],
+        robot_y_offset=float(spec.get('robot_y_offset',0.0)),
         handle_bounding=json.loads((ROOT/'high-level/data/asset/door_set/wc4/handle_bounding.json').read_text()))
     cli0=copy.deepcopy(old['trials'][0]['argv'])
     cli0=[x for x in cli0 if x not in ['--no_ikpush_env_randomization','--no_enable_depth_camera_randomization']]
