@@ -13,7 +13,7 @@
   "compact_expert": {
     "revision": "pad_axis_stage2_v1",
     "radius": 0.84,
-    "height": 0.85,
+    "height": 0.94,
     "pad_offset": 0.002,
     "start_yaw_deg": 75.0,
     "end_yaw_deg": 35.0,
@@ -45,7 +45,15 @@
     "closing_max_speed": 0.11,
     "closing_max_yaw_rate": 0.25,
     "deploy_by_distance": true,
-    "contact_axis_ik": true
+    "contact_axis_ik": true,
+    "hover_ik_seed": [
+      0,
+      1.7,
+      -1.3,
+      -0.4,
+      0,
+      0
+    ]
   },
   "scope": {
     "stage": "stage2 CPU offline only",

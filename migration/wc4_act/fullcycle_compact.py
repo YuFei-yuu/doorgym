@@ -178,7 +178,7 @@ class CompactExpert:
         goal_B=self.scene.base_transform(ref[:3])
         self.hover_q,self.hover_ik=self.arm.solve(
             np.linalg.inv(goal_B)@self.curve.tool(math.pi/2,self.c["hover_distance"]),
-            [0.,1.7,-1.3,-.4,0.,math.pi/2],1.,120)
+            self.c.get("hover_ik_seed",[0.,1.7,-1.3,-.4,0.,math.pi/2]),1.,120)
 
     def change(self,phase,t,q,base):
         self.events.append(dict(time_s=t,previous=self.phase,phase=phase))
