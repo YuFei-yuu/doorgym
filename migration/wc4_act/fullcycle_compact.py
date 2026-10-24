@@ -233,11 +233,20 @@ class CompactExpert:
                 if reached:self.change("compact_rendezvous",t,q,base)
         elif self.phase=="compact_rendezvous":
             goal=self.curve.at(math.pi/2)[:3]
-            v,w,reached=forward_pose(base,goal,.10,.4)
+            v,w,reached=forward_pose(base,goal,c.get("rendezvous_speed",.10),.4)
             # Deploy during the final straight approach. The joint endpoint
             # is computed at the fixed rendezvous, so it does not ask the arm
             # to reach the door from the more distant staging point.
-            a=smooth(elapsed/c["deploy_seconds"])
+            progress=elapsed/c["deploy_seconds"]
+            if c.get("deploy_by_distance",False):
+                # Stage-1 candidate: deploy only as the measured base advances
+                # along the fixed nominal approach. No door-angle replanning.
+                direction=np.array([math.cos(goal[2]),math.sin(goal[2])])
+                length=float(np.dot(goal[:2]-self.base0[:2],direction))
+                travelled=float(np.dot(base[:2]-self.base0[:2],direction))
+                spatial=np.clip(travelled/max(length,.008),0.,1.)
+                progress=min(progress,spatial)
+            a=smooth(progress)
             target_q=(1-a)*self.q0+a*np.r_[self.hover_q,0.]
             self.target=self.curve.tool(math.pi/2,c["hover_distance"])
             self.ik=self.hover_ik
@@ -268,8 +277,9 @@ class CompactExpert:
             ref=self.curve.at(self.close_parameter)
             error=np.array([[math.cos(base[2]),math.sin(base[2])],
                             [-math.sin(base[2]),math.cos(base[2])]])@(ref[:2]-base[:2])
-            v=float(np.clip(ref[6]*rate+1.2*error[0],0,.13))
-            w=float(np.clip(-ref[5]*rate+2*error[1]+1.8*wrap(ref[2]-base[2]),-.3,.3))
+            v=float(np.clip(ref[6]*rate+1.2*error[0],0,c.get("closing_max_speed",.13)))
+            yaw_limit=c.get("closing_max_yaw_rate",.3)
+            w=float(np.clip(-ref[5]*rate+2*error[1]+1.8*wrap(ref[2]-base[2]),-yaw_limit,yaw_limit))
             E=self.curve.tool(self.close_parameter);self.target=E
             solved,self.ik=self.arm.solve(np.linalg.inv(B)@E,self.qcmd)
             target_q=np.r_[solved,0.]
