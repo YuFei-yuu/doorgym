@@ -70,7 +70,7 @@ def reference(out):
                 r=curve.at(angle);B=transform([*r[:2],z],[0,pitch,r[2]])
                 q,err=arm.solve(np.linalg.inv(B)@curve.tool(angle),q,1.,120)
                 cloud=robot.cloud(robot.fk(dict(LEGS,**dict(zip(NAMES,np.r_[q,0.]))),B))
-                rows.append(dict(case=name,pitch=pitch,z=z,theta=float(angle),base=r[:3].tolist(),q=np.r_[q,0.].tolist(),**err,
+                rows.append(dict(case=name,pitch=pitch,z=z,theta=float(angle),base=r[:3].tolist(),q=np.r_[q,0.].tolist(),**{k:v for k,v in err.items() if k!='joint_slack_rad'},
                     joint_slack_rad=float(np.min(np.r_[q-arm.lo,arm.hi-q])),whole_max_x=float(cloud[:,0].max())))
             summaries.append(dict(case=name,max_position_error_m=max(x['position_error_m'] for x in rows),max_orientation_error_rad=max(x['orientation_error_rad'] for x in rows),min_joint_slack_rad=min(x['joint_slack_rad'] for x in rows),max_whole_x=max(x['whole_max_x'] for x in rows)))
             samples+=rows
