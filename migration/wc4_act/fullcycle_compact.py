@@ -259,10 +259,21 @@ class CompactExpert:
             if c.get("contact_axis_ik",False):
                 from newexpert_stage2.push_geometry import deployment_pose, PAD_LOCAL
                 endpoint=self.target.copy()
-                self.target=deployment_pose(self.E0,endpoint,a)
-                solved,self.ik=self.arm.solve(np.linalg.inv(B)@self.target,self.qcmd,1.,120)
-                target_q=np.r_[solved,(1-a)*self.q0[-1]]
                 actual=B@self.arm.fk(q)
+                if c.get("deployment_mode")=="joint_arc":
+                    # A single smooth, bounded joint-space arc from the actual
+                    # folded pose to the already solved nominal hover pose.
+                    # Do not repeatedly seed Cartesian IK at the folded limits.
+                    self.target=B@self.arm.fk(target_q[:6])
+                    current_pad=actual[:3,3]+actual[:3,:3]@PAD_LOCAL
+                    reference_pad=self.target[:3,3]+self.target[:3,:3]@PAD_LOCAL
+                    self.ik=dict(position_error_m=float(np.linalg.norm(current_pad-reference_pad)),
+                        orientation_error_rad=float(np.arccos(np.clip(np.dot(actual[:3,0],self.target[:3,0]),-1,1))),
+                        constraint="joint_arc_tracking_not_ik",progress=float(a),joint_reference=target_q.tolist())
+                else:
+                    self.target=deployment_pose(self.E0,endpoint,a)
+                    solved,self.ik=self.arm.solve(np.linalg.inv(B)@self.target,self.qcmd,1.,120)
+                    target_q=np.r_[solved,(1-a)*self.q0[-1]]
                 actual_pad=actual[:3,3]+actual[:3,:3]@PAD_LOCAL
                 goal_pad=endpoint[:3,3]+endpoint[:3,:3]@PAD_LOCAL
                 deployed=(np.linalg.norm(actual_pad-goal_pad)<.008
