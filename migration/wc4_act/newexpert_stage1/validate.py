@@ -215,7 +215,7 @@ def main():
     p=argparse.ArgumentParser();p.add_argument('mode',choices=['reference','synthetic','clearance','behavior']);p.add_argument('--output',required=True);p.add_argument('--variant',default='new',choices=['old','new']);p.add_argument('--pitch',type=float,default=0);p.add_argument('--z',type=float,default=.5);p.add_argument('--drift45',action='store_true');p.add_argument('--trace');a=p.parse_args()
     if os.environ.get('CUDA_VISIBLE_DEVICES')!='':raise RuntimeError('Hide CUDA explicitly for CPU audit')
     out=Path(a.output);out.mkdir(parents=True,exist_ok=False)
-    receipt=dict(argv=sys.argv,interpreter=sys.executable,python=sys.version,cuda_visible=os.environ.get('CUDA_VISIBLE_DEVICES'),start_unix=time.time(),head=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),status=subprocess.check_output(['git','status','--porcelain=v1'],cwd=ROOT,text=True),source_sha256={str(x.relative_to(ROOT)):sha(x) for x in [Path(__file__),Path(__file__).with_name('geometry.json'),ROOT/'migration/wc4_act/fullcycle_compact.py']})
+    receipt=dict(argv=sys.argv,interpreter=sys.executable,python=sys.version,cuda_visible=os.environ.get('CUDA_VISIBLE_DEVICES'),start_unix=time.time(),head=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),status=subprocess.check_output(['git','status','--porcelain=v1'],cwd=ROOT,text=True),source_sha256={str(x.resolve().relative_to(ROOT)):sha(x) for x in [Path(__file__),Path(__file__).with_name('geometry.json'),ROOT/'migration/wc4_act/fullcycle_compact.py']})
     write(out/'command.json',receipt)
     if a.mode=='reference':reference(out)
     elif a.mode=='synthetic':synthetic(out,a.variant,a.pitch,a.z,a.drift45)
