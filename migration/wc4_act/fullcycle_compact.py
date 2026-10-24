@@ -159,7 +159,12 @@ class CompactExpert:
         self.scene=scene or SceneFrame()
         base=self.scene.to_reference_base(base)
         final_yaw=float(final_yaw)-self.scene.yaw_delta
-        self.c=dict(DEFAULT,**recipe);self.arm=Arm(robot);self.curve=ClosingCurve(self.c)
+        self.c=dict(DEFAULT,**recipe)
+        if self.c.get("contact_axis_ik",False):
+            from newexpert_stage2.push_geometry import PadArm, PadCurve
+            self.arm=PadArm(robot);self.curve=PadCurve(self.c)
+        else:
+            self.arm=Arm(robot);self.curve=ClosingCurve(self.c)
         self.dt=dt;self.phase="compact_unload";self.since=t
         self.qcmd=np.asarray(action[2:],float).copy();self.home=np.asarray(home,float)
         self.base0=np.asarray(base,float).copy();self.q0=np.asarray(q,float).copy()
