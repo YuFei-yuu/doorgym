@@ -34,7 +34,7 @@
     "withdraw_seconds": 2.0,
     "withdraw_distance": 0.14,
     "fold_seconds": 3.0,
-    "deploy_seconds": 3.0,
+    "deploy_seconds": 6.0,
     "hover_distance": 0.04,
     "seek_speed": 0.025,
     "seek_travel": 0.07,
