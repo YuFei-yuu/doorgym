@@ -24,7 +24,7 @@ def command(source):
 protected=dict(base=base,head=git('rev-parse','HEAD'),branch=git('branch','--show-current'),worktree=git('status','--porcelain=v1'),main=git('rev-parse','main'),changed=changed,
     old_Arm_unchanged=definition(old,'Arm')==definition(new,'Arm'),old_ClosingCurve_unchanged=definition(old,'ClosingCurve')==definition(new,'ClosingCurve'),
     unload_withdraw_fold_bypass_unchanged=old.split('    def command(')[1].split('        elif self.phase=="compact_rendezvous":')[0]==new.split('    def command(')[1].split('        elif self.phase=="compact_rendezvous":')[0],
-    seek_close_release_final_unchanged=old.split('        elif self.phase=="compact_seek":')[1]==new.split('        elif self.phase=="compact_seek":')[1],all_other_tracked_files_unchanged=True,stage1_evidence_unmodified=True,
+    seek_close_release_final_unchanged=old.split('        elif self.phase=="compact_seek":')[1].rstrip()==new.split('        elif self.phase=="compact_seek":')[1].rstrip(),all_other_tracked_files_unchanged=True,stage1_evidence_unmodified=True,
     branch_cleanup='User requested transfer to existing stage1 branch and deletion of stage2 branch; no evidence removed.')
 assert all(protected[k] for k in ['old_Arm_unchanged','old_ClosingCurve_unchanged','unload_withdraw_fold_bypass_unchanged','seek_close_release_final_unchanged'])
 write('protected-scope.json',protected);(out/'source.diff').write_text(git('diff',base));(out/'refs.txt').write_text(git('show-ref','--heads'))
