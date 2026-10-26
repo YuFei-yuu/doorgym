@@ -4,7 +4,7 @@ from pathlib import Path
 import numpy as np
 from geometry import Geometry,ROOT,HOME,NAMES,read,write,sha
 
-def audit(run):
+def audit(run,resume=False):
     out=run/'single';rows=[json.loads(l) for l in (out/'trace.jsonl').open()];G=Geometry();cfg=read(out/'config.json')
     b=read(out/'measured-anchor.json')['row'];anchor=dict(t=b['t'],phase='measured_anchor',base=[*b['actual_base'][:2],math.pi],q=b['arm_q'],theta=b['door_q'][0]);states=[anchor]+rows
     baseline=G.check([1.2599997520446777,.18000000715255737,math.pi],HOME,anchor['theta'])
@@ -17,12 +17,21 @@ def audit(run):
             if j[0] in NAMES:axes.append(NAMES.index(j[0]))
         ancestors[name]=axes;radius[name]=r
     assert max(radius.values())<2
-    write(out/'geometry-method.json',dict(trace_sha256=sha(out/'trace.jsonl'),leg_binding=G.far_binding,finite_walls=G.wallmeta,
+    prior_method=read(out/'geometry-method.json') if (out/'geometry-method.json').exists() else None
+    if resume:
+        assert prior_method['trace_sha256']==sha(out/'trace.jsonl')
+        write(out/'geometry-method-before-resume.json',prior_method)
+    write(out/'geometry-method.json',dict(trace_sha256=sha(out/'trace.jsonl'),leg_binding=G.far_binding,finite_walls=G.wallmeta,resumed_from_saved_checks=resume,
         all_visual_and_collision_triangle_radius_bound_m=max(radius.values()),robot_radius_used_m=2,door_radius_used_m=1.2,
         source_method='Separate source collision pieces, convex meshes, circumscribed cylinders and sphere boxes. SAT gap is projected lower separation bound; negative is not physical penetration.',
         interpolation='Piecewise linear interpolation of this one stored q/base/door sequence, no IK or new candidate. Coarse 0.1s plus boundaries; uncertain positive gaps recursively split to <=2.5ms. Negative envelopes are kept unresolved, not refined away.',
         self_exclusion='same fixed component or directly revolute-adjacent only; full list in self-baseline.json'))
-    stream=(out/'geometry.jsonl').open('x');cache={};intervals=[]
+    cache={};intervals=[]
+    if resume:
+        with (out/'geometry.jsonl').open() as f:
+            for line in f:
+                r=json.loads(line);cache[r['index']]=r
+    stream=(out/'geometry.jsonl').open('a' if resume else 'x')
     def state(x):
         i=int(math.floor(x));f=x-i
         if f<1e-12:return states[i]
@@ -78,4 +87,4 @@ def audit(run):
     write(out/'geometry-summary.json',result);print(json.dumps(result),flush=True)
 if __name__=='__main__':
     if os.environ.get('CUDA_VISIBLE_DEVICES')!='':raise RuntimeError('CUDA must be hidden')
-    p=argparse.ArgumentParser();p.add_argument('--run',type=Path,required=True);a=p.parse_args();audit(a.run)
+    p=argparse.ArgumentParser();p.add_argument('--run',type=Path,required=True);p.add_argument('--resume',action='store_true');a=p.parse_args();audit(a.run,a.resume)

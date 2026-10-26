@@ -12,6 +12,21 @@ from fullcycle_geometry import URDF,transform,apply,rot
 from fullcycle_collision import collision_pieces
 from newexpert_stage2.finite_walls import walls
 
+def separating_gap(A,B):
+    """Early face-axis separation proof; overlaps still use complete SAT.
+
+    A positive result is a conservative projected lower distance bound, not
+    necessarily the maximum over all SAT axes. Never declares overlap early.
+    """
+    av,an,ae=A;bv,bn,be=B
+    broad=np.maximum(bv.min(0)-av.max(0),av.min(0)-bv.max(0))
+    if broad.max()>.05:return float(broad.max())
+    for axes in [bn,an]:
+        aa=av@axes.T;bb=bv@axes.T
+        gap=float(np.maximum(bb.min(0)-aa.max(0),aa.min(0)-bb.max(0)).max())
+        if gap>0:return gap
+    return fast_gap(A,B)
+
 class Geometry:
     def __init__(self):
         self.robot=URDF(ROOT/'high-level/data/asset/a2wz1/urdf/a2wz1.urdf',include_visual=True)
@@ -64,14 +79,14 @@ class Geometry:
                 cat='intended' if p.link=='gripperStator' and p.name==contact_piece and d.link=='door_panel' else 'external'
                 gap=float(broad[i,j])
                 if gap>.05 and gap>=best[cat]['gap_m']:continue
-                if gap<=.05:gap=fast_gap(AW[i],BW[j])
+                if gap<=.05:gap=separating_gap(AW[i],BW[j])
                 x=dict(gap_m=gap,a=[p.link,p.name,p.kind],b=[d.link,d.name,d.kind])
                 if gap<best[cat]['gap_m']:best[cat]=x
                 if gap< -1e-7:overlaps.append(dict(category=cat,**x))
         for i,j in self.selfpairs:
             p=self.R[i];d=self.R[j];gap=float(np.maximum(amin[i]-amax[j],amin[j]-amax[i]).max())
             if gap>.05 and gap>=best['self']['gap_m']:continue
-            if gap<=.05:gap=fast_gap(AW[i],AW[j])
+            if gap<=.05:gap=separating_gap(AW[i],AW[j])
             x=dict(gap_m=gap,a=[p.link,p.name,p.kind],b=[d.link,d.name,d.kind])
             if gap<best['self']['gap_m']:best['self']=x
             if gap< -1e-7:overlaps.append(dict(category='self',**x))

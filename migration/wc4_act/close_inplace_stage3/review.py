@@ -3,7 +3,7 @@ import argparse,json,math,os,itertools,struct,subprocess
 from pathlib import Path
 from collections import Counter
 import numpy as np
-from geometry import Geometry,ROOT,HOME,NAMES,baseT,apply,write,read,sha
+from geometry import Geometry,Solver,ROOT,HOME,NAMES,baseT,apply,write,read,sha
 from fullcycle_geometry import origin,vec
 from fullcycle_collision import mesh_points
 from close_inplace_stage2.refine_overlap import inside
@@ -53,7 +53,7 @@ def review(run):
     out=run/'single';G=Geometry();rows=[json.loads(l) for l in (out/'trace.jsonl').open()];checks=[json.loads(l) for l in (out/'geometry.jsonl').open()];cache={x['index']:x for x in checks}
     overlaps=[json.loads(l) for l in (out/'overlaps.jsonl').open()];groups={}
     for x in overlaps:
-        key=(x['category'],tuple(x['a']),tuple(x['b']))
+        key=(x['category'],x['phase'],tuple(x['a']),tuple(x['b']))
         if key not in groups:groups[key]=dict(worst=x,phases=set(),count=0)
         groups[key]['phases'].add(x['phase']);groups[key]['count']+=1
         if x['gap_m']<groups[key]['worst']['gap_m']:groups[key]['worst']=x
@@ -91,13 +91,29 @@ def review(run):
     command=np.array([r['action'][2:8] for r in suffix]);joint_acc=float(abs(np.diff(command,n=2,axis=0)/.02**2).max())
     confirmed_external=[x for x in localized if x['pair']['category']=='external' and x['inside_count']>0]
     confirmed_self=[x for x in localized if x['pair']['category']=='self' and x['inside_count']>0]
+    premature=[x for x in localized if x['pair']['category']=='intended' and any(p in ['deploy','turn','fold','withdraw'] for p in x['phases'])]
+    post_stop_confirmed=[x for x in confirmed_external if any(p not in ['measured_anchor','retimed_traverse'] for p in x['phases'])]
     decision=dict(geometry='not certified globally; inspect localized inherited/new source intersections and unresolved intervals',continuity='same-endpoint base stop analytically continuous; sampled joint command rates bounded; joint-rate transitions reported, not claimed globally C1',
         synthetic_tracking='approach gate passed' if summary['approach_gate_passed'] else 'approach gate blocked close',physical_admission=False,
         full_candidates=1,trajectory_sha256=sha(out/'trace.jsonl'),phase_metrics=phase,parking=parking_checks,max_suffix_joint_acceleration_rad_s2=joint_acc,
         confirmed_external_pairs=len(confirmed_external),confirmed_self_pairs=len(confirmed_self),all_distinct_envelope_overlap_pairs=len(localized),
+        confirmed_post_stop_external_groups=post_stop_confirmed,
+        premature_selected_piece_confirmed_groups=[x for x in premature if x['inside_count']>0],
+        overall='NEEDS_CORRECTION_NO_PHYSICAL_ADMISSION',
+        selected_piece_premature_overlap_groups=premature,
         total_reference_time_s=summary['total_reference_time_s'],reference_c2_time_s=180.39999960618107,
         source_reference='measured step880 anchor; synthetic frozen leg pose and retimed virtual DLS handoff; prescribed door angle; no real push, latch or data quality conclusion')
     write(out/'decision.json',decision)
+    from scipy.spatial.transform import Rotation
+    local=next(x for x in read(run/'local-01/results.json')['cases'] if x['snapshot']==1 and x['radius']==.905 and x['roll_deg']==0)
+    nearby=min([r for r in rows if r['phase']=='close'],key=lambda r:abs(r['theta']-local['theta'])) if summary['close_evaluated'] else None
+    if nearby:
+        solver=Solver(G.robot,'corner');L=baseT(local['base'])@solver.fk(local['q']);A=baseT(nearby['base'])@solver.fk(nearby['q']);rv=Rotation.from_matrix(A[:3,:3]@L[:3,:3].T).as_rotvec();normal=np.array([math.cos(local['theta']),math.sin(local['theta']),0])
+        compare=dict(local_source_time=local['source_time'],candidate_time=nearby['t'],local_theta=local['theta'],candidate_theta=nearby['theta'],door_angle_difference_rad=nearby['theta']-local['theta'],
+            local_geometry=local['geometry']['minimums'],candidate_geometry=G.check(nearby['base'],nearby['q'],nearby['theta'])['minimums'],
+            orientation_difference_rad=float(np.linalg.norm(rv)),rotation_component_about_contact_normal_rad=float(rv@normal),local_q=local['q'],candidate_q=nearby['q'],
+            meaning='Read-only comparison at nearly matched door angle; local study used a full-orientation reference, candidate IK constrains point plus normal and leaves rotation about that normal free. No extra IK or candidate.')
+        write(out/'local-vs-continuous.json',compare)
     plot(run,rows,checks,G,localized)
     make_report(run,decision,summary,geo,localized)
     print(json.dumps(decision,indent=2),flush=True)
@@ -154,7 +170,10 @@ def plot(run,rows,checks,G,localized):
     ax.plot([.15,.15],[.03,.03],[-.03,-.01],color='red',lw=4,label='selected +x/+y edge');ax.scatter(.15,.03,-.02,color='red',s=45)
     for a in [0,math.pi/4,math.pi/2]:ax.quiver(.15,.03,-.02,.025*math.cos(a),.025*math.sin(a),0,color='#a53728')
     ax.set(xlim=(.11,.185),ylim=(-.04,.07),zlim=(-.04,.005),xlabel='Stator x m',ylabel='Stator y m',zlabel='Stator z m',title='Actual collision box 2 edge and outward normal cone\nDoor contact r=0.905 m on source slab triangle 40');ax.legend();fig.tight_layout();fig.savefig(out/'contact-part.png',dpi=160);plt.close(fig)
-    by_index={r['index']:r for r in checks};chosen=[x for x in localized if x['pair']['category']!='intended'][:8]
+    by_index={r['index']:r for r in checks}
+    def priority(x):
+        return (0 if x['pair']['category']=='external' and 'close' in x['phases'] else 1 if 'deploy' in x['phases'] else 2 if x['inherited_home_pair'] else 3,x['worst_gap_m'])
+    chosen=sorted(localized,key=priority)[:8]
     if chosen:
         fig,axes=plt.subplots(math.ceil(len(chosen)/2),2,figsize=(14,5*math.ceil(len(chosen)/2)),squeeze=False)
         for ax,x in zip(axes.flat,chosen):
@@ -176,7 +195,7 @@ def plot(run,rows,checks,G,localized):
 
 def make_report(run,d,s,g,loc):
     p=d['parking'];lines=['# 第三轮：单条候选的停车、部署与干涉修正','',
-        '执行侧完成唯一一条完整候选及只读检查，冻结待独立审查。没有第二条完整路线，没有物理试运行。几何、连续性与合成跟踪分别报告，不把参考轨迹完成当作完整任务成功。','',
+        '执行侧完成唯一一条完整候选及只读检查，冻结待独立审查。停车和接近衔接得到改善，但全程几何仍需修正／存在未证部分，不进入物理试运行。没有第二条完整路线。几何、连续性与合成跟踪分别报告，不把参考轨迹完成当作完整任务成功。','',
         '## 相对 c2 的修正','',
         '- 全身通过前保留旧实测前缀；之后沿原直线到同一配置终点(1.259999752,0.180000007)m，仅重排时间。用端点速度/加速度约束的五次位置函数，在7.16s内从原0.2000033855m/s减至0，无越点。',
         '- 既有c2虚拟DLS关节序列按空间进度作单调PCHIP时间重参数化，再保留原3rad/s指令界；实际起点、前一真实指令和合成状态分开记录。该模型没有重新运行真实开门或物理跟踪。',
@@ -195,6 +214,7 @@ def make_report(run,d,s,g,loc):
         '## 口径和几何疑点','',
         '远侧检查与运行时同样纳入全部collision及visual包围几何。初始预检查发现名义腿目标会使边界相差约2.829mm，因此在完整候选生成前，从旧实测刚体父子旋转恢复腿/轮关节姿态；起点复算与运行时max_x相差约7.7e-8m。此后腿姿态冻结仍属合成假设，未来需用实际腿关节状态检查。',
         '自碰撞只排除同一固定组件及直接关节相邻组件；其余相关运动部件全部纳入，link02/link06的既有home重叠没有排除。外部源凸包、球外包盒和圆柱外包多边形重叠按实际部件逐项定位；封闭原网格用两种射线，源box/cylinder/sphere用原始实体体积核对。无内部采样点不证明无交叠。','',
+        '`intended`仅标识预选接触基元，并不自动表示该时刻接触合法。部署/转向/收臂/撤离中的预选基元重叠单独保留；按阶段分别定位，不能让更早的继承接触掩盖新后段问题。','',
         '|类别|部件对|最坏源包络间隔 m|时间 s|原几何内部采样点|说明|','|---|---|---|---|---|---|']
     for x in loc:
         pair=x['pair'];lines.append(f"|{pair['category']}|{pair['a'][0]}:{pair['a'][1]} / {pair['b'][0]}:{pair['b'][1]}|{x['worst_gap_m']:.6g}|{x['t']:.3f}|{x['inside_count']}/{x['sampled_original_points']}|{'既有home部件对；未豁免' if x['inherited_home_pair'] else x['conclusion']}|")
@@ -203,6 +223,9 @@ def make_report(run,d,s,g,loc):
         '1条完整候选额度已使用，不换参数重跑。生成前仅在两个既有失败姿态及其接近邻域作43个局部端点求解，并检查1条局部部署弧线；没有用局部名义筛选多条完整路线。全部局部失败与最初导入错误保留。',
         '物理、资产、R11、ACT与观测及运行专家源码保持不变；只新增独立CPU工具。未增加推关前底盘移位、未改穿越空间路径/终点、未恢复绕行。无仿真、录像、采集、转换、训练或策略推理，无GPU锁或后台监控。',
         '正式结论以decision.json、geometry-summary.json、overlap-localization.json及全部未证区间为准。确定的非接触部位干涉或关键未解部分不得被低末端误差掩盖；本次冻结交付仅供方案对话独立审查。']
+    if (run/'single/local-vs-continuous.json').exists():
+        c=read(run/'single/local-vs-continuous.json');lines+=['','## 局部解与连续解的差异','',
+            f"在门角相差{c['door_angle_difference_rad']:.6g}rad的两姿态中，完整候选与局部全姿态解的工具旋转差为{c['orientation_difference_rad']:.6g}rad，其中沿接触法向分量{c['rotation_component_about_contact_normal_rad']:.6g}rad。局部测试约束全姿态；连续求解只约束接触点和法向，剩余旋转自由度没有被净空约束控制。因此不能把局部静态净空直接延伸为整段安全证明。精确位姿、关节及净空见local-vs-continuous.json。"]
     (run/'REPORT.md').write_text('\n'.join(lines)+'\n')
 if __name__=='__main__':
     if os.environ.get('CUDA_VISIBLE_DEVICES')!='':raise RuntimeError('CUDA must be hidden')
