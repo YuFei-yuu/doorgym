@@ -1,0 +1,16 @@
+{
+  "local_groups_used": 11,
+  "unused_local_groups": 1,
+  "continuous_trajectory_count": 1,
+  "complete_candidates": 0,
+  "deploy_waypoint_group_ids": [0, 1],
+  "hover_stage": "omitted: groups 2,3,10 failed; no unvalidated hover q reused",
+  "approach_contact_roll_deg": 13.5,
+  "approach_contact_roll_prevalidated": false,
+  "roll_at_80_and_70_deg": 15.5,
+  "roll_rule": "13.5 degrees at contact entry, quintic blend to 15.5 by 80 degrees, then hold; full R=Rot(n(theta),roll), no free roll in IK",
+  "durations": {"deploy_a": 8, "deploy_b": 6, "align_approach": 8, "push_to_70": 16},
+  "diagnostic_suffix": "After failed or unresolved prefix/gate, retain the same unmodified reference to 70 degrees with diagnostic labels. Never count it as ordered completion.",
+  "stop": "exactly 70 degrees; no hold, follow translation, release or closure suffix",
+  "baseline": "Required HOME overlaps recorded separately. Only initial non-deepening escape is conditional baseline; new pairs, deepening or recurrence are not exempted. No unconditional clearance claim for baseline overlap."
+}
