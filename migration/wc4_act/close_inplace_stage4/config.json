@@ -1,0 +1,23 @@
+{
+  "max_local_groups": 12,
+  "max_continuous_trajectories": 1,
+  "max_complete_candidates": 0,
+  "initial_local_groups": 10,
+  "dt": 0.02,
+  "radius": 0.905,
+  "height": 0.85,
+  "hover_offset": 0.01,
+  "roll_candidates_deg": [15.5, 16.5],
+  "position_gate_m": 0.008,
+  "normal_gate_rad": 0.03,
+  "full_orientation_gate_rad": 0.01,
+  "geometry_epsilon_m": 0.000001,
+  "joint_speed": 0.7,
+  "local_ik_nfev": 140,
+  "continuous_ik_nfev": 80,
+  "source_stage3": ".repro/reviews/wc4-close-inplace-stage3-20261027",
+  "source_c2": ".repro/reviews/wc4-close-inplace-stage2-20261026/c2",
+  "stop_door_deg": 70,
+  "full_pose_rule": "R(theta)=Rot(world door normal(theta), prescribed roll(theta)); identical in local solver and continuous tracking",
+  "count_rule": "Each requested robot pose with a single fixed seed counts once; FK-only validation of an existing deployment waypoint also counts once. Solver iterations do not introduce extra seeds. Continuous samples belong to ONE trajectory, no retries or parameter alternatives."
+}
