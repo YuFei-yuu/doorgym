@@ -46,6 +46,7 @@ def contained(p,g,root):
     closed=all(n==2 for n in counts.values());result=np.zeros(len(p),bool)
     if not closed:return result,dict(method='source triangle mesh is not closed after welding; no inside certification',closed=False)
     ids=np.flatnonzero(np.all((p>tr.reshape(-1,3).min(0)-eps)&(p<tr.reshape(-1,3).max(0)+eps),axis=1))
+    if not len(ids):return result,dict(method='original closed triangles; no sampled points inside mesh AABB',closed=True,triangles=len(tr),ray_disagreements=0)
     a,_=inside(p[ids],tr,[1,.317,.193]);b,_=inside(p[ids],tr,[-.283,1,.467]);result[ids]=a&b
     return result,dict(method='two-ray parity on original closed triangles',closed=True,triangles=len(tr),ray_disagreements=int((a!=b).sum()))
 
