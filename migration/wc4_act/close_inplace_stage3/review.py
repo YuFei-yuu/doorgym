@@ -175,7 +175,11 @@ def plot(run,rows,checks,G,localized):
     by_index={r['index']:r for r in checks}
     def priority(x):
         return (0 if x['pair']['category']=='external' and 'close' in x['phases'] else 1 if 'deploy' in x['phases'] else 2 if x['inherited_home_pair'] else 3,x['worst_gap_m'])
-    chosen=sorted(localized,key=priority)[:8]
+    chosen=[];seen=set()
+    for item in sorted(localized,key=priority):
+        key=(item['pair']['category'],tuple(item['pair']['a']),tuple(item['pair']['b']))
+        if key not in seen:chosen.append(item);seen.add(key)
+        if len(chosen)==6:break
     if chosen:
         fig,axes=plt.subplots(math.ceil(len(chosen)/2),2,figsize=(14,5*math.ceil(len(chosen)/2)),squeeze=False)
         for ax,x in zip(axes.flat,chosen):
@@ -191,9 +195,11 @@ def plot(run,rows,checks,G,localized):
                 except Exception:ax.scatter(p[:,0],p[:,1],s=4,color=col,label=label)
             e=np.array(x['examples_world'])
             if len(e):ax.scatter(e[:,0],e[:,2],color='red',s=18,label='contained original samples')
-            ax.set(title=f"{x['pair']['category']} | {a[0]}:{a[1]} vs {b[0]}:{b[1]}\nt={x['t']:.2f}s, contained={x['inside_count']}",xlabel='World x m',ylabel='World z m');ax.set_aspect('equal');ax.grid(alpha=.2);ax.legend(fontsize=8)
+            ax.set(title=f"{x['pair']['category']} | {a[0]}:{a[1]} vs {b[0]}:{b[1]}\nt={x['t']:.2f}s, contained={x['inside_count']}",xlabel='World x m',ylabel='World z m');ax.set_aspect('equal');ax.grid(alpha=.2)
+            ax.set_xlim(A[:,0].min()-.03,A[:,0].max()+.03);ax.set_ylim(A[:,2].min()-.03,A[:,2].max()+.03)
         for ax in list(axes.flat)[len(chosen):]:ax.axis('off')
-        fig.suptitle('Overlap localization | projected source envelopes and original contained samples; not physical penetration depth');fig.tight_layout(rect=[0,0,1,.96]);fig.savefig(out/'overlap-localization.png',dpi=150);plt.close(fig)
+        handles,labels=axes.flat[0].get_legend_handles_labels();fig.legend(handles,labels,loc='upper center',bbox_to_anchor=(.5,.965),ncol=3,fontsize=9)
+        fig.suptitle('Overlap localization | projected source envelopes and original contained samples; not physical penetration depth');fig.tight_layout(rect=[0,0,1,.93]);fig.savefig(out/'overlap-localization.png',dpi=150);plt.close(fig)
 
 def make_report(run,d,s,g,loc):
     p=d['parking'];lines=['# 第三轮：单条候选的停车、部署与干涉修正','',
