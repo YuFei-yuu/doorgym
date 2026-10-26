@@ -22,7 +22,7 @@ def main(out):
                 angle=float(np.arccos(np.clip(axis@normal,-1,1)))
                 g=G.check(B,np.r_[solved,q[-1]],theta)
                 item=dict(snapshot=k,source_time=r['t'],radius=radius,height=.85,roll_deg=roll_deg,base=B,theta=theta,q=np.r_[solved,q[-1]].tolist(),target=p.tolist(),target_rotation=targetR.tolist(),position_error_m=float(np.linalg.norm(pad-p)),axis_error_rad=angle,solver=e,geometry=g)
-                results.append(item);print(json.dumps({x:item[x] for x in ['snapshot','radius','roll_deg','position_error_m','axis_error_rad']}|{}) if False else json.dumps(dict(snapshot=k,radius=radius,roll=roll_deg,pos=item['position_error_m'],axis=angle,gaps={x:g['minimums'][x]['gap_m'] for x in g['minimums']})),flush=True)
+                results.append(item);print(json.dumps(dict(snapshot=k,radius=radius,roll=roll_deg,pos=item['position_error_m'],axis=angle,gaps={x:g['minimums'][x]['gap_m'] for x in g['minimums']})),flush=True)
     write(out/'results.json',dict(scope='30 static IK/geometry combinations at TWO existing failed c2 poses; no complete candidate',source=str(src),cases=results,self_exclusions=G.excluded,finite_walls=G.wallmeta))
 if __name__=='__main__':
     if os.environ.get('CUDA_VISIBLE_DEVICES')!='':raise RuntimeError('CUDA must be hidden')

@@ -4,6 +4,7 @@ from pathlib import Path
 import numpy as np
 ROOT=Path(__file__).resolve().parents[3]
 sys.path.insert(0,str(ROOT/'migration/wc4_act'))
+sys.path.insert(0,str(ROOT/'migration/wc4_act/close_inplace_stage2'))
 from close_inplace_stage2.candidate import Solver,baseT,LEGS,NAMES,HOME,read,write,sha
 from close_inplace_stage2.audit import fast_gap
 from fullcycle_geometry import URDF,transform,apply,rot
