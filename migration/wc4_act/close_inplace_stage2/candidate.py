@@ -25,7 +25,7 @@ def baseT(base):return transform([*base[:2],.5],[0,0,base[2]])
 class Solver(Arm):
     def __init__(self,robot,face):
         super().__init__(robot)
-        self.pad=np.array([.015,0,-.020]) if face=='x' else np.array([0,.030,-.020])
+        self.pad=np.array([.015,0,-.020]) if face=='x' else np.array([.015,.030,-.020]) if face=='corner' else np.array([0,.030,-.020])
         self.axis=np.array([1.,0,0]) if face=='x' else np.array([0,1.,0])
     def state(self,q):
         T=np.eye(4);axes=[];origins=[];values=dict(zip(self.names,q))
@@ -71,7 +71,7 @@ def generate(out,c,cfg):
         poses=robot.fk(dict(LEGS,**dict(zip(NAMES,q))),T)
         cloud=robot.cloud(poses)
         row=dict(t=t,phase=phase,kind=kind,base=base.tolist(),q=q.tolist(),theta=theta,z=.5,pitch=0.,
-            action=np.r_[local[0],(base[2]-oldbase[2])/dt,q].tolist(),lateral_mps=float(local[1]),pad=pad.tolist(),ee=ee_world.tolist(),
+            action=np.r_[local[0],(base[2]-oldbase[2])/dt,q].tolist(),lateral_mps=float(local[1]),pad=pad.tolist(),ee=ee_world.tolist(),contact_local_axis=solver.axis.tolist(),
             target=None if target is None else np.asarray(target).tolist(),target_axis=None if axis is None else np.asarray(axis).tolist(),
             tracking_m=None if target is None else float(np.linalg.norm((ee_world if ee else pad)-target)),
             tracking_axis_rad=None if axis is None else float(np.arccos(np.clip(u@axis,-1,1))),ik=ik,
@@ -104,11 +104,12 @@ def generate(out,c,cfg):
     write(out/'handoff.json',dict(endpoint=endpoint.tolist(),last_source_step=traverse_end-1,synthetic_arrival=rows[-1],
         hypothesis='Door angle frozen at measured first-pass value; original world EE target held, original DLS gains with analytic source Jacobian, ideal joint tracking. Not simulator reproduction.',
         not_home_error=float(max(abs(q[:6]-HOME[:6]))),future_measured_checks=['arrival joint position/velocity and EE pose','door angle/rate after continuing traverse','source EE target tracking and contacts','arrival base braking and actual stopping position']))
-    def segment(name,seconds,bfun=None,pfun=None,ufun=None,qfun=None,thetafun=None,ee=False):
+    def segment(name,seconds,bfun=None,pfun=None,ufun=None,qfun=None,thetafun=None,ee=False,lafun=None):
         nonlocal q
         n=round(seconds/dt);Bstart=base.copy();Qstart=q.copy();thstart=theta;solution=q[:6].copy();diag=None
         for i in range(1,n+1):
             u=i/n;s=float(smooth(u));B=Bstart if bfun is None else bfun(s)
+            if lafun is not None:solver.axis=np.asarray(lafun(s))
             th=thstart if thetafun is None else thetafun(s)
             p=None if pfun is None else pfun(s);axis=None if ufun is None else ufun(s)
             raw=None
@@ -130,22 +131,26 @@ def generate(out,c,cfg):
     yaw=math.radians(c['yaw_deg']);segment('turn',d['turn'],bfun=lambda s:np.r_[endpoint[:2],math.pi+s*(yaw-math.pi)])
     # One explicit endpoint IK seed, then a smooth joint arc. No multi-start search.
     pre=np.array(c['predeploy']);axis=np.array([0,1.,0])
-    seed=np.array([0,1.7,-1.3,-.4,0,0]);hover,hovdiag=solver.solve_point(base,pre,axis,seed,cfg['ik_max_nfev'])
+    seed=np.array([0,1.7,-1.3,-.4,0,0]);hover,hovdiag=solver.solve_point(base,pre,None if c.get('free_deployment') else axis,seed,cfg['ik_max_nfev'])
     write(out/'deployment-endpoint-solve.json',dict(seed=seed.tolist(),q=hover.tolist(),diagnostics=hovdiag))
     Q0=q.copy();Q1=np.r_[hover,HOME[-1]]
     segment('deploy_arc',d['deploy_arc'],qfun=lambda s:(1-s)*Q0+s*Q1)
     edge=np.array(c['edge']);P0=np.array(rows[-1]['pad'])
-    segment('edge',d['edge'],pfun=lambda s:(1-s)*P0+s*edge,ufun=lambda s:axis)
+    segment('edge',d['edge'],pfun=lambda s:(1-s)*P0+s*edge,ufun=None if c.get('free_deployment') else lambda s:axis)
     def point(angle,extra=0):return H+np.array([-c['radius']*math.sin(angle)-(.002+extra)*math.cos(angle),c['radius']*math.cos(angle)-(.002+extra)*math.sin(angle),c['height']-.01])
     P0=np.array(rows[-1]['pad']);P1=point(math.pi/2)
-    segment('seek',d['seek'],pfun=lambda s:(1-s)*P0+s*P1,ufun=lambda s:axis)
+    U0=baseT(base)[:3,:3]@solver.state(q[:6])[2]
+    def seekaxis(s):
+        a=(1-s)*U0+s*axis
+        return a/np.linalg.norm(a) if c.get('free_deployment') else axis
+    segment('seek',d['seek'],pfun=lambda s:(1-s)*P0+s*P1,ufun=seekaxis)
     turnstart=math.radians(c['turn_start_deg']);follow=math.radians(c['follow_start_deg'])
     def closebase(s):
         a=(1-s)*math.pi/2
         y=yaw+(2*math.pi-yaw)*smooth((turnstart-a)/(turnstart-follow))
         x=endpoint[0]+c['follow_m']*smooth((follow-a)/follow)
         return np.array([x,endpoint[1],y])
-    segment('close',d['close'],bfun=closebase,pfun=lambda s:point((1-s)*math.pi/2),ufun=lambda s:np.array([math.cos((1-s)*math.pi/2),math.sin((1-s)*math.pi/2),0]),thetafun=lambda s:(1-s)*math.pi/2)
+    segment('close',d['close'],bfun=closebase,pfun=lambda s:point((1-s)*math.pi/2),ufun=lambda s:np.array([math.cos((1-s)*math.pi/2),math.sin((1-s)*math.pi/2),0]),thetafun=lambda s:(1-s)*math.pi/2,lafun=(lambda s:np.array([math.cos((1-s)*math.pi/2),math.sin((1-s)*math.pi/2),0])) if c['face']=='corner' else None)
     segment('settle',d['settle'])
     P0=np.array(rows[-1]['pad']);segment('release',d['release'],pfun=lambda s:P0-np.array([.12*s,0,0]))
     Q0=q.copy();segment('retract',d['retract'],qfun=lambda s:(1-s)*Q0+s*HOME)
@@ -170,7 +175,7 @@ def generate(out,c,cfg):
         max_v_jump=float(max(abs(np.diff(a[:,0])))),max_w_jump=float(max(abs(np.diff(a[:,1])))),
         max_raw_ik_jump=float(max(r['raw_ik_joint_jump'] or 0 for r in suffix)),
         final_home_error=float(max(abs(q[:6]-HOME[:6]))),constant_z=True,
-        limitations=['50Hz ideal tracking with 10Hz warm-start IK references; no physical dynamics','Inherited endpoint linear traverse stops discontinuously; no relocated braking point','Full attempted suffix retained even after failed IK; not evidence of sequential gate completion'])
+        ik_reference_hz=1/(dt*cfg['ik_period_steps']),limitations=['50Hz ideal tracking, warm-start IK; no physical dynamics','Inherited endpoint linear traverse stops discontinuously; no relocated braking point','Full attempted suffix retained even after failed IK; not evidence of sequential gate completion'])
     write(out/'summary.json',summary);emit(summary)
 
 def main():
