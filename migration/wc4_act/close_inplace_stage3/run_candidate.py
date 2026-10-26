@@ -10,6 +10,7 @@ def generate(run):
     out=run/'single';out.mkdir(exist_ok=False)
     cfg=read(Path(__file__).with_name('config.json'));write(out/'config.json',cfg)
     G=Geometry();S=Solver(G.robot,'corner');dt=cfg['dt']
+    write(out/'far-side-binding.json',G.far_binding)
     source=ROOT/cfg['measured_source'];source_rows=[json.loads(l) for l in (source/'states.jsonl').open()]
     b=next(r for r in source_rows if r['passed']);ref=read(source/'reference.json')
     old=[json.loads(l) for l in (ROOT/cfg['reference_c2']/'trace.jsonl').open()]
@@ -32,7 +33,7 @@ def generate(run):
         q=q+np.clip(cmd-q,-limit*dt,limit*dt) # explicitly ideal, bounded tracking; not dynamics
         delta=B[:2]-before[:2];v=float(delta@np.array([math.cos(before[2]),math.sin(before[2])])/dt);lat=float(delta@np.array([-math.sin(before[2]),math.cos(before[2])])/dt);w=(B[2]-before[2])/dt
         T=baseT(B)@S.fk(q[:6]);pad=T[:3,3]+T[:3,:3]@S.pad;normal=T[:3,:3]@S.axis
-        poses=G.robot.fk(dict(LEGS,**dict(zip(NAMES,q))),baseT(B));cloud=G.robot.cloud(poses)
+        poses=G.robot.fk(dict(G.legs,**dict(zip(NAMES,q))),baseT(B));cloud=G.robot.cloud(poses)
         row=dict(t=t,phase=phase,kind=source_kind,base=B.tolist(),z=.5,pitch=0.,q=q.tolist(),action=np.r_[v,w,cmd].tolist(),theta=theta,
             pad=pad.tolist(),ee=T[:3,3].tolist(),contact_local_axis=S.axis.tolist(),joint_speed_limit=limit,
             commanded_joint_rate=((cmd-cmd_before)/dt).tolist(),synthetic_joint_rate=((q-qbefore)/dt).tolist(),

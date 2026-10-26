@@ -2,6 +2,7 @@
 import sys,math
 from pathlib import Path
 import numpy as np
+from scipy.spatial.transform import Rotation
 ROOT=Path(__file__).resolve().parents[3]
 sys.path.insert(0,str(ROOT/'migration/wc4_act'))
 sys.path.insert(0,str(ROOT/'migration/wc4_act/close_inplace_stage2'))
@@ -18,6 +19,21 @@ class Geometry:
         self.R=collision_pieces(self.robot.path);self.D=collision_pieces(self.door.path)
         effective=read(ROOT/'.repro/runs/wc4-newexpert-stage4-20261025/attempt_000/effective-config.json')
         self.W,self.wallmeta=walls(effective,read(self.door.path.parent/'bounding_box.json'),0.)
+        # Runtime uses measured leg DOFs, not the nominal drive targets.
+        source=ROOT/'.repro/runs/wc4-newexpert-stage4-20261025/attempt_000'
+        import json
+        with (source/'states.jsonl').open() as f:self.anchor=next(json.loads(l) for l in f if json.loads(l)['passed'])
+        mapping=read(source/'body-map.json');names=[v['body'] for k,v in sorted(mapping.items(),key=lambda kv:int(kv[0])) if v['actor_handle']==0]
+        rotations={name:Rotation.from_quat(state[0][1]).as_matrix() for name,state in zip(names,self.anchor['base_body_states'])}
+        self.legs=dict(LEGS)
+        for name,kind,parent_name,child,O,axis in self.robot.joints:
+            if kind not in ('revolute','continuous') or parent_name not in rotations or child not in rotations:continue
+            M=O[:3,:3].T@rotations[parent_name].T@rotations[child]
+            sine=np.dot(axis,np.array([M[2,1]-M[1,2],M[0,2]-M[2,0],M[1,0]-M[0,1]])/2)
+            self.legs[name]=float(np.arctan2(sine,(np.trace(M)-1)/2))
+        anchorposes=self.robot.fk(dict(self.legs,**dict(zip(NAMES,self.anchor['arm_q']))),baseT(self.anchor['actual_base']))
+        self.far_binding=dict(measured_leg_q=self.legs,source_runtime_max_x=self.anchor['whole_geometry_max_x'],reconstructed_max_x=float(self.robot.cloud(anchorposes)[:,0].max()),
+            scope='Leg q recovered from measured parent/child rigid rotations; frozen afterwards as a synthetic nominal assumption. Collision AND visual bounds match runtime membership.')
         parent={n:n for n in self.robot.links}
         def root(n):
             while parent[n]!=n:n=parent[n]
@@ -36,7 +52,7 @@ class Geometry:
                     self.excluded.append((a.link,a.name,b.link,b.name,'rigid assembly or directly joint-adjacent'))
                 else:self.selfpairs.append((i,j))
     def check(self,B,q,theta,contact_piece='2'):
-        poses=self.robot.fk(dict(LEGS,**dict(zip(NAMES,q))),baseT(B))
+        poses=self.robot.fk(dict(self.legs,**dict(zip(NAMES,q))),baseT(B))
         dp=self.door.fk({'door_hinge_joint':theta,'handle_spindle_joint':0},transform([2.61,0,.01],[0,0,math.pi/2]))
         AW=[p.world(poses[p.link]) for p in self.R];pieces=self.D+[p for p,_ in self.W]
         BW=[p.world(dp[p.link]) for p in self.D]+[b for _,b in self.W]
@@ -61,4 +77,4 @@ class Geometry:
             if gap< -1e-7:overlaps.append(dict(category='self',**x))
         cloud=self.robot.cloud(poses)
         return dict(minimums=best,overlaps=overlaps,whole_max_x=float(cloud[:,0].max()),far=bool(cloud[:,0].max()<2.5),
-            far_semantics='runtime source: collision AND visual bounds, configured nominal leg q, not measured dynamics')
+            far_semantics='runtime source: collision AND visual bounds, measured anchor leg q then frozen synthetically')
