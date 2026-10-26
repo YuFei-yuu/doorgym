@@ -6,12 +6,12 @@ from geometry import Geometry,Solver,ROOT,HOME,baseT,write,read
 from close_inplace_stage2.candidate import smooth
 from close_inplace_stage2.refine_overlap import slab_mesh
 
-def main(run):
-    out=run/'local-02';out.mkdir(exist_ok=False);G=Geometry();S=Solver(G.robot,'corner')
+def main(run,name,offsets):
+    out=run/name;out.mkdir(exist_ok=False);G=Geometry();S=Solver(G.robot,'corner')
     cases=read(run/'local-01/results.json')['cases'];case=next(x for x in cases if x['snapshot']==0 and x['radius']==.905 and x['roll_deg']==0)
     B=case['base'];theta=case['theta'];n=np.array([math.cos(theta),math.sin(theta),0]);S.axis=n.copy();seed=np.array(case['q'])
     sols=[]
-    for offset in [.04,.02,0.]:
+    for offset in offsets:
         point=np.array([2.467-.905*math.sin(theta)-(.002+offset)*math.cos(theta),-.463+.905*math.cos(theta)-(.002+offset)*math.sin(theta),.85])
         q,e=S.solve_point(B,point,n,seed,160);g=G.check(B,np.r_[q,HOME[-1]],theta)
         sols.append(dict(offset=offset,target=point.tolist(),q=np.r_[q,HOME[-1]].tolist(),ik=e,geometry=g));print(json.dumps(sols[-1]),flush=True)
@@ -32,4 +32,4 @@ def main(run):
     print(json.dumps(dict(surface_triangles=on,selected_offset=None if selected is None else selected['offset'],arc_samples=len(arc),min_external=min([x['geometry']['minimums']['external']['gap_m'] for x in arc] or [0]),min_self=min([x['geometry']['minimums']['self']['gap_m'] for x in arc] or [0]))),flush=True)
 if __name__=='__main__':
     if os.environ.get('CUDA_VISIBLE_DEVICES')!='':raise RuntimeError('CUDA must be hidden')
-    p=argparse.ArgumentParser();p.add_argument('--run',type=Path,required=True);a=p.parse_args();main(a.run)
+    p=argparse.ArgumentParser();p.add_argument('--run',type=Path,required=True);p.add_argument('--name',default='local-02');p.add_argument('--offsets',type=float,nargs='+',default=[.04,.02,0.]);a=p.parse_args();main(a.run,a.name,a.offsets)
