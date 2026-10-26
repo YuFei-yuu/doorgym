@@ -32,6 +32,15 @@ def audit(out):
         sphere_mesh_overlap='Unresolved unless supported by exact box-box overlap or actual mesh surface detail. All pairs retained for localization.',
         trace_sha256=sha(out/'trace.jsonl'),source_sha256={str(p):sha(p) for p in [rp,dp,ROOT/'migration/wc4_act/fullcycle_collision.py',ROOT/'migration/wc4_act/newexpert_stage2/finite_walls.py']}))
     categories=['pad_panel','arm_panel','base_panel','handle','frame','wall'];cache={}
+    allpieces=D+[p for p,_ in W]
+    labels=np.empty((len(R),len(allpieces)),dtype=int)
+    for ia,p in enumerate(R):
+        isarm=p.link.startswith('link') or p.link.startswith('gripper') or p.link.startswith('wrist')
+        for ib,d in enumerate(allpieces):
+            cat='wall' if ib>=len(D) else ('pad_panel' if p.link=='gripperStator' and p.name=='2' else 'arm_panel' if isarm else 'base_panel') if d.link=='door_panel' else 'handle' if 'handle' in d.link or 'lever' in d.link else 'frame'
+            labels[ia,ib]=categories.index(cat)
+    masks=[np.flatnonzero(labels.ravel()==k) for k in range(len(categories))]
+    progress=(out/'geometry-progress.jsonl').open('x')
     def evaluate(i):
         if i in cache:return cache[i]
         r=rows[i];poses=robot.fk(dict(LEGS,**dict(zip(NAMES,r['q']))),baseT(r['base']))
@@ -39,22 +48,17 @@ def audit(out):
         AW=[p.world(poses[p.link]) for p in R];BW=[p.world(doors[p.link]) for p in D]+[b for _,b in W];pieces=D+[p for p,_ in W]
         amin=np.array([a[0].min(0) for a in AW]);amax=np.array([a[0].max(0) for a in AW]);bmin=np.array([b[0].min(0) for b in BW]);bmax=np.array([b[0].max(0) for b in BW])
         broad=np.maximum(bmin[None]-amax[:,None],amin[:,None]-bmax[None]).max(2)
-        best={k:dict(gap_m=100.) for k in categories};overlaps=[]
-        for ia,p in enumerate(R):
-            isarm=p.link.startswith('link') or p.link.startswith('gripper') or p.link.startswith('wrist')
-            for ib,d in enumerate(pieces):
-                if ib>=len(D):cat='wall'
-                elif d.link=='door_panel':cat='pad_panel' if p.link=='gripperStator' and p.name=='2' else 'arm_panel' if isarm else 'base_panel'
-                elif 'handle' in d.link or 'lever' in d.link:cat='handle'
-                else:cat='frame'
-                gap=float(broad[ia,ib])
-                if gap>.05 and gap>=best[cat]['gap_m']:continue
-                if gap<=.05:gap=fast_gap(AW[ia],BW[ib])
-                entry=dict(gap_m=gap,robot_link=p.link,robot_piece=p.name,robot_kind=p.kind,obstacle_link=d.link,obstacle_piece=d.name,obstacle_kind=d.kind)
-                if gap<best[cat]['gap_m']:best[cat]=entry
-                if gap<0:overlaps.append(dict(category=cat,**entry))
+        gaps=broad.copy()
+        for ia,ib in np.argwhere(broad<=.05):gaps[ia,ib]=fast_gap(AW[ia],BW[ib])
+        def entry(ia,ib):
+            p=R[ia];d=pieces[ib]
+            return dict(gap_m=float(gaps[ia,ib]),robot_link=p.link,robot_piece=p.name,robot_kind=p.kind,obstacle_link=d.link,obstacle_piece=d.name,obstacle_kind=d.kind)
+        best={}
+        for cat,mask in zip(categories,masks):
+            ia,ib=np.unravel_index(mask[np.argmin(gaps.ravel()[mask])],gaps.shape);best[cat]=entry(ia,ib)
+        overlaps=[dict(category=categories[labels[ia,ib]],**entry(ia,ib)) for ia,ib in np.argwhere(gaps<0)]
         item=dict(index=i,t=r['t'],phase=r['phase'],minimums=best,overlaps=overlaps)
-        cache[i]=item;return item
+        cache[i]=item;progress.write(json.dumps(item)+'\n');progress.flush();return item
     period=cfg['geometry_period_steps'];indices=set(range(0,len(rows),period));indices.add(len(rows)-1)
     for i in range(1,len(rows)):
         if rows[i]['phase']!=rows[i-1]['phase']:indices.update([i-1,i])
@@ -75,6 +79,7 @@ def audit(out):
     for l,h in zip(ordered[:-1],ordered[1:]):
         bound=float(motion[l:h].sum());gap=min(cache[l]['minimums'][k]['gap_m'] for k in categories if k!='pad_panel')
         intervals.append(dict(first=l,last=h,motion_bound_m=bound,external_lower_gap_m=gap,certified_separated_under_linear_interpolation=bool(gap>bound)))
+    progress.close()
     minima={};negative=[]
     for i in ordered:
         item=cache[i]

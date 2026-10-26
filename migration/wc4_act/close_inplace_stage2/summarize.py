@@ -44,6 +44,9 @@ def main(run):
                 row=r))
         write(out/'overlap-localization.json',localization)
         suffix=[r for r in rows if r['phase']!='traverse_continuation']
+        bases=np.array([r['base'] for r in rows]);qs=np.array([r['q'] for r in rows]);dt=.02
+        sweep=np.linalg.norm(np.diff(bases[:,:2],axis=0),axis=1)+2*abs(np.diff(bases[:,2]))+2*np.sum(abs(np.diff(qs,axis=0)),axis=1)
+        far_unresolved=int(sum(2.5-rows[i]['whole_max_x']<=sweep[i] for i in range(len(sweep))))
         close=[r for r in suffix if r['phase']=='close'];seek=[r for r in suffix if r['phase']=='seek']
         rawjumps=[float(max(abs(np.array(b['q'])-a['q']))) for a,b in zip(solves[:-1],solves[1:]) if a['phase']==b['phase']]
         m=g['minimums'];external={k:v for k,v in m.items() if not k.endswith('/pad_panel')}
@@ -59,6 +62,8 @@ def main(run):
             lateral_velocity_residual=s['maximum_lateral_mps'],endpoint_velocity_jump=s['max_v_jump'],
             maximum_suffix_whole_x=max(r['whole_max_x'] for r in suffix),minimum_far_side_margin=2.5-max(r['whole_max_x'] for r in rows),
             z=.5,total_trace_end_s=rows[-1]['t'],geometry_samples=g['samples'],unresolved_geometry_intervals=g['unresolved_intervals'],
+            unresolved_far_side_interpolation_intervals=far_unresolved,
+            max_suffix_joint_acceleration=float(abs(np.diff(np.array([r['q'][:6] for r in suffix]),n=2,axis=0)/dt**2).max()),
             worst_external_category=worst,worst_external_pair=external[worst],substantial_external_envelope_overlap_records=len(substantial),
             inherited_arrival_joint_state=h['synthetic_arrival']['q'],inherited_endpoint_ee_error_m=h['synthetic_arrival']['tracking_m'],
             final_home_error=s['final_home_error'],physical_rollouts=0,task_success=None,dataset_quality=None)
@@ -69,6 +74,22 @@ def main(run):
     table=['candidate,translation_m,max_displacement_m,close_tracking_m,seek_tracking_m,min_close_slack_rad,raw_branch_jump_rad,geometry_samples,unresolved_intervals,status']
     for x in result:table.append(','.join(str(x[k]) for k in ['id','translation_m','max_displacement_m','max_close_tracking_m','max_seek_tracking_m','min_close_joint_slack_rad','raw_solver_consecutive_max_jump_rad','geometry_samples','unresolved_geometry_intervals','status']))
     (run/'comparison.csv').write_text('\n'.join(table)+'\n')
+    lines=['# 第二轮：名义路线连续可达性与几何验证','',
+        '冻结结论：三条完整候选均需修正，未授予物理试运行准入。c2仅推荐作为下一轮连续性修正的基础；本轮不继续求解或缩小平移。','',
+        '|候选|后段累计平移/最大位移 m|部署端点IK误差 m|seek最大跟踪误差 m|close最大跟踪误差 m|close最小关节余量 rad|外部源包络最小间隔 m|未证净空间隔数|',
+        '|---|---|---|---|---|---|---|---|']
+    for x in result:lines.append(f"|{x['id']}|{x['translation_m']:.3f}/{x['max_displacement_m']:.3f}|{x['hover_ik']['position_error_m']:.6g}|{x['max_seek_tracking_m']:.6g}|{x['max_close_tracking_m']:.6g}|{x['min_close_joint_slack_rad']:.6g}|{x['worst_external_pair']['gap_m']:.6g}|{x['unresolved_geometry_intervals']}|")
+    lines+=['','所有方案从同一配置终点(1.259999752,0.180000007)m、yaw=π起始后段；底盘z=0.5m恒定。原穿越继续段平移0.715999961m另列，不计入推关后段0.45m。后段平移仅在合成门角<35°、底盘已转到360°时开始；不把预设门角当成接触反馈。',
+        '','实测参考为stage4/seed62000至step880的前缀。原路径继续到step1059终点的关节状态与门角均为合成假设：门角固定为首个全身通过时的实测值，使用原目标与DLS参数、源解析Jacobian和理想跟踪。并非真实仿真或实际到达记录。',
+        '','共同交接问题：原线性穿越参考到终点后由0.2m/s直接变0，没有平滑减速段。没有通过更换终点、提前停车或私自改写原逻辑消除它。合成末端到原冻结世界目标的误差在终点为0.582231m；原实测首过点已经有约0.289738m目标误差，不能把这项合成增长解释成新的物理任务失败。终点合成关节并非home，详见handoff.json。',
+        '','c0：固定指+x面、300°、r=0.84m、z_contact=0.94m；部署和推关连续IK失败。c1：固定指+y侧面、300°、r=0.82m、z_contact=0.90m，推关放慢至75s；仍有贴限/分支切换。c2：固定指原box的+x/+y棱边，270°、r=0.88m、z_contact=0.85m；部署不强制法向，接近时逐渐对齐，推关接触局部法向从+y转到+x，推关90s。接触高度只是各候选的设计值，不是新的任务约束；没有底盘升降。',
+        '','c2的close段位置/法向跟踪很好，但不能据此跳过进入接触阶段的约17mm短时残差、近零关节余量、交接停车跳变及几何未证区段。末端棱边接触的实际稳定性、摩擦与非末端接触都未验证。三条未通过可行性检查，因此没有进行低于0.45m的路线扩展。',
+        '','几何：使用完整机器人源URDF collision pieces与真实默认腿姿态，门板、把手、门框及作者构造的两块有限墙；不是规划矩形。每0.1s及阶段边界检查；可能不安全的区间加密至50Hz，并给出线性插值运动包络证明/未证标记。源凸包、球外包盒、圆柱外包32边形有保守性；负间隔不直接认定真实穿透。overlap-localization.json定位至连杆、子碰撞基元、障碍物、时刻和世界顶点。无cooked PhysX形状或完整自碰撞认证。',
+        '','Joint9动作顺序与vx/yaw-rate语义不变，平面侧向速度数值残差接近零。新后段关节命令限速0.7rad/s；原继续段保留原单步0.06rad上限（50Hz对应3rad/s），分别报告。限速不等于速度/加速度全程光滑，原始曲线与二阶差分诊断保留。所有50Hz源包络样本保持远侧；采样间远侧不能证明的区间另列。',
+        '','每条trace.jsonl是完整尝试，不在求解失败处伪造通过或删段；失败之后的后缀只是定位诊断，不证明按序完成。measured-prefix.jsonl与trace.jsonl分开，严禁把二者拼接后称为完整真实执行或训练数据。自动任务结果、完整任务审核、数据质量均不适用；仿真、采集、录像、转换、训练、策略推理均为0。',
+        '','来源、执行提交、工具异常与命令详见COMMANDS.txt、ledger.json、receipt.json、sources/asset SHA、执行源码快照及Git bundle。本轮只新增独立CPU工具，受保护源码和资产一致性见protected-source-check.json。',
+        '','未来待实测：继续穿越的门角/角速度、终点q/qd与末端实际位置、接触继承/脱离、终点停车行为；后段接触作用、锁前真实保持、合法锁存、释放/收臂和最终共同保持。需要更改原穿越时间参数等边界事项应由方案侧在下一轮明确，不在本轮扩大范围。']
+    (run/'REPORT.md').write_text('\n'.join(lines)+'\n')
     import matplotlib;matplotlib.use('Agg')
     import matplotlib.pyplot as plt
     fig,axes=plt.subplots(1,3,figsize=(14,4.8))
