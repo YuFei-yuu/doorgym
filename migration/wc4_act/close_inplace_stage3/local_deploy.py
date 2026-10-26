@@ -28,7 +28,7 @@ def main(run,name,offsets):
         if abs(np.dot(normal/norm,p-a))>1e-7:continue
         uv=np.linalg.lstsq(np.column_stack([v,w]),p-a,rcond=None)[0]
         if min(uv)>=-1e-7 and sum(uv)<=1+1e-7:on.append(dict(triangle=i,normal=(normal/norm).tolist(),barycentric=[float(1-sum(uv)),*uv.tolist()]))
-    write(out/'results.json',dict(scope='three static offsets plus ONE local joint arc from home to selected hover; no complete route',radius=.905,contact_height=.85,contact_surface_local=p.tolist(),source_triangles_containing_point=on,slab_mesh=meta,offsets=sols,selected=selected,arc=arc))
+    write(out/'results.json',dict(scope='static offset endpoints and at most ONE local joint arc; no complete route',requested_offsets=offsets,actual_endpoint_solves=len(sols),actual_arc_samples=len(arc),radius=.905,contact_height=.85,contact_surface_local=p.tolist(),source_triangles_containing_point=on,slab_mesh=meta,offsets=sols,selected=selected,arc=arc))
     print(json.dumps(dict(surface_triangles=on,selected_offset=None if selected is None else selected['offset'],arc_samples=len(arc),min_external=min([x['geometry']['minimums']['external']['gap_m'] for x in arc] or [0]),min_self=min([x['geometry']['minimums']['self']['gap_m'] for x in arc] or [0]))),flush=True)
 if __name__=='__main__':
     if os.environ.get('CUDA_VISIBLE_DEVICES')!='':raise RuntimeError('CUDA must be hidden')
