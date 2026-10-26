@@ -51,6 +51,7 @@ def main(run):
         rawjumps=[float(max(abs(np.array(b['q'])-a['q']))) for a,b in zip(solves[:-1],solves[1:]) if a['phase']==b['phase']]
         m=g['minimums'];external={k:v for k,v in m.items() if not k.endswith('/pad_panel')}
         worst=min(external,key=lambda k:external[k]['gap_m']);substantial=[x for x in overlap if x['category']!='pad_panel' and x['gap_m']<-.0001]
+        suffix_gaps={k:min(x['gap_m'] for name,x in m.items() if name.endswith('/'+k) and not name.startswith('traverse_continuation/')) for k in ['arm_panel','base_panel','handle','frame','wall']}
         data=dict(id=cid,status='NEEDS_CORRECTION_NO_PHYSICAL_ADMISSION',execution_commit=read(out/'receipt.json')['head'],
             translation_m=s['suffix_translation_m'],max_displacement_m=s['suffix_max_displacement_m'],
             preceding_continuation_translation_m=s['continuation_translation_m'],follow_condition='prescribed synthetic door angle below 35 deg, yaw already 360 deg; no contact gate in this offline attempt',
@@ -65,6 +66,7 @@ def main(run):
             unresolved_far_side_interpolation_intervals=far_unresolved,
             max_suffix_joint_acceleration=float(abs(np.diff(np.array([r['q'][:6] for r in suffix]),n=2,axis=0)/dt**2).max()),
             worst_external_category=worst,worst_external_pair=external[worst],substantial_external_envelope_overlap_records=len(substantial),
+            suffix_minimum_gaps_by_category_m=suffix_gaps,
             inherited_arrival_joint_state=h['synthetic_arrival']['q'],inherited_endpoint_ee_error_m=h['synthetic_arrival']['tracking_m'],
             final_home_error=s['final_home_error'],physical_rollouts=0,task_success=None,dataset_quality=None)
         write(out/'decision.json',data);result.append(data)
@@ -76,9 +78,9 @@ def main(run):
     (run/'comparison.csv').write_text('\n'.join(table)+'\n')
     lines=['# 第二轮：名义路线连续可达性与几何验证','',
         '冻结结论：三条完整候选均需修正，未授予物理试运行准入。c2仅推荐作为下一轮连续性修正的基础；本轮不继续求解或缩小平移。','',
-        '|候选|后段累计平移/最大位移 m|部署端点IK误差 m|seek最大跟踪误差 m|close最大跟踪误差 m|close最小关节余量 rad|外部源包络最小间隔 m|未证净空间隔数|',
+        '|候选|后段累计平移/最大位移 m|部署端点IK误差 m|seek最大跟踪误差 m|close最大跟踪误差 m|close最小关节余量 rad|后段外部源包络最小间隔 m|未证净空间隔数|',
         '|---|---|---|---|---|---|---|---|']
-    for x in result:lines.append(f"|{x['id']}|{x['translation_m']:.3f}/{x['max_displacement_m']:.3f}|{x['hover_ik']['position_error_m']:.6g}|{x['max_seek_tracking_m']:.6g}|{x['max_close_tracking_m']:.6g}|{x['min_close_joint_slack_rad']:.6g}|{x['worst_external_pair']['gap_m']:.6g}|{x['unresolved_geometry_intervals']}|")
+    for x in result:lines.append(f"|{x['id']}|{x['translation_m']:.3f}/{x['max_displacement_m']:.3f}|{x['hover_ik']['position_error_m']:.6g}|{x['max_seek_tracking_m']:.6g}|{x['max_close_tracking_m']:.6g}|{x['min_close_joint_slack_rad']:.6g}|{min(x['suffix_minimum_gaps_by_category_m'].values()):.6g}|{x['unresolved_geometry_intervals']}|")
     lines+=['','所有方案从同一配置终点(1.259999752,0.180000007)m、yaw=π起始后段；底盘z=0.5m恒定。原穿越继续段平移0.715999961m另列，不计入推关后段0.45m。后段平移仅在合成门角<35°、底盘已转到360°时开始；不把预设门角当成接触反馈。',
         '','实测参考为stage4/seed62000至step880的前缀。原路径继续到step1059终点的关节状态与门角均为合成假设：门角固定为首个全身通过时的实测值，使用原目标与DLS参数、源解析Jacobian和理想跟踪。并非真实仿真或实际到达记录。',
         '','共同交接问题：原线性穿越参考到终点后由0.2m/s直接变0，没有平滑减速段。没有通过更换终点、提前停车或私自改写原逻辑消除它。合成末端到原冻结世界目标的误差在终点为0.582231m；原实测首过点已经有约0.289738m目标误差，不能把这项合成增长解释成新的物理任务失败。终点合成关节并非home，详见handoff.json。',
@@ -89,6 +91,14 @@ def main(run):
         '','每条trace.jsonl是完整尝试，不在求解失败处伪造通过或删段；失败之后的后缀只是定位诊断，不证明按序完成。measured-prefix.jsonl与trace.jsonl分开，严禁把二者拼接后称为完整真实执行或训练数据。自动任务结果、完整任务审核、数据质量均不适用；仿真、采集、录像、转换、训练、策略推理均为0。',
         '','来源、执行提交、工具异常与命令详见COMMANDS.txt、ledger.json、receipt.json、sources/asset SHA、执行源码快照及Git bundle。本轮只新增独立CPU工具，受保护源码和资产一致性见protected-source-check.json。',
         '','未来待实测：继续穿越的门角/角速度、终点q/qd与末端实际位置、接触继承/脱离、终点停车行为；后段接触作用、锁前真实保持、合法锁存、释放/收臂和最终共同保持。需要更改原穿越时间参数等边界事项应由方案侧在下一轮明确，不在本轮扩大范围。']
+    if (run/'source-mesh-localization.json').exists():
+        mesh=read(run/'source-mesh-localization.json');lines+=['','## 原始门板网格定位','',
+            '门板原OBJ焊接后168条边均有两个相邻三角形（112个三角形）；用两种非轴向射线核对源几何采样点是否在其内部。以下是合成姿态的源几何交叠证据，不是实际物理接触、力值或cooked网格穿透深度。','',
+            '|候选/阶段|时间 s|具体源几何|落入门板内部的原始顶点/源box采样点|','|---|---|---|---|']
+        for x in mesh['results']:
+            pair=x['source_pair'];lines.append(f"|{x['candidate']}/{x['phase']}|{x['time_s']:.2f}|{pair['robot_link']} / {pair['robot_piece']}|{x['both_ray_inside_count']}/{x['sampled_points']}|")
+        lines+=['','尤其c2在约76.70s有441个腕部安装件原始顶点落入门板内部；seek结束也有9个固定指源box采样点落入门板。不能以低IK残差接受该路线。共同穿越继续段的最坏凸包重叠未由本次顶点采样确认，仍为未解风险；零内部采样点不证明分离。详见source-mesh-localization.json和source-overlap-detail.png。',
+            '','本轮没有可执行的整条推荐方案。c2只保留为后续IK设计参考；应先解决交接停车与非末端几何干涉，再讨论平移缩短。不得据本轮结果启动物理试验或增加第四条候选。']
     (run/'REPORT.md').write_text('\n'.join(lines)+'\n')
     import matplotlib;matplotlib.use('Agg')
     import matplotlib.pyplot as plt
