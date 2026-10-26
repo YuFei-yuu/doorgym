@@ -8,6 +8,16 @@ from fullcycle_geometry import URDF,transform,apply
 from fullcycle_collision import collision_pieces,signed_gap
 from newexpert_stage2.finite_walls import walls
 
+def fast_gap(A,B):
+    """Same SAT axes, vectorized normalization; duplicate axes need not be removed."""
+    av,an,ae=A;bv,bn,be=B
+    broad=np.maximum(bv.min(0)-av.max(0),av.min(0)-bv.max(0))
+    if broad.max()>.05:return float(broad.max())
+    cross=np.cross(ae[:,None,:],be[None,:,:]).reshape(-1,3)
+    axes=np.concatenate([an,bn,cross]);norm=np.linalg.norm(axes,axis=1);axes=axes[norm>1e-9]/norm[norm>1e-9,None]
+    aa=av@axes.T;bb=bv@axes.T
+    return float(np.maximum(bb.min(0)-aa.max(0),aa.min(0)-bb.max(0)).max())
+
 def audit(out):
     rows=[json.loads(l) for l in (out/'trace.jsonl').open()];cfg=read(out/'config.json')['global_config'];c=read(out/'config.json')['candidate']
     source=ROOT/cfg['source_run'];effective=read(source/'effective-config.json')
@@ -39,7 +49,7 @@ def audit(out):
                 else:cat='frame'
                 gap=float(broad[ia,ib])
                 if gap>.05 and gap>=best[cat]['gap_m']:continue
-                if gap<=.05:gap=signed_gap(AW[ia],BW[ib])
+                if gap<=.05:gap=fast_gap(AW[ia],BW[ib])
                 entry=dict(gap_m=gap,robot_link=p.link,robot_piece=p.name,robot_kind=p.kind,obstacle_link=d.link,obstacle_piece=d.name,obstacle_kind=d.kind)
                 if gap<best[cat]['gap_m']:best[cat]=entry
                 if gap<0:overlaps.append(dict(category=cat,**entry))
