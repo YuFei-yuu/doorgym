@@ -57,9 +57,9 @@ def plots(run,rows,geos,G,localized):
     for j,name in enumerate(['x','y','z']):axes[0].plot(t,actual[:,j],label='FK Euler '+name);axes[0].plot(t,target[:,j],'--',alpha=.55)
     axes[0].legend(ncol=3);axes[0].set_ylabel('Euler angles deg (display only)')
     axes[1].plot(t,np.unwrap([r['twist_rad'] for r in rows])*180/np.pi,label='FK twist about door normal');axes[1].plot(t,np.unwrap([r['target_twist_rad'] for r in rows])*180/np.pi,'--',label='prescribed twist');axes[1].legend();axes[1].set_ylabel('Twist representation deg')
-    axes[2].plot(t,[r['orientation_error_rad'] for r in rows],label='full SO(3) error');axes[2].plot(t,[r['normal_error_rad'] for r in rows],label='normal error');axes[2].axhline(.01,color='r',ls='--',label='full orientation gate');axes[2].legend();axes[2].set_ylabel('rad');axes[2].set_xlabel('Local reference time s')
+    axes[2].plot(t,[r['orientation_error_rad'] for r in rows],label='full SO(3) error');axes[2].plot(t,[r['normal_error_rad'] for r in rows],label='normal difference (gate at contact)');axes[2].axhline(.01,color='r',ls='--',label='full orientation gate');axes[2].legend();axes[2].set_ylabel('rad');axes[2].set_xlabel('Local reference time s')
     for ax in axes:ax.grid(alpha=.2);ax.axvline(22,color='k',alpha=.3)
-    fig.suptitle('Full tool pose and controlled normal-axis rotation | synthetic, NOT physics\nTwist during misaligned deployment is a representation, not a valid contact-roll angle');fig.tight_layout(rect=[0,0,1,.94]);fig.savefig(out/'orientation-roll.png',dpi=150);plt.close(fig)
+    fig.suptitle('Full tool pose | synthetic; gate FAILED, push is DIAGNOSTIC\nTwist during misaligned deployment is a representation, not a valid contact-roll angle');fig.tight_layout(rect=[0,0,1,.94]);fig.savefig(out/'orientation-roll.png',dpi=150);plt.close(fig)
     fig,axes=plt.subplots(3,1,figsize=(12,10),sharex=True)
     axes[0].plot(t,[r['position_error_m']*1000 for r in rows]);axes[0].axhline(8,color='r',ls='--');axes[0].set_ylabel('Position error mm')
     for cat in ['external','intended','self']:axes[1].plot(t,[g['minimums'][cat]['gap_m'] for g in geos],label=cat)
@@ -73,10 +73,10 @@ def plots(run,rows,geos,G,localized):
     fig,ax=plt.subplots(figsize=(9,8));pad=np.array([r['pad'] for r in rows]);goal=np.array([r['target'] for r in rows])
     ax.plot(goal[:,0],goal[:,1],'--',label='prescribed pad reference');ax.plot(pad[:,0],pad[:,1],label='synthetic FK pad');ax.scatter(*rows[0]['base'][:2],color='k',label='fixed base XY')
     for deg in [90,80,70]:
-        a=np.deg2rad(deg);end=np.array([2.467,-.463])+np.array([-.913*np.sin(a),.913*np.cos(a)]);ax.plot([2.467,end[0]],[-.463,end[1]],color='#a97541',alpha=.6);ax.text(*end,str(deg)+'°')
+        a=np.deg2rad(deg);end=np.array([2.467,-.463])+np.array([-.913*np.sin(a),.913*np.cos(a)]);ax.plot([2.467,end[0]],[-.463,end[1]],color='#a97541',alpha=.6);ax.annotate(str(deg)+'°',end,xytext=(-22,-15),textcoords='offset points')
     for phase in ['deploy_a','deploy_b','align_approach','push_to_70']:
-        r=[r for r in rows if r['phase']==phase][-1];ax.scatter(*r['pad'][:2],s=30);ax.annotate(phase,r['pad'][:2],xytext=(5,5),textcoords='offset points',fontsize=9)
-    ax.set_aspect('equal');ax.grid(alpha=.2);ax.legend();ax.set(xlabel='World x m',ylabel='World y m',title='One fixed-base local path only | no follow / no full closure');fig.tight_layout();fig.savefig(out/'deployment-path.png',dpi=160);plt.close(fig)
+        r=[r for r in rows if r['phase']==phase][-1];ax.scatter(*r['pad'][:2],s=30);ax.annotate(phase,r['pad'][:2],xytext=(12,-18) if phase=='deploy_b' else (12,10),textcoords='offset points',fontsize=9)
+    ax.set_aspect('equal');ax.grid(alpha=.2);ax.legend();ax.set(xlabel='World x m',ylabel='World y m',title='Fixed-base local reference | gate FAILED, push segment is diagnostic');fig.tight_layout();fig.savefig(out/'deployment-path.png',dpi=160);plt.close(fig)
     selected=[rows[0]]+[next(r for r in rows if r['t']>=u) for u in [4,8,11,14,18,22,28,33]]+[rows[-1]]
     fig,axes=plt.subplots(2,5,figsize=(20,9))
     for ax,r in zip(axes.flat,selected):
