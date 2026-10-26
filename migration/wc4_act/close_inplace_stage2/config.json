@@ -1,0 +1,16 @@
+{
+  "scope": "nominal CPU kinematics and source geometry only; maximum 3 full candidates",
+  "dt": 0.02,
+  "ik_period_steps": 5,
+  "geometry_period_steps": 5,
+  "joint_speed": 0.7,
+  "position_tolerance_m": 0.008,
+  "axis_tolerance_rad": 0.03,
+  "ik_max_nfev": 80,
+  "source_run": ".repro/runs/wc4-newexpert-stage4-20261025/attempt_000",
+  "candidates": [
+    {"id": "c0", "follow_m": 0.45, "yaw_deg": 300, "radius": 0.84, "height": 0.94, "face": "x", "turn_start_deg": 45, "follow_start_deg": 35, "predeploy": [1.38, -0.32, 0.94], "edge": [1.40, -0.57, 0.94]}
+  ],
+  "durations": {"endpoint_hold": 1, "withdraw": 3, "fold": 6, "turn": 10, "deploy_arc": 8, "edge": 5, "seek": 5, "close": 50, "settle": 1, "release": 4, "retract": 7, "restore": 12, "hold": 2.2},
+  "notes": ["No physical feedback. Prescribed door angle is synthetic.", "Planning gates are not changes to R11.", "Inherited traversal target/velocity retained; abrupt endpoint stop is measured as a reference discontinuity, not hidden by relocating endpoint."]
+}
