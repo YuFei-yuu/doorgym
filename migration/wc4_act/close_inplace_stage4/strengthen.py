@@ -25,7 +25,7 @@ def main(run):
                     gap=fast_gap(A[i],BB[j])
                     if gap<best['gap_m']:best=dict(gap_m=gap,a=[p.link,p.name],b=[d.link,d.name])
             cache[x['start']]=best
-        best=cache[x['start']];results.append(dict(start=x['start'],end=x['end'],phase=x['phase'],bound_m=bound,minimum=best,certified=best['gap_m']>bound))
+        best=cache[x['start']];results.append(dict(start=x['start'],end=x['end'],phase=x['phase'],bound_m=float(bound),minimum=best,certified=bool(best['gap_m']>bound)))
     write(out/'external-interval-strengthening.json',dict(trace_sha256=sha(out/'trace.jsonl'),scope='Only stronger complete-SAT projected bounds at existing interval endpoints; no new robot target, seed, IK, trajectory or policy',intervals_rechecked=len(results),certified=sum(x['certified'] for x in results),still_unproved=sum(not x['certified'] for x in results),results=results,
         no_gate_rewrite=True,meaning='Original failed prefix and diagnostic labels remain; this cannot turn the reference into ordered execution. Selected contact body and self-baseline proofs are separate.'))
     print(json.dumps(dict(rechecked=len(results),certified=sum(x['certified'] for x in results),still_unproved=sum(not x['certified'] for x in results))))
