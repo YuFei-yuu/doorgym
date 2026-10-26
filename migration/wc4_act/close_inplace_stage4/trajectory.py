@@ -71,7 +71,7 @@ def generate(run):
     def record(phase,target_q,a,p,R,ik=None):
         nonlocal q,t,prev_q,prev_theta,history_ok,baseline_intervals
         t0=t;t+=dt;before=q.copy();q=q+np.clip(np.asarray(target_q)-q,-cfg['joint_speed']*dt,cfg['joint_speed']*dt)
-        raw=raw_geometry(q,a);negative={pairkey(x):x for x in raw['overlaps'] if x['category']=='self'};allowed=set();baseline_new=[]
+        raw=raw_geometry(q,a);negative={pairkey(x):x for x in raw['overlaps'] if x['category']=='self' and x['gap_m']< -eps};allowed=set();baseline_new=[]
         for key in list(active):
             if key not in negative:active.remove(key);continue
             gap=negative[key]['gap_m']
@@ -91,7 +91,7 @@ def generate(run):
         step_ok=bool(raw_ok and inter and pos<=cfg['position_gate_m'] and ori<=cfg['full_orientation_gate_rad'])
         if not step_ok:issues.append(dict(t=t,phase=phase,pose_position=pos,pose_orientation=ori,interval_certified=inter,external_gap=raw['minimums']['external']['gap_m'],selected_gap=raw['minimums']['intended']['gap_m'],new_self=novel_self))
         history_ok=history_ok and step_ok
-        row=dict(t=t,source_aligned_t=start['t']+t,phase=phase,base=B.tolist(),q=q.tolist(),theta=a,z=.5,action=np.r_[0.,0.,q].tolist(),target=p.tolist(),target_rotation=R.tolist(),actual_rotation=F[:3,:3].tolist(),pad=actual.tolist(),position_error_m=pos,orientation_error_rad=ori,normal_error_rad=normal_error,twist_rad=twist,target_twist_rad=target_twist,joint_rate=((q-before)/dt).tolist(),joint_slack=float(np.min(np.r_[q[:6]-S.lo,S.hi-q[:6]])),ik=ik,new_geometry_step_pass=step_ok,history_new_geometry_pass=history_ok,baseline_conditional=bool(allowed),status='candidate_reference' if history_ok else 'diagnostic_suffix_after_failed_or_unproved_prefix')
+        row=dict(t=t,source_aligned_t=start['t']+t,phase=phase,kind='synthetic_ideal_bounded_joint_tracking',base=B.tolist(),q=q.tolist(),theta=a,z=.5,action=np.r_[0.,0.,q].tolist(),target=p.tolist(),target_rotation=R.tolist(),actual_rotation=F[:3,:3].tolist(),pad=actual.tolist(),position_error_m=pos,orientation_error_rad=ori,normal_error_rad=normal_error,twist_rad=twist,target_twist_rad=target_twist,joint_rate=((q-before)/dt).tolist(),joint_slack=float(np.min(np.r_[q[:6]-S.lo,S.hi-q[:6]])),ik=ik,new_geometry_step_pass=step_ok,history_new_geometry_pass=history_ok,baseline_conditional=bool(allowed),status='candidate_reference' if history_ok else 'diagnostic_suffix_after_failed_or_unproved_prefix')
         rows.append(row);trace.write(json.dumps(row)+'\n');geometry_rows.append(dict(t=t,phase=phase,q=q.tolist(),theta=a,baseline_allowed=[sorted(list(x)) for x in allowed],**raw));geomlog.write(json.dumps(geometry_rows[-1])+'\n')
         previous_allowed[0]=allowed;prev_theta=a;prev_q=q.copy()
     previous_allowed=[set(baseline)]
