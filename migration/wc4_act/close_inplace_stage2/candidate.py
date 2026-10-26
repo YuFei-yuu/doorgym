@@ -56,6 +56,7 @@ class Solver(Arm):
         return r.x,dict(nfev=r.nfev,solver_status=int(r.status),position_error_m=float(np.linalg.norm((T[:3,3] if ee else P)-p)),axis_error_rad=None if u is None else float(np.arccos(np.clip(U@u,-1,1))))
 
 def generate(out,c,cfg):
+    cfg=dict(cfg,ik_period_steps=c.get('ik_period_steps',cfg['ik_period_steps']),durations=dict(cfg['durations'],**c.get('durations',{})))
     source=ROOT/cfg['source_run'];record=[json.loads(s) for s in (source/'states.jsonl').open()]
     b=next(r for r in record if r['passed']);start=next(r for r in record if r['phase']=='traverse_door')
     ref=read(source/'reference.json');effective=read(source/'effective-config.json')
