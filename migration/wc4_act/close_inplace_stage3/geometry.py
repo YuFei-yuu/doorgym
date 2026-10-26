@@ -75,6 +75,7 @@ class Geometry:
             x=dict(gap_m=gap,a=[p.link,p.name,p.kind],b=[d.link,d.name,d.kind])
             if gap<best['self']['gap_m']:best['self']=x
             if gap< -1e-7:overlaps.append(dict(category='self',**x))
-        cloud=self.robot.cloud(poses)
-        return dict(minimums=best,overlaps=overlaps,whole_max_x=float(cloud[:,0].max()),far=bool(cloud[:,0].max()<2.5),
+        link_max={n:float(apply(poses[n],p)[:,0].max()) for n,p in self.robot.clouds.items()}
+        whole=max(link_max.values())
+        return dict(minimums=best,overlaps=overlaps,whole_max_x=whole,link_max_x=link_max,far=bool(whole<2.5),
             far_semantics='runtime source: collision AND visual bounds, measured anchor leg q then frozen synthetically')
