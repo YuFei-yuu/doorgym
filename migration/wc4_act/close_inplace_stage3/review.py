@@ -234,6 +234,16 @@ def make_report(run,d,s,g,loc):
     if (run/'single/local-vs-continuous.json').exists():
         c=read(run/'single/local-vs-continuous.json');lines+=['','## 局部解与连续解的差异','',
             f"在门角相差{c['door_angle_difference_rad']:.6g}rad的两姿态中，完整候选与局部全姿态解的工具旋转差为{c['orientation_difference_rad']:.6g}rad，其中沿接触法向分量{c['rotation_component_about_contact_normal_rad']:.6g}rad。局部测试约束全姿态；连续求解只约束接触点和法向，剩余旋转自由度没有被净空约束控制。因此不能把局部静态净空直接延伸为整段安全证明。精确位姿、关节及净空见local-vs-continuous.json。"]
+    if (run/'single/adjacent-self-summary.json').exists():
+        adj=read(run/'single/adjacent-self-summary.json');detail=read(run/'single/adjacent-self-localization.json')
+        lines+=['','## 直接邻接运动部件补充检查','',
+            '主审查排除的直接关节邻接组件已另外补查：相对几何只由其连接关节决定，因此在原轨迹全部不同关节值上作规范相对坐标检查，不生成第二条路线。固定装配内部部件仍单列清单，不误当作相对运动碰撞。',
+            '|连接关节|原序列不同参数值数|部件对子数|未证参数区间数|','|---|---|---|---|']
+        for name,x in adj['groups'].items():lines.append(f"|{name}|{x['source_values']}|{x['pairs']}|{x['unresolved_intervals']}|")
+        lines+=['','这里的参数区间不是主审查的时间区间，不能相加。负包络对子均已定位到原轨迹时刻，并用原始实体再查：','',
+            '|源部件对|首次对应阶段|源间隔 m|实体内部采样点|','|---|---|---|---|']
+        for x in detail:lines.append(f"|{x['a'][0]}:{x['a'][1]} / {x['b'][0]}:{x['b'][1]}|{x['phase']}|{x['gap_m']:.6g}|{x['inside_count']}/{x['original_points']}|")
+        lines+=['','邻接关节装配／已有夹爪姿态的交叠不自动认定为本轮新增物理碰撞，也不从证据中删除；没有用过滤器改动物理。详见adjacent-self-summary.json、adjacent-self.jsonl与adjacent-self-localization.json。']
     (run/'REPORT.md').write_text('\n'.join(lines)+'\n')
 if __name__=='__main__':
     if os.environ.get('CUDA_VISIBLE_DEVICES')!='':raise RuntimeError('CUDA must be hidden')
