@@ -130,6 +130,15 @@ def report(run,d,loc,ledger,s):
         '已实现：完整姿态统一约束、显式绕法向参考、外侧部署路标、预选基元部署期严格检查，以及路径与接近端点联合门槛。没有再次用单一末端误差宣布通过。',
         '仍未证明：整条部署→接近→初段推关能按序满足全部可达、限速和连续净空要求。后缀的局部低误差或某些姿态分离，不能回填成前缀通过。第三轮停车不在本轮重验范围；70°后跟进、释放或闭门也没有生成。',
         '本轮额度按全局local-ledger.json和trajectory-ledger.json记账；没有换名或分段增加候选。唯一轨迹完成后停止，不继续使用剩余静态额度。无GPU锁、监控、仿真、录像、采集、转换、训练或策略推理。等待独立审查。']
+    if (run/'trajectory/external-interval-strengthening.json').exists():
+        strong=read(run/'trajectory/external-interval-strengthening.json')
+        lines+=['','## 同一轨迹的后验分离证据','',
+            f"原检查中非预选部件的{strong['intervals_rechecked']}个外部未证区间，仅在原有端点上重算完整SAT轴的更强投影下界；{strong['certified']}个得到证明，仍未证{strong['still_unproved']}个。没有新IK、初值、目标姿态或轨迹。原快速分离值仍是保守下界，不应把图上的很小投影值直接等同实际欧氏间距。",
+            '因此，除预选接触基元外，本诊断参考中的机器人部件（含腕部、活动指）与外部障碍，已有逐区间源包络分离证据。该结论不包括预选基元的已确认交叠、自碰撞基线/未证区段，也不是物理跟踪证明。接近末端预选box 2约0.133mm源负间隔及7/125原实体内部采样点仍然存在。',
+            '没有回写原门槛或轨迹状态；推关后缀仍是诊断，不得改称按序完成。']
+        write(run/'trajectory/final-decision.json',dict(overall='NOT_PASSED',ordered_completion=False,original_gate_rewritten=False,local_groups=11,local_trajectories=1,complete_candidates=0,physics=0,
+            nonselected_external_interval_evidence='certified in declared source-envelope interpolation' if strong['still_unproved']==0 else 'still unresolved',selected_contact_geometry='confirmed overlap at approach end and initial diagnostic push',
+            self_and_baseline='original conditional baseline and unresolved intervals retained',original_decision_sha256=sha(run/'trajectory/decision.json'),strengthening_sha256=sha(run/'trajectory/external-interval-strengthening.json'),trace_sha256=sha(run/'trajectory/trace.jsonl')))
     (run/'REPORT.md').write_text('\n'.join(lines)+'\n')
 if __name__=='__main__':
     if os.environ.get('CUDA_VISIBLE_DEVICES')!='':raise RuntimeError('hide CUDA')
