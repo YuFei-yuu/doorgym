@@ -88,7 +88,7 @@ def run(m, cams, output, plan, gym, sim, states, viewer, args, dt, dof_names):
     task_monitor=TaskMonitor(home,st.yaw_traverse)
     recorder=None
     if plan.get('live_joint9_recording'):
-        from fullcycle_recording import LiveRecording
+        from close_inplace_stage5.recording import LiveRecording
         recorder=LiveRecording(m,st,output,dof_names,dt)
     initial_arm=gym.get_actor_dof_states(st.env,st.arm_actor,ga.STATE_ALL)
     initial_gripper=float(initial_arm['pos'][indices[-1]])
