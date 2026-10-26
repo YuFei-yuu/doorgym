@@ -180,7 +180,7 @@ def main():
     if len(list(run.glob('c[0-9]')))>=3:raise RuntimeError('Three candidate budget exhausted')
     out=run/c['id'];out.mkdir(exist_ok=False)
     write(out/'config.json',dict(global_config=cfg,candidate=c))
-    write(out/'receipt.json',dict(argv=sys.argv,python=sys.executable,cuda=os.environ.get('CUDA_VISIBLE_DEVICES'),started=time.time(),head=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),source_sha={str(p.relative_to(ROOT)):sha(p) for p in [Path(__file__),Path(__file__).with_name('config.json')]}))
+    write(out/'receipt.json',dict(argv=sys.argv,python=sys.executable,cuda=os.environ.get('CUDA_VISIBLE_DEVICES'),started=time.time(),head=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),source_sha={str(p.resolve().relative_to(ROOT)):sha(p) for p in [Path(__file__),Path(__file__).with_name('config.json')]}))
     try:generate(out,c,cfg)
     except Exception as e:write(out/'exception.json',dict(type=type(e).__name__,message=str(e)));raise
 if __name__=='__main__':main()
