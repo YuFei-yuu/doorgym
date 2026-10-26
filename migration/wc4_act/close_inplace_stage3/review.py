@@ -53,6 +53,7 @@ def contained(p,g,root):
 def review(run):
     out=run/'single';G=Geometry();rows=[json.loads(l) for l in (out/'trace.jsonl').open()];checks=[json.loads(l) for l in (out/'geometry.jsonl').open()];cache={x['index']:x for x in checks}
     overlaps=[json.loads(l) for l in (out/'overlaps.jsonl').open()];groups={}
+    home_pairs={frozenset((tuple(x['a'][:2]),tuple(x['b'][:2]))):x['gap_m'] for x in read(out/'self-baseline.json')['home']['overlaps'] if x['category']=='self'}
     for x in overlaps:
         key=(x['category'],x['phase'],tuple(x['a']),tuple(x['b']))
         if key not in groups:groups[key]=dict(worst=x,phases=set(),count=0)
@@ -73,9 +74,9 @@ def review(run):
             if wall is not None:
                 mask=np.all((world>wall[0].min(0)+1e-7)&(world<wall[0].max(0)-1e-7),axis=1);method=dict(method='exact axis-aligned finite wall source box')
             else:mask=np.zeros(len(world),bool);method=dict(method='unresolved source lookup; retained for review')
-        inside_count=int(mask.sum());baseline_pair=x['category']=='self' and set([x['a'][0],x['b'][0]])=={'link02','link06'}
+        inside_count=int(mask.sum());pair_key=frozenset((tuple(x['a'][:2]),tuple(x['b'][:2])));baseline_pair=x['category']=='self' and pair_key in home_pairs
         localized.append(dict(pair=dict(category=x['category'],a=x['a'],b=x['b']),worst_gap_m=x['gap_m'],t=x['t'],index=x['index'],phases=sorted(item['phases']),records=item['count'],sampled_original_points=len(world),inside_count=inside_count,method=method,
-            inherited_home_pair=baseline_pair,examples_world=world[np.flatnonzero(mask)[:12]].tolist(),
+            inherited_home_pair=baseline_pair,baseline_home_gap_m=home_pairs.get(pair_key) if baseline_pair else None,deeper_than_home_baseline_m=max(0,home_pairs[pair_key]-x['gap_m']) if baseline_pair else None,examples_world=world[np.flatnonzero(mask)[:12]].tolist(),
             conclusion='source-geometry intersection supported at this synthetic pose' if inside_count else 'source envelope overlap remains unresolved; absence of contained samples is not separation proof'))
     write(out/'overlap-localization.json',localized)
     anchor=read(out/'measured-anchor.json');summary=read(out/'summary.json');geo=read(out/'geometry-summary.json');cfg=read(out/'config.json');parking=read(out/'parking.json')
@@ -97,7 +98,7 @@ def review(run):
     decision=dict(geometry='not certified globally; inspect localized inherited/new source intersections and unresolved intervals',continuity='same-endpoint base stop analytically continuous; sampled joint command rates bounded; joint-rate transitions reported, not claimed globally C1',
         synthetic_tracking='approach gate passed' if summary['approach_gate_passed'] else 'approach gate blocked close',physical_admission=False,
         full_candidates=1,trajectory_sha256=sha(out/'trace.jsonl'),phase_metrics=phase,parking=parking_checks,max_suffix_joint_acceleration_rad_s2=joint_acc,
-        confirmed_external_pairs=len(confirmed_external),confirmed_self_pairs=len(confirmed_self),all_distinct_envelope_overlap_pairs=len(localized),
+        confirmed_external_phase_pair_groups=len(confirmed_external),confirmed_self_phase_pair_groups=len(confirmed_self),distinct_overlap_phase_pair_groups=len(localized),
         confirmed_post_stop_external_groups=post_stop_confirmed,
         premature_selected_piece_confirmed_groups=[x for x in premature if x['inside_count']>0],
         overall='NEEDS_CORRECTION_NO_PHYSICAL_ADMISSION',
