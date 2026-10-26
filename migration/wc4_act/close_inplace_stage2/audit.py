@@ -121,6 +121,7 @@ def plot(out,rows,cache,robot,door,R,D,W):
         rr=[i for i,r in enumerate(rows) if r['phase']==phase]
         selected.append(rr[-1])
     rr=[i for i,r in enumerate(rows) if r['phase']=='close'];selected.insert(7,rr[len(rr)//2]);selected.insert(8,rr[3*len(rr)//4])
+    selected.sort()
     fig,axes=plt.subplots(3,4,figsize=(18,13))
     def draw(ax,pts,color,alpha):
         xy=np.unique(np.round(pts[:,:2],7),axis=0)
@@ -135,7 +136,7 @@ def plot(out,rows,cache,robot,door,R,D,W):
         ax.plot(b[:i+1,0],b[:i+1,1],color='#005d88',lw=1);ax.scatter(*r['pad'][:2],color='#bd2447',s=15)
         if r['target'] is not None:ax.scatter(*r['target'][:2],marker='x',color='k',s=25)
         ax.set(title=f"{r['phase']}  t={r['t']:.2f}s",xlim=(.35,2.85),ylim=(-1.05,1.25));ax.set_aspect('equal');ax.grid(alpha=.15)
-    fig.suptitle(c['id']+' | source collision pieces projected from 3D | projection overlap is NOT penetration\nSynthetic q after failed IK is retained; red actual-FK pad, black requested point',fontsize=14);fig.tight_layout(rect=[0,0,1,.94]);fig.savefig(out/'key-poses.png',dpi=150);plt.close(fig)
+    fig.suptitle(c['id']+' | source collision pieces projected from 3D | projection overlap is NOT penetration\nSynthetic q after failed IK is retained; red synthetic-FK pad, black requested point',fontsize=14);fig.tight_layout(rect=[0,0,1,.94]);fig.savefig(out/'key-poses.png',dpi=150);plt.close(fig)
     write(out/'key-poses.json',[dict(index=i,**rows[i]) for i in selected])
 if __name__=='__main__':
     p=argparse.ArgumentParser();p.add_argument('--candidate-dir',required=True);a=p.parse_args()
