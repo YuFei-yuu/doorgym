@@ -70,7 +70,7 @@ class LiveExpert:
             if elapsed>=duration and np.max(abs(q[:6]-WAYPOINTS[index]))<.03 and np.max(abs(qd[:6]))<.05:
                 nextphase='deploy_b' if index==0 else 'approach'
         elif phase=='approach':
-            s=smooth(elapsed/8);goal=point(self.cfg,theta)
+            s=float(np.clip(smooth(elapsed/8),0.,1.));goal=point(self.cfg,theta)
             target=(1-s)*self.P0+s*goal
             R=Slerp([0,1],Rotation.from_matrix(np.array([self.R0,pose_rotation(theta,13.5)])))(s).as_matrix()
         elif phase=='close':
