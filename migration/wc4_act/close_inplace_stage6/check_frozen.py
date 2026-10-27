@@ -17,7 +17,7 @@ for line in source.open():
 robot=URDF(ROOT/'high-level/data/asset/a2wz1/urdf/a2wz1.urdf',include_visual=True)
 c=LiveExpert.__new__(LiveExpert);c.S=FullPose(robot);c.cfg={'radius':.905,'height':.85};c.dt=.019999999552965164
 first=next(r for r in rows if r['step']==2920);prior=next(r for r in rows if r['step']==2919)
-c.cmd=np.array(first['action'][2:]);c.command_velocity=(c.cmd-np.array(prior['action'][2:]))/c.dt;c.prevq=np.array(first['pre_physics']['arm_dof']) if False else np.array(prior['arm_q'])
+c.cmd=np.array(first['action'][2:]);c.command_velocity=(c.cmd-np.array(prior['action'][2:]))/c.dt;c.prevq=np.array(prior['arm_q'])
 c.home=np.r_[np.zeros(6),-1.1775000095367432];c.finalyaw=math.pi;c.endpoint=np.array([1.2599997520446777,.18000000715255737]);c.previous_twist=np.zeros(2);c.route=None;c.follow0=None;c.handoff=None;c.dynamic_gate=DynamicContactGate()
 c.enter('approach',2920*c.dt,np.array(prior['arm_q']),np.array(first['actual_base']))
 # Reproduce the exact measured pre-physics state from the transition's predecessor.

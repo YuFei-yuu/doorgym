@@ -9,7 +9,22 @@ from newexpert_stage4.prepare import sha,write
 def main():
     p=argparse.ArgumentParser();p.add_argument('--run',type=Path,required=True);a=p.parse_args();run=a.run.resolve()
     assert not subprocess.check_output(['git','status','--porcelain'],cwd=ROOT,text=True).strip()
+    check=ROOT/'.repro/reviews/wc4-close-inplace-stage6-20261027-check/targeted-check.json'
+    receipt=json.loads(check.read_text());assert receipt['passed']
+    # Numerical check was executed at 414f96c; bind the unchanged tested control to this run.
+    import hashlib
+    tested={}
+    for n in ['controller.py','dynamic_gate.py']:
+        rel='migration/wc4_act/close_inplace_stage6/'+n
+        tested[rel]=hashlib.sha256(subprocess.check_output(['git','show','414f96c:'+rel],cwd=ROOT)).hexdigest()
+        assert tested[rel]==sha(ROOT/rel)
+    before=(ROOT/'migration/wc4_act/close_inplace_stage5/controller.py').read_text()
+    after=(ROOT/'migration/wc4_act/close_inplace_stage6/controller.py').read_text()
+    prefix=lambda x:x[x.index("        if phase=='retimed_traverse':"):x.index("        elif phase=='close':")]
+    assert prefix(before)==prefix(after),'Approved prefix changed'
     run.mkdir(parents=True,exist_ok=False)
+    write(run/'targeted-check-binding.json',dict(check=str(check),sha256=sha(check),tested_controller_sha256=tested,prefix_identical=True,
+        source_frozen_log_sha256=receipt['source_sha256'],negative_cases=receipt['gate_cases'],scope='Recorded-feedback CPU checks, not physical success'))
     old=ROOT/'.repro/runs/wc4-newexpert-stage4-20261025'
     prior=json.loads((old/'manifest.json').read_text());trial=copy.deepcopy(prior['trials'][0])
     assert trial['seed']==62000 and trial['nominal']
