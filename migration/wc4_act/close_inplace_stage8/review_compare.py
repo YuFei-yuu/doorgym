@@ -48,12 +48,16 @@ def analyze(rows):
             mask=(T>=timing['start_s'])&(T<=timing['end_s'])
             motion[name]=dict(timing=timing,actual_ee_mean_mps=float(np.mean(V[mask])),reference_ee_mean_mps=float(np.mean(VR[mask])),actual_base_mean_mps=float(np.mean(base_v[mask])),actual_base_peak_mps=float(np.max(base_v[mask])),actual_yaw_mean_rps=float(np.mean(yaw_v[mask])),actual_yaw_peak_rps=float(np.max(yaw_v[mask])))
     clip=dict(base_rate=sum(bool(r['compact_expert'].get('base_rate_clipped')) for r in close),base_acceleration=sum(bool(r['compact_expert'].get('base_acceleration_clipped')) for r in close),joint_rate=sum(bool(r['compact_expert'].get('joint_rate_clipped')) for r in close),early_arm=sum(bool(r.get('early_arm',{}).get('rate_clipped')) for r in rows))
+    for key,field in [('base_rate','base_rate_clipped'),('base_acceleration','base_acceleration_clipped'),('joint_rate','joint_rate_clipped')]:
+        if not any(field in r['compact_expert'] for r in close):clip[key]=None
+    if not any('early_arm' in r for r in rows):clip['early_arm']=None
     return dict(actual_later_motion=motion,times=times,actual_fold=actual_fold,contact_speed_windows=windows,turn_reference=range_time(1),follow_reference=range_time(2),clipped_steps=clip,total_s=float(T[-1])),(T,Q,QD,B,EE,REF,V,VR)
 old=read(baseline);new=read(run);A,aa=analyze(old);B,bb=analyze(new)
 ratio={k:{name:(B['contact_speed_windows'][k][name]/v-1)*100 if v else None for name,v in A['contact_speed_windows'][k].items() if name.endswith('mps')} for k in B['contact_speed_windows'] if k in A['contact_speed_windows']}
 limit=min(len(new),1240);base_diff=float(np.max(abs(np.array([r['actual_base'] for r in new[:limit]])-np.array([r['actual_base'] for r in old[:limit]]))))
 opening_diff={k:max(float(np.max(abs(np.array(x[k])-np.array(y[k])))) for x,y in zip(new[:875],old[:875])) for k in ['actual_base','action','arm_q','door_q']}
-report=dict(baseline=str(baseline),current=str(run),baseline_metrics=A,current_metrics=B,percent_change=ratio,base_through_parking_max_difference=base_diff,opening_through_step874_max_difference=opening_diff,
+later_percent={k:(B['actual_later_motion'][k]['actual_ee_mean_mps']/A['actual_later_motion'][k]['actual_ee_mean_mps']-1)*100 for k in ['turn','follow'] if k in B['actual_later_motion'] and k in A['actual_later_motion']}
+report=dict(actual_later_ee_mean_percent_change=later_percent,baseline=str(baseline),current=str(run),baseline_metrics=A,current_metrics=B,percent_change=ratio,base_through_parking_max_difference=base_diff,opening_through_step874_max_difference=opening_diff,
     method='50Hz backward finite difference of logged actual ee_gripper_link world position. Reference EE = pre-physics desired pad minus desired rotation*pad; plotted at interval end. Windows fixed before rollout, aligned on each actual first loaded closing contact. No smoothing or phase-only contact proxy.')
 (out/'before-after-comparison.json').write_text(json.dumps(report,indent=2)+'\n')
 fig,ax=plt.subplots(3,1,figsize=(12,10),sharex=True)
