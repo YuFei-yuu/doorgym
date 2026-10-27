@@ -72,8 +72,16 @@ fig,ax=plt.subplots(4,1,figsize=(12,12),sharex=True)
 for name,M,data in [('stage7',A,aa),('stage8',B,bb)]:
     T,Q,QD,base,EE,ref,V,VR=data;anchor=M['times']['first_closing_contact']
     if anchor is None:continue
-    ax[0].plot(T-anchor,VR,label=name+' reference');ax[1].plot(T-anchor,V,label=name+' actual');ax[2].plot(T-anchor,np.unwrap(base[:,2]),label=name);ax[3].plot(T-anchor,base[:,0],label=name)
+    mask=(T-anchor>=-1)&(T-anchor<=30)
+    ax[0].plot((T-anchor)[mask],VR[mask],label=name+' reference');ax[1].plot((T-anchor)[mask],V[mask],label=name+' actual');ax[2].plot((T-anchor)[mask],np.unwrap(base[:,2])[mask],label=name);ax[3].plot((T-anchor)[mask],base[mask,0],label=name)
 ax[0].set_ylabel('Reference EE speed (m/s)');ax[1].set_ylabel('Actual EE speed (m/s)');ax[2].set_ylabel('Actual base yaw (rad)');ax[3].set_ylabel('Actual base x (m)');ax[3].set_xlabel('Time from each actual first closing contact (s)');ax[3].set_xlim(-1,30)
 for a in ax:a.axvline(0,color='gray',ls=':');a.grid(alpha=.3);a.legend()
-fig.tight_layout();fig.savefig(out/'contact-speed-base-comparison.png',dpi=160);ax[3].set_xlim(-.75,3);fig.savefig(out/'first-contact-speed-detail.png',dpi=160)
+fig.tight_layout();fig.savefig(out/'contact-speed-base-comparison.png',dpi=160);ax[3].set_xlim(-.75,3)
+for j,column in [(0,7),(1,6)]:
+    peaks=[]
+    for M,data in [(A,aa),(B,bb)]:
+        if M['times']['first_closing_contact'] is None:continue
+        rel=data[0]-M['times']['first_closing_contact'];peaks.append(float(np.nanmax(data[column][(rel>=-.75)&(rel<=3)])))
+    if peaks:ax[j].set_ylim(0,max(peaks)*1.1)
+fig.savefig(out/'first-contact-speed-detail.png',dpi=160)
 print(json.dumps(report),flush=True)
