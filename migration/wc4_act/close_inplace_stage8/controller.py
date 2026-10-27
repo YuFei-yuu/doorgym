@@ -131,6 +131,8 @@ class LiveExpert:
             else:self.bad_since=None
         # Bound command rates, using measured q as IK seed and previous command for actuator continuity.
         desired[:6]=np.clip(desired[:6],self.S.lo,self.S.hi)
+        diag['requested_joint_rate_max']=float(np.max(abs(desired[:6]-self.cmd[:6]))/self.dt)
+        diag['joint_rate_clipped']=bool(diag['requested_joint_rate_max']>.700001)
         old_command=self.cmd.copy()
         self.cmd+=np.clip(desired-self.cmd,-.7*self.dt,.7*self.dt)
         self.command_velocity=(self.cmd-old_command)/self.dt

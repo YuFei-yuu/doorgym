@@ -25,7 +25,7 @@ for i in range(1,math.ceil((TOTAL+.52)/dt)+1):
         probe=copy.deepcopy(c);b,e=probe.command(t,B,q,math.pi/2,-.3,True,True,False)
         assert np.array_equal(a,b);assert d['reference']==e['reference'];independence.append(i)
     action,d=c.command(t,B,q,h['theta'],0.,False,False,False)
-    if d['base_rate_clipped'] or d['base_acceleration_clipped']:clipping.append(i)
+    if d['base_rate_clipped'] or d['base_acceleration_clipped'] or d['joint_rate_clipped']:clipping.append(i)
     maxrate=max(maxrate,float(np.max(abs(action[2:]-oldaction[2:]))/dt));maxik=max(maxik,d['ik']['position_error_m']);vmax=max(vmax,abs(action[0]));wmax=max(wmax,abs(action[1]));accmax=np.maximum(accmax,abs(action[:2]-oldaction[:2])/dt)
     if i==1:boundary=float(np.max(abs((action[2:]-oldaction[2:])/dt-np.array(h['previous_joint_velocity']))))
     B[:2]+=action[0]*dt*np.array([math.cos(B[2]),math.sin(B[2])]);B[2]+=action[1]*dt;q=action[2:].copy();oldaction=action.copy()

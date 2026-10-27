@@ -17,7 +17,7 @@ class EarlyArm:
             meaning='Joint targets retreat relative to moving base then fold; start measured, no synthetic state substitution')
         self.latest={};self.actual_home_time=None
     def command(self,t,q,contact):
-        e=t-self.t0
+        e=t-self.t0+self.dt
         if e<=self.tw:
             u=float(np.clip(e/self.tw,0,1));s=float(np.clip(smooth(u),0,1))
             # Quintic Hermite: match previous command velocity, end with zero velocity/acceleration.
