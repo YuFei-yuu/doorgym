@@ -99,7 +99,10 @@ def main():
     write(out/'command.json',{'argv':sys.argv,'entry_argv':[sys.executable,__file__,'--run',str(run)],'cwd':str(ROOT),
          'head':manifest['start_commit'],'gpu':{k:os.environ.get(k) for k in ['VIDEO2DOOR_GPU','CUDA_VISIBLE_DEVICES','VK_LAYER_PATH','VK_INSTANCE_LAYERS']},'uuid':uuid,'start_time':time.time()})
     code=0
-    try:m.main()
+    try:
+        m.main()
+        result=json.loads((out/'result.json').read_text())
+        if result.get('error'):raise RuntimeError('Recorded runtime exception: '+result['reason'])
     except BaseException:
         code=1;(run/'entry-error.txt').write_text(traceback.format_exc());raise
     finally:

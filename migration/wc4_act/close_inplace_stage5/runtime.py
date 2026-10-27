@@ -214,7 +214,7 @@ def run(m, cams, output, plan, gym, sim, states, viewer, args, dt, dof_names):
                     if not passed: raise StopAttempt('old_expert_finished_without_full_body_traversal')
                     if np.max(np.abs(measured_q[:6]-home[:6]))<.03:
                         route=plan['route'];change('navigate')
-            if phase=='approach':
+            if compact is None and phase=='approach':
                 if approach_index<len(approach['actions']):
                     action=approach['actions'][approach_index].copy();approach_index+=1
                 else:
