@@ -34,5 +34,5 @@ assert trace[-1]['diagnostic']['reference_complete'] and abs(trace[-1]['action']
 report=dict(passed=True,source=str(source),source_sha256=hashlib.sha256(source.read_bytes()).hexdigest(),scope='One complete timed pushing reference only; no rollout, suffix or alternative search',durations_s=[3,10,13],total_s=26,
     maximum_command_joint_rate=maxrate,maximum_ik_position_residual=maxik,maximum_base_speed=vmax,maximum_base_yaw_rate=wmax,maximum_base_acceleration=accmax.tolist(),boundary_joint_velocity_change=boundary,
     endpoint_base=B.tolist(),door_angle_and_contact_independence_steps=independence,
-    control_sha256={str(f.relative_to(ROOT)):hashlib.sha256(f.read_bytes()).hexdigest() for f in [Path(__file__).with_name('controller.py'),Path(__file__).with_name('reference.py')]})
+    control_sha256={str(f.relative_to(ROOT)):hashlib.sha256(f.read_bytes()).hexdigest() for f in [Path(__file__).resolve().with_name('controller.py'),Path(__file__).resolve().with_name('reference.py')]})
 (p/'check.json').write_text(json.dumps(report,indent=2)+'\n');(p/'reference-check.jsonl').write_text(''.join(json.dumps(r)+'\n' for r in trace));print(json.dumps(report),flush=True)

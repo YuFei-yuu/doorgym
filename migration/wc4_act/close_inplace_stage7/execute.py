@@ -82,7 +82,7 @@ def main():
                         required=['states.jsonl','contacts.jsonl','recording-clock.jsonl']
                         if any(not (out/n).exists() or (out/n).stat().st_size==0 for n in required):
                             raise expert.StopAttempt('stage7_critical_log_missing')
-                if self.steps>=6000:raise expert.StopAttempt('stage7_150s_budget')
+                if self.steps>=6000:raise expert.StopAttempt('stage7_120s_budget')
                 self.steps+=1
                 return gym.simulate(simulation)
         expert.run(m,cams,out,plan,GuardGym(),sim,states,viewer,args,dt,dof_names)
