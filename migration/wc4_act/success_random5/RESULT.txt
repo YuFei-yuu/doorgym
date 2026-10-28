@@ -1,0 +1,37 @@
+简化成功判定与5种随机初态验证（2026-10-29）
+
+结果：3/5成功。5种初态各执行一次，0次重试，0次换样；全部已停止。
+
+seed   成功  最大实际开门角   合法重锁(s) 全身穿越(s) 结束(s)  停止原因
+62100  否       0.00000°       未发生       未发生      1.28   基线执行保护在walk阶段停止
+62101  否       0.00000°       未发生       未发生      1.22   基线执行保护在walk阶段停止
+62102  是      90.00000°        48.80        16.44     62.42   原专家完整流程结束
+62103  是      90.00001°        49.40        17.04     63.02   原专家完整流程结束
+62104  是      90.00001°        48.16        15.96     61.78   原专家完整流程结束
+
+62100/62101原始停止原因均为sustained_leg_posture_deviation:FL_thigh_joint,FR_thigh_joint。两项未实际打开80°且未最终合法重锁，因此按新判据失败；没有因为缺少穿越/释放/收臂等事件单独判失败。本轮不修复动作或既有保护、不换初态补跑。
+三个成功回合还到达release、fold、restore_heading、final_hold并完成原流程，但这些事件不参与本轮成功评分。阶段首末实测时间、接触分离和实际初态完整见audit.json。
+
+判据与动作分离
+success_random5.criterion.SuccessMonitor只读取实际门角历史、经原authorize_latch授权的重锁事件、回合末锁状态：max(abs(hinge angle))>=80°且最终仍合法重锁。没有穿越、释放、收臂、恢复朝向或稳定保持输入。
+原TaskMonitor.may_latch和物理闭门角度/速度/保持窗、实测角度锁写完全保留。其既有内部前提不放宽；原专家动作与停止保护也保留。评分不会在重锁时提前停止动作，原终态流程完成单列expert_sequence_complete。
+author_fast5轨迹、配置、适配器、几何、记录器及fullcycle_task_monitor.py与cbcf6b9逐文件一致。runtime新副本仅接入独立评分、拆分完成字段，并去除本轮不要求的RGB截图；原始渲染适配来自已核验newexpert_stage7.adapters.install_raw_render。
+
+初态与执行
+执行提交3615551a78f6672cfcefe3712d4467cc28d20542；基线执行f85f0b44724cc7abb271ce2f8213dc063b583f6e、冻结cbcf6b965746824fdc68d6857e388bb392cd5da3。
+作者make_env_args(args,env_index=0)依次使用seed62100..62104，不筛选；作者原姿态分布及相机独立每轴±2cm/±5°，包括初始pitch 0..5°；物理继续使用已验收冻结值，不引入随机物理研究变量。
+准备阶段冻结采样与相机清单；创建实际场景时按作者函数重新采样并精确核对，物理/相机绑定检查通过。initial-list.json保存冻结清单，每项initial-state.json、effective-config.json、physical-camera-binding.json保存实际出生状态及实际配置。采样robot_y与实际base_start.y因作者把手对齐机制可能不同，不能混用。
+单进程单场景，每项最多6000物理步/120秒，GPU1共享UUID锁。实际总9486物理步、4745记录帧；无场景重启、补采、参数扫描、转换、训练或策略推理。GPU锁已释放。
+
+数据与独立复算
+5项states/contacts连续，原始记录步为0,2,...，物理后时钟与render回执逐项一致。Joint9实测关节、关节目标与前一25Hz底盘指令绑定最大误差全部0；原始双路masked-depth的4745帧逐帧SHA与采集缓冲一致（480×640 uint8），状态动作有限。没有MP4或人工视觉认证声明。
+成功从原始states与lock-writes重新计算，与在线新判据逐项一致。三个首个重锁写入delta均为0，并与前一实测门角精确绑定；后续锁保持的最大微小数值修正分别1.875e-8、6.220e-9、3.690e-8 rad，保留原始值。
+独立CPU判据检查覆盖8种真假组合、绝对80°边界、最终解锁及额外事件缺失。首版审查脚本误把初始锁定保持的角度修正也要求近零，执行结束后修正为分别审查初始锁与重锁；仅修改audit.py，未重跑物理或更改日志/判据。失败审查日志与修正版本均保留。
+早期CPU准备直接调用解释器曾缺少libpython动态库路径，改用既有activate.sh后通过；另一次检查缺少模块搜索路径，补充PYTHONPATH后通过。未安装/升级环境；准备失败未创建物理场景，正式5项均attempt_000且退出码0。
+
+交付与清理
+服务器原始run：/data/zyf/video2door-wc4-act/.repro/runs/wc4-success-random5-20261029
+服务器冻结交付：/data/zyf/video2door-wc4-act/.repro/reviews/wc4-success-random5-20261029-FINAL
+本地交付：/Users/yu/Data/Video2Door/reproduction/wc4-act/wc4-success-random5-20261029/FINAL
+冻结包保存最终提交、执行源码、基线源码绑定、命令、有效配置、初态、原始日志/NPZ、审查结果与逐文件SHA。无逐步重复导出或额外绘图；仅清理本轮冗余trajectory.npz汇总和未创建场景的重复准备文件，并留SHA回执，原始日志/观测不删。
+本轮已结束，交回独立验收；没有后续实验授权。
