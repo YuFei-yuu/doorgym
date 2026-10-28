@@ -56,7 +56,14 @@ class DoorFrame:
     def contact(self, cfg, theta, clearance=0.):
         n = self.R@np.array([math.cos(theta), math.sin(theta), 0.])
         tangent = self.R@np.array([-math.sin(theta), math.cos(theta), 0.])
-        p = (self.hinge+cfg['contact_radius_m']*tangent+
+        radius=cfg['contact_radius_m']
+        if cfg.get('contact_inset_m',0.):
+            start=math.radians(cfg['contact_inset_start_deg'])
+            end=math.radians(cfg['contact_inset_end_deg'])
+            # Reference angle is clock-driven. Keep the free-edge entry,
+            # then move the intended fixed-finger contact inward on the panel.
+            radius-=cfg['contact_inset_m']*smooth((start-theta)/(start-end))
+        p = (self.hinge+radius*tangent+
              (self.back_normal_offset-clearance)*n+
              self.R@np.array([0., 0., cfg['contact_height_above_hinge_m']]))
         # Front-side reach around the free edge, with a prescribed wrist pose.

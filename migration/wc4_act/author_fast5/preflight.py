@@ -9,7 +9,7 @@ from author_fast5.geometry import DoorFrame,transform,closing_reference,progress
 from author_fast5.trajectory import CompleteExpert,Measured
 
 def main():
- p=argparse.ArgumentParser();p.add_argument('--check',type=Path,required=True);p.add_argument('--design',default='design03');a=p.parse_args()
+ p=argparse.ArgumentParser();p.add_argument('--check',type=Path,required=True);p.add_argument('--design',default='design03');p.add_argument('--baseline-ref',default='bbcbe44');a=p.parse_args()
  assert os.environ.get('CUDA_VISIBLE_DEVICES')==''
  here=Path(__file__).parent;cfg=json.loads((here/'config.json').read_text());sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
  for p in here.glob('*.py'):compile(p.read_text(),str(p),'exec')
@@ -44,20 +44,30 @@ def main():
   dict(phase='parallel_withdraw_and_fold',start=open_s,end=open_s+cfg['parallel_withdraw_s']+cfg['fold_s'])]
  for phase,duration in [('turn_for_close',cfg['turn_s']),('deploy',cfg['deploy_s']),('approach',cfg['approach_s']),('close',cfg['close_s']),('lock_confirmation',.5),('release',cfg['release_s']),('fold',cfg['fold_s']),('restore_heading',cfg['restore_s']),('final_hold',2.)]:
   timeline.append(dict(phase=phase,start=t,end=t+duration));t+=duration
- oldcfg=json.loads(subprocess.check_output(['git','show','bbcbe44:migration/wc4_act/author_fast5/config.json'],cwd=ROOT,text=True))
+ oldcfg=json.loads(subprocess.check_output(['git','show',a.baseline_ref+':migration/wc4_act/author_fast5/config.json'],cwd=ROOT,text=True))
  scale=cfg['close_s']/oldcfg['close_s']
  oldsamples=[closing_reference(oldcfg,frame,t/scale) for t in tt]
  path_difference=max(float(np.max(abs(samples[i][j]-oldsamples[i][j]))) for i in range(len(tt)) for j in [1,2])
  base_xy_difference=max(float(np.max(abs(samples[i][0][:2]-oldsamples[i][0][:2]))) for i in range(len(tt)))
  base_yaw_difference=max(float(abs(samples[i][0][2]-oldsamples[i][0][2])) for i in range(len(tt)))
- assert path_difference<1e-12
+ inset_residual=0.
+ for candidate,old_sample in zip(samples,oldsamples):
+  theta=candidate[3];delta=0.
+  if cfg.get('contact_inset_m',0.):
+   start=math.radians(cfg['contact_inset_start_deg']);end=math.radians(cfg['contact_inset_end_deg'])
+   from author_fast5.geometry import smooth
+   delta=cfg['contact_inset_m']*smooth((start-theta)/(start-end))
+  expected=-delta*(frame.R@np.array([-math.sin(theta),math.cos(theta),0.]))
+  inset_residual=max(inset_residual,float(np.max(abs(candidate[1]-old_sample[1]-expected))))
+ assert inset_residual<1e-12
+ assert max(float(np.max(abs(x[2]-y[2]))) for x,y in zip(samples,oldsamples))<1e-12
  assert base_xy_difference<1e-12
  changed=[k for k in cfg if cfg[k]!=oldcfg.get(k)]
  result=dict(physics_steps=0,passed=True,author_traverse_endpoint_reused=True,no_micro_relocation=True,closing_uses_measured_door=False,
   reference_seconds=cfg['close_s'],progress_plateau_rate_s=float(np.mean(du[plateau])),max_reference_ee_speed_m_s=float(np.linalg.norm(np.diff(P,axis=0)/.02,axis=1).max()),
   max_base_speed_m_s=float(np.linalg.norm(v,axis=1).max()),max_base_yaw_rate_rad_s=float(max(abs(w))),max_lateral_speed_m_s=float(max(abs(lateral))),
   reference_total_nominal_s=t,reference_timeline=timeline,source_sha256={p.name:sha(p) for p in here.iterdir() if p.is_file()},
-  arm_time_scale=scale,ee_reference_max_abs_difference=path_difference,base_xy_reference_max_abs_difference=base_xy_difference,base_yaw_schedule_max_difference_rad=base_yaw_difference,changed_config_fields=changed,
+  comparison_baseline_ref=a.baseline_ref,arm_time_scale=scale,ee_reference_max_abs_difference=path_difference,inset_formula_max_residual_m=inset_residual,base_xy_reference_max_abs_difference=base_xy_difference,base_yaw_schedule_max_difference_rad=base_yaw_difference,changed_config_fields=changed,
   limitation='ideal DLS check; no physical or robustness success implied; actual contact-to-reference-end timing is measured in the one rollout')
  (a.check/'preflight.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result,indent=2))
 if __name__=='__main__':main()

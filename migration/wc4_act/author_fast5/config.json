@@ -1,8 +1,11 @@
 {
-  "version": "author_slow15_base_profile_trial_v1",
+  "version": "author_contact_inset_trial_v1",
   "author_skill": "high-level/float_ik/door_twin/examples/wc4_smoke_skill.json",
   "physics": "frozen-r7-physics.yaml",
   "contact_radius_m": 0.905,
+  "contact_inset_m": 0.10,
+  "contact_inset_start_deg": 70.0,
+  "contact_inset_end_deg": 50.0,
   "contact_height_above_hinge_m": 0.89,
   "contact_roll_deg": 15.0,
   "contact_yaw_at_open_deg": 0.0,
