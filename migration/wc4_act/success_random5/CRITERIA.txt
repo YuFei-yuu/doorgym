@@ -1,0 +1,12 @@
+2026-10-29 简化判据与5随机初态验证
+
+成功 = 同一回合实际门铰链 max(abs(angle)) >= 80度 且回合末仍合法重锁。
+重锁请求继续调用原 author_fast5.adapter.authorize_latch；TaskMonitor.may_latch、物理闭门角度/速度和保持窗、实测角度锁写均不变。
+穿越、释放、收臂、恢复朝向、原最终稳定保持及R11 accepted仅记录，评分模块没有这些输入。合法锁机制自身的既有前提不改变。
+评分不提前终止动作。仍按基线专家完整流程结束条件、原执行保护/专家失败、6000物理步/120秒或异常结束。若重锁后其他阶段未完成，仍只按两项评分；停止原因另列。
+author_fast5/config.json、trajectory.py、adapter.py、recording.py、geometry.py及原TaskMonitor不改。runtime从基线复制，仅增加独立评分、拆分原终态完成字段，并去除本轮不要求的RGB停止截图；无新轨迹控制。
+
+5种初态：作者make_env_args(args,env_index=0)，seed62100..62104，各自独立单场景进程；不筛选、不换样。初态空间沿用已冻结YAML中的作者范围（含pitch 0..5度）；物理保持已验收R7冻结值。相机沿用作者独立每轴±2cm/±5度扰动，深度噪声和模糊关闭。
+准备阶段调用作者采样/相机函数冻结清单，场景创建时重采并精确比对，随后记录实际出生状态和有效配置。
+每种初态一次，实际任务失败不重试；仅基础设施异常可原初态重试且保留全部尝试。最多120秒；无额外视频，无转换，无训练。
+保留Joint9、原双路masked-depth NPZ、recording-clock、states/contacts/lock-writes及stdout/退出回执。报告只生成一份逐回合JSON/CSV，不逐步导出重复日志或额外绘图。
