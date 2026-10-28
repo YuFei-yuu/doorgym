@@ -9,7 +9,7 @@ from pathlib import Path
 import json, math
 import numpy as np
 from scipy.spatial.transform import Rotation, Slerp
-from author_fast5.geometry import DoorFrame, closing_reference, smooth, angle_delta
+from author_fast5.geometry import DoorFrame, closing_reference, smooth, angle_delta, traverse_clock
 
 
 @dataclass
@@ -57,6 +57,7 @@ class CompleteExpert:
         self.phase = 'author'; self.anchor = None; self.since = None
         self.closed_since = self.final_since = None
         self.fold_anchor = None; self.prefix_end = None; self.failed = None
+        self.traverse_since = None; self.withdraw_anchor = None
         self.max_open = 0.; self.latched = None
         # Use the actual author traversal endpoint; no micro-relocation stages.
         local=self.frame.R.T@(np.r_[st.base_traverse, self.frame.hinge[2]]-self.frame.hinge)
@@ -81,7 +82,10 @@ class CompleteExpert:
         if self.failed:
             return Target('failed',o.base.copy(),joints=o.q.copy(),failed=self.failed)
         if self.phase=='author':
-            raw=m.trajectory_targets(step,st.args,st.door,gym,st.env,st.door_actor,st.ik_state,
+            # Retiming only: the author's interpolation accepts fractional
+            # reference steps; the physical/recording clock remains unchanged.
+            author_step=step if self.traverse_since is None else self.traverse_step+traverse_clock(c,o.time-self.traverse_since)/st.args.sim_dt
+            raw=m.trajectory_targets(author_step,st.args,st.door,gym,st.env,st.door_actor,st.ik_state,
                 st.base_start,st.base_stop,st.base_push,st.base_traverse,st.yaw_start,st.yaw_push,st.yaw_traverse,st.traj)
             phase,xy,yaw,p,quat,grip,handle_goal=raw;B=np.r_[xy,yaw]
             st.last_handle_goal=handle_goal
@@ -89,11 +93,14 @@ class CompleteExpert:
             target=Target(phase,B,p,R,gripper=grip,author_phase=phase)
             if phase=='walk':target.joints=self.home.copy()
             if phase=='traverse_door' and self.prefix_end is None:
-                self.prefix_end=o.time+st.args.traverse_steps*st.args.sim_dt
-                self.withdraw_anchor=o
+                self.prefix_end=o.time+st.args.traverse_steps*st.args.sim_dt+c.get('traverse_extra_s',0.)
+                self.traverse_since=o.time
+                self.traverse_step=step
             if self.prefix_end is not None:
-                elapsed=o.time-self.withdraw_anchor.time
-                # Preserve every original base sample through traverse; arm only.
+                if self.withdraw_anchor is None:self.withdraw_anchor=o
+                elapsed=traverse_clock(c,o.time-self.withdraw_anchor.time)
+                # Preserve base and withdrawal geometry; slow their common
+                # progress rather than holding the arm while the base leaves.
                 if elapsed<c['parallel_withdraw_s']:
                     direction=np.r_[self.withdraw_anchor.base[:2]-self.withdraw_anchor.ee[:2],0.]
                     direction/=max(np.linalg.norm(direction),1e-12)
