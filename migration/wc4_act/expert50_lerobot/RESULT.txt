@@ -1,0 +1,35 @@
+50条专家数据转换与验收（2026-10-29）
+
+已通过并停止：50个episode、77356帧完整转换，原顺序/长度保持；5条复用和45条新增来源绑定保留。没有补采、仿真、执行录像、模型训练、策略推理或策略导出。
+
+数据集
+有效路径：/data/zyf/video2door-wc4-act/.repro/runs/wc4-expert50-lerobot-20261029/lerobot/local/wc4_expert50_20261029
+repo_id：local/wc4_expert50_20261029
+输出8个文件，逻辑大小164528996字节（156.907MiB）；文件实际分配164540416字节。
+本轮原作者转换器实际执行提交aba58368368ae771fd2a59ffa90e8651a7576e71；输入冻结提交b2dfd5ec685865e3b5d1676bc76fc1938237301d。最终冻结提交见manifest.json。
+
+输入和转换
+按b2dfd5e统一来源索引episode_id 0..49创建有序只读源链接。50条原始NPZ和原recording-clock在转换前后SHA一致，源索引SHA不变，不复制重写或裁剪原始数据，不混入历史回合。
+joint_state9、depth_only双masked-depth、fps25、原video/h264、原sanitizer与eps；状态/动作额外预处理均为identity，未改变作者转换器、sanitizer、既有读取修复或数据契约。
+SOURCE_TABLE.csv/candidate-index.json逐条绑定源路径、SHA、seed、复用/新增、完整长度和累计帧区间。转换局部timestamp按原作者f/25（float32）；原物理后时钟仍在冻结原记录中，通过路径和SHA绑定，不把重基准训练时间戳冒充原始物理时钟。
+
+对应验收
+状态和动作各696204个元素，与原始数据经同一sanitizer处理后全量逐元素精确一致。episode_index、frame_index、累计index、f/25时间戳、9维特征名称、joint_command动作语义均通过。没有门角/接触/phase/camera_pose进入策略观测。
+两路H264视频全量独立解码，共154712帧，每路77356帧；各原始记录帧与对应视角视频索引恰好一次，没有缺失、重复或跨episode映射。observation.images.front_masked_depth: 77356帧, 3094.2400秒；observation.images.wrist_masked_depth: 77356帧, 3094.2400秒。
+元数据episode容器偏移保持Parquet float64；查询和原生PTS直接float64比较，最大时间差1.83105521500693e-06秒，严格小于原1e-4秒容差。精度阈内/等于阈值/阈外、长查询、乱序与重复查询回归通过，没有放宽容差或更换后端。
+审查2600个阶段边界/首尾/关闭/末端窗口；图像均float32[3,480,640]且有限、范围[0,1]。按有损H264验收，正确视角的平均图像误差小于对置视角；逐episode的MAE诊断保留，不要求逐像素相等、不引入任意像素阈值。汇总：{"front": {"max_mae": 0.0038140693504029434, "mean_window_mae": 0.001458765284480329, "opposite_view_mean_window_mae": 0.3113136480866514}, "wrist": {"max_mae": 0.0037426195962648053, "mean_window_mae": 0.0021374442077914647, "opposite_view_mean_window_mae": 0.31255600457766086}}。
+
+新统计和实际训练读取
+仅对本批完整数据使用原get_feature_stats/aggregate_stats重算，状态/动作全部字段与meta/stats精确一致，count均77356；双路图像按原确定性采样/下采样和作者直方图分位数近似规则重算，全部字段精确一致。图像统计count是作者抽样数，不是丢帧。其余7个数值字段（frame/index/episode/task/phase/loss权重/timestamp）也按原算法独立复算，全部统计字段精确一致。
+use_imagenet_stats=False，图像增强关闭。实际ACT make_pre_post_processors加载本批meta/stats，预处理的MEAN_STD计算逐项精确相等，后处理零动作返回本批action mean。只构造数据配置和processor，没有构造ACT模型/骨干、优化器或加载任何旧策略权重。
+实际make_dataset/TorchCodec、ACT chunk100/n_action_steps50、3-worker DataLoader、batch16、shuffle seed1000、drop_last=False、prefetch2、CPU pin_memory=False。全量读取77356条，各索引恰好一次，共4835批，最后12条，异常0，耗时521.979秒。
+每个样本的9维state、100×9 action和100步padding都逐项核对，尾部仅重复本episode最后动作，未跨回合；两路图像维度/有限性/范围全量检查。此为CPU读取验收，不是训练或训练性能结论。
+
+环境与证据
+既有door-act环境，CUDA隐藏；主流水线限定8CPU核，OMP/MKL/OpenBLAS各2线程；补充标量统计/只读SHA汇总也仅用CPU。无安装、升级或环境重建；实际版本见runtime-environment.json。本轮独立HF缓存与tmp，未清理历史数据/统计/缓存。
+原始命令、有效配置、运行/退出与资源日志：commands/、command-ledger.json、convert/check/full_loader等原始log。dataset-SHA256.json绑定完整输出；meta/stats SHA：0903435b4403a9c5d5856e3cdaa1febd441aad4d4a8530c995a98d3434fce87a。
+服务器run：/data/zyf/video2door-wc4-act/.repro/runs/wc4-expert50-lerobot-20261029
+服务器FINAL：/data/zyf/video2door-wc4-act/.repro/reviews/wc4-expert50-lerobot-20261029-FINAL
+本地FINAL：/Users/yu/Data/Video2Door/reproduction/wc4-act/wc4-expert50-lerobot-20261029/FINAL，包含完整转换数据集、统计、源码、来源和验收日志。原始NPZ/物理大日志继续在b2dfd5e冻结交付中，本轮不重复打包。
+仅清理本轮可重建HF缓存/临时文件及重复数值审查数组，留SHA回执；保留转换数据、完整检查日志、帧覆盖与来源证明。不更改原50条数据、历史成果、main或环境。
+本轮结束，交回独立验收；没有后续训练授权。
