@@ -73,7 +73,12 @@ def closing_reference(cfg, frame, t):
     # theta is a clock-driven path parameter, never a measured door angle.
     s=progress(t,cfg['close_s'],cfg['progress_ramp_s'])
     theta=math.radians(cfg['reference_open_angle_deg'])*(1-s)
-    yaw=math.radians(cfg['closing_start_yaw_deg'])*(1-smooth(s/cfg['turn_progress_end']))
+    if cfg.get('base_yaw_profile')=='constant_core':
+        start=cfg['turn_progress_start']
+        turn=progress(s-start,cfg['turn_progress_end']-start,cfg['turn_progress_ramp'])
+    else:
+        turn=smooth(s/cfg['turn_progress_end'])
+    yaw=math.radians(cfg['closing_start_yaw_deg'])*(1-turn)
     follow=cfg['follow_m']*smooth((s-cfg['follow_progress_start'])/(1-cfg['follow_progress_start']))
     xy=np.asarray(cfg['closing_start_hinge_xy'])+[follow,0.]
     B = frame.base(xy, yaw)

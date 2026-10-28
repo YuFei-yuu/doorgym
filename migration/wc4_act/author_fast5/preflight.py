@@ -47,14 +47,17 @@ def main():
  oldcfg=json.loads(subprocess.check_output(['git','show','bbcbe44:migration/wc4_act/author_fast5/config.json'],cwd=ROOT,text=True))
  scale=cfg['close_s']/oldcfg['close_s']
  oldsamples=[closing_reference(oldcfg,frame,t/scale) for t in tt]
- path_difference=max(float(np.max(abs(samples[i][j]-oldsamples[i][j]))) for i in range(len(tt)) for j in [0,1,2])
+ path_difference=max(float(np.max(abs(samples[i][j]-oldsamples[i][j]))) for i in range(len(tt)) for j in [1,2])
+ base_xy_difference=max(float(np.max(abs(samples[i][0][:2]-oldsamples[i][0][:2]))) for i in range(len(tt)))
+ base_yaw_difference=max(float(abs(samples[i][0][2]-oldsamples[i][0][2])) for i in range(len(tt)))
  assert path_difference<1e-12
+ assert base_xy_difference<1e-12
  changed=[k for k in cfg if cfg[k]!=oldcfg.get(k)]
  result=dict(physics_steps=0,passed=True,author_traverse_endpoint_reused=True,no_micro_relocation=True,closing_uses_measured_door=False,
   reference_seconds=cfg['close_s'],progress_plateau_rate_s=float(np.mean(du[plateau])),max_reference_ee_speed_m_s=float(np.linalg.norm(np.diff(P,axis=0)/.02,axis=1).max()),
   max_base_speed_m_s=float(np.linalg.norm(v,axis=1).max()),max_base_yaw_rate_rad_s=float(max(abs(w))),max_lateral_speed_m_s=float(max(abs(lateral))),
   reference_total_nominal_s=t,reference_timeline=timeline,source_sha256={p.name:sha(p) for p in here.iterdir() if p.is_file()},
-  uniform_time_scale=scale,spatial_reference_max_abs_difference=path_difference,changed_config_fields=changed,
+  arm_time_scale=scale,ee_reference_max_abs_difference=path_difference,base_xy_reference_max_abs_difference=base_xy_difference,base_yaw_schedule_max_difference_rad=base_yaw_difference,changed_config_fields=changed,
   limitation='ideal DLS check; no physical or robustness success implied; actual contact-to-reference-end timing is measured in the one rollout')
  (a.check/'preflight.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result,indent=2))
 if __name__=='__main__':main()
