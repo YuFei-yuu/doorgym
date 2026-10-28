@@ -18,6 +18,17 @@ def angle_delta(a, b):
     return (b-a+math.pi) % (2*math.pi)-math.pi
 
 
+def traverse_clock(cfg, elapsed):
+    """Smoothly add traversal time; base and withdrawing EE share this clock.
+
+    For extra=1.5/window=3, rate stays positive (minimum 0.0625),
+    and joins the original rate with zero acceleration at both ends.
+    """
+    extra=cfg.get('traverse_extra_s',0.)
+    if not extra:return elapsed
+    return elapsed-extra*smooth(elapsed/cfg['traverse_slow_window_s'])
+
+
 class DoorFrame:
     def __init__(self, actor_transform, scale=1., base_z=.5, base_pitch=0.):
         self.robot_z, self.robot_pitch = float(base_z), float(base_pitch)

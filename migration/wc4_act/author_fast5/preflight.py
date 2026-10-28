@@ -5,7 +5,7 @@ from types import SimpleNamespace as NS
 from dataclasses import replace
 import numpy as np
 ROOT=Path(__file__).resolve().parents[3];sys.path.insert(0,str(ROOT/'migration/wc4_act'))
-from author_fast5.geometry import DoorFrame,transform,closing_reference,progress
+from author_fast5.geometry import DoorFrame,transform,closing_reference,progress,traverse_clock
 from author_fast5.trajectory import CompleteExpert,Measured
 
 def main():
@@ -39,9 +39,17 @@ def main():
  effective=json.loads((ROOT/'.repro/runs/wc4-newexpert-stage4-20261025/attempt_000/effective-config.json').read_text())
  open_s=sum(effective[n] for n in ['walk_steps','initial_hold_steps','grasp_steps','grasp_hold_steps','gripper_close_steps','handle_rotate_steps','door_push_steps'])*.02
  traverse_s=effective['traverse_steps']*.02
- t=open_s+max(traverse_s,cfg['parallel_withdraw_s']+cfg['fold_s'])
- timeline=[dict(phase='author_open',start=0,end=open_s),dict(phase='author_traverse',start=open_s,end=open_s+traverse_s),
-  dict(phase='parallel_withdraw_and_fold',start=open_s,end=open_s+cfg['parallel_withdraw_s']+cfg['fold_s'])]
+ extra=cfg.get('traverse_extra_s',0.)
+ lo,hi=0.,cfg['parallel_withdraw_s']+extra
+ for _ in range(50):
+  mid=(lo+hi)/2
+  if traverse_clock(cfg,mid)<cfg['parallel_withdraw_s']:lo=mid
+  else:hi=mid
+ withdraw_real_s=hi
+ t=open_s+max(traverse_s+extra,withdraw_real_s+cfg['fold_s'])
+ timeline=[dict(phase='author_open',start=0,end=open_s),dict(phase='author_traverse',start=open_s,end=open_s+traverse_s+extra),
+  dict(phase='parallel_withdraw',start=open_s,end=open_s+withdraw_real_s),
+  dict(phase='parallel_fold',start=open_s+withdraw_real_s,end=open_s+withdraw_real_s+cfg['fold_s'])]
  for phase,duration in [('turn_for_close',cfg['turn_s']),('deploy',cfg['deploy_s']),('approach',cfg['approach_s']),('close',cfg['close_s']),('lock_confirmation',.5),('release',cfg['release_s']),('fold',cfg['fold_s']),('restore_heading',cfg['restore_s']),('final_hold',2.)]:
   timeline.append(dict(phase=phase,start=t,end=t+duration));t+=duration
  oldcfg=json.loads(subprocess.check_output(['git','show',a.baseline_ref+':migration/wc4_act/author_fast5/config.json'],cwd=ROOT,text=True))
@@ -52,11 +60,13 @@ def main():
  base_yaw_difference=max(float(abs(samples[i][0][2]-oldsamples[i][0][2])) for i in range(len(tt)))
  inset_residual=0.
  for candidate,old_sample in zip(samples,oldsamples):
-  theta=candidate[3];delta=0.
-  if cfg.get('contact_inset_m',0.):
-   start=math.radians(cfg['contact_inset_start_deg']);end=math.radians(cfg['contact_inset_end_deg'])
+  theta=candidate[3]
+  def inset_at(c):
+   if not c.get('contact_inset_m',0.):return 0.
+   start=math.radians(c['contact_inset_start_deg']);end=math.radians(c['contact_inset_end_deg'])
    from author_fast5.geometry import smooth
-   delta=cfg['contact_inset_m']*smooth((start-theta)/(start-end))
+   return c['contact_inset_m']*smooth((start-theta)/(start-end))
+  delta=inset_at(cfg)-inset_at(oldcfg)
   expected=-delta*(frame.R@np.array([-math.sin(theta),math.cos(theta),0.]))
   inset_residual=max(inset_residual,float(np.max(abs(candidate[1]-old_sample[1]-expected))))
  assert inset_residual<1e-12

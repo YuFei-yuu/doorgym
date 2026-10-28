@@ -59,7 +59,8 @@ def main():
  names=ref['dof_names'];first_traverse=next((r['timing']['command_time_s'] for r in rows if r['phase']=='traverse_door'),None)
  reconstructed=[]
  for i,r in enumerate(rows):
-  direct=r['phase'] in ['walk','traverse_fold_finish','turn_for_close','deploy','fold','restore_heading','final_hold'] or (r['phase']=='traverse_door' and r['timing']['command_time_s']-first_traverse>=cfg['parallel_withdraw_s'])
+  mode=r.get('expert_target',{}).get('mode')
+  direct=(mode=='joint') if mode is not None else (r['phase'] in ['walk','traverse_fold_finish','turn_for_close','deploy','fold','restore_heading','final_hold'] or (r['phase']=='traverse_door' and r['timing']['command_time_s']-first_traverse>=cfg['parallel_withdraw_s']))
   if direct:
    B=r['command_base'];F=robot.fk(dict(zip(names,r['arm_command'])),transform([*B[:2],effective['robot_z']],[0,effective['robot_pitch'],B[2]]))['ee_gripper_link'];target[i]=F[:3,3];reconstructed.append(i)
  write(dest/'reference-target-audit.json',dict(reconstructed_joint_mode_steps=reconstructed,raw_log_unchanged=True,
