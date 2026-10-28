@@ -1,0 +1,10 @@
+本轮输入：b2dfd5e冻结统一索引，50成功episode，77356帧，5条复用+45条新增。
+本轮输出：独立LeRobot repo_id local/wc4_expert50_20261029，目录.repro/runs/wc4-expert50-lerobot-20261029/lerobot/local/wc4_expert50_20261029。
+不裁帧、不重排、不混历史数据或统计，不改原始NPZ/记录时钟。按作者joint_state9/depth_only/fps25/video/h264/原sanitizer转换。
+沿用已验证float64视频偏移/查询/PTS修复，strict tolerance<1e-4不变；局部timestamp沿用作者float32 f/25。
+原作者转换器、sanitizer、LeRobot factory/reader/stats/ACT processors均不改；仅按本轮路径、数量、来源改接既有验收程序。
+完整状态/动作逐元素对照同sanitizer的原始值；索引/局部时间戳/特征名称、两路视频每帧PTS和episode映射审查。H264有损，以对照误差诊断和原代码/视角/时序绑定验收，不要求逐像素相等。
+用新数据独立重算所有原作者数值/图像统计并与meta/stats一致；make_dataset(use_imagenet_stats=False)和实际ACT pre/post processors只加载本批统计。
+ACT配置chunk100/n_action_steps50，仅配置及processor/数据读取，不构造模型/优化器。3-worker、batch16、shuffle seed1000、drop_last=False、prefetch2完整遍历77356样本，各索引一次，所有100步action窗口和padding逐项检查不得跨episode。
+全部计算在既有ACT环境CPU，CUDA隐藏，限定8CPU核，每类库2线程。使用本轮独立HF缓存和临时目录，保护历史环境/缓存/成果。容量不足或源字节缺损停止并保留日志，不删回合/裁帧掩盖。
+本轮没有仿真、补采、执行录像、模型训练、策略推理或策略导出。LeRobot H264是数据存储格式。
