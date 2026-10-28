@@ -6,6 +6,17 @@ ROOT=Path(__file__).resolve().parents[3]
 sys.path.insert(0,str(ROOT/'migration/wc4_act'))
 from newexpert_stage4.prepare import sha, write
 
+class GPUConflictTracker:
+    """Confirm the same external GPU context in two consecutive observations."""
+    def __init__(self):
+        self.previous=set()
+
+    def update(self, conflicts):
+        current=set(conflicts)
+        confirmed=sorted(current & self.previous)
+        self.previous=current
+        return confirmed
+
 def verify(run):
     m=json.loads((run/'manifest.json').read_text())
     assert len(m['trials'])==1 and m['maximum_sim_seconds']==120
@@ -52,7 +63,7 @@ def main():
         st=states[0];audit_effective_trial(gym,st,out)
         write(run/'physics-start.json',{'at':time.time(),'dt':dt,'maximum_steps':6000,'source_verified':True})
         class GuardGym:
-            def __init__(self):self.steps=0;self.allowed={os.getpid()}
+            def __init__(self):self.steps=0;self.allowed={os.getpid()};self.conflicts=GPUConflictTracker()
             def __getattr__(self,name):return getattr(gym,name)
             def simulate(self,simulation):
                 if self.steps%50==0:
@@ -63,8 +74,9 @@ def main():
                         except BaseException as exc:raise expert.StopAttempt('fast5_source_binding_mismatch:'+repr(exc))
                         apps=subprocess.check_output(['nvidia-smi','--query-compute-apps=gpu_uuid,pid','--format=csv,noheader'],text=True)
                         conflicts=[line for line in apps.splitlines() if line.split(',')[0].strip()==uuid and int(line.split(',')[1]) not in self.allowed]
-                        with (run/'resource-monitor.jsonl').open('a') as f:f.write(json.dumps({'step':self.steps,'free_bytes':free,'compute_apps':apps,'conflicts':conflicts,'at':time.time()})+'\n')
-                        if conflicts:raise expert.StopAttempt('fast5_gpu_uuid_conflict')
+                        confirmed=self.conflicts.update(conflicts)
+                        with (run/'resource-monitor.jsonl').open('a') as f:f.write(json.dumps({'step':self.steps,'free_bytes':free,'compute_apps':apps,'conflicts':conflicts,'confirmed_conflicts':confirmed,'at':time.time()})+'\n')
+                        if confirmed:raise expert.StopAttempt('fast5_gpu_uuid_conflict')
                     if self.steps and self.steps%50==0:
                         required=['states.jsonl','contacts.jsonl','recording-clock.jsonl']
                         if any(not (out/n).exists() or (out/n).stat().st_size==0 for n in required):
