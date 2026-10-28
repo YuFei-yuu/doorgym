@@ -40,7 +40,7 @@ def main():
    if name not in foot or value>foot[name]['max_deviation_rad']:foot[name]={'max_deviation_rad':value,'time_s':r['t'],'phase':r['phase']}
  bad=next((r for r in rows if r['foot_guard']['bad']),None)
  first_loaded_any=next((r for r in rows if r['nonzero_end_panel_contact']),None)
- metrics=dict(result=result,physics_steps=n,reference_duration_s=5.,first_postdeployment_loaded_gripper_contact=None if first is None else {'time_s':first['t'],'phase':first['phase'],'door_deg':math.degrees(first['door_q'][0])},
+ metrics=dict(result=result,physics_steps=n,reference_duration_s=json.loads((out/'effective-expert.json').read_text())['close_s'],first_postdeployment_loaded_gripper_contact=None if first is None else {'time_s':first['t'],'phase':first['phase'],'door_deg':math.degrees(first['door_q'][0])},
   first_loaded_any_time_s=None if first_loaded_any is None else first_loaded_any['t'],
   reference_end_post_s=None if complete is None else complete['t'],
   actual_contact_to_reference_end_s=None if first is None or complete is None else complete['t']-first['t'],
@@ -89,10 +89,10 @@ def main():
  from author_rewrite.geometry import DoorFrame,transform,closing_reference as old_reference
  from author_fast5.geometry import closing_reference as new_reference
  frame=DoorFrame(transform([2.61,0,.01],[0,0,math.pi/2]));old=json.loads((ROOT/'migration/wc4_act/author_rewrite/config.json').read_text());new=json.loads((out/'effective-expert.json').read_text())
- oldb=np.array([old_reference(old,frame,x)[0] for x in np.linspace(0,42,501)]);newb=np.array([new_reference(new,frame,x)[0] for x in np.linspace(0,5,501)])
- oldee=np.array([old_reference(old,frame,x)[1] for x in np.linspace(0,42,501)]);newee=np.array([new_reference(new,frame,x)[1] for x in np.linspace(0,5,501)])
+ oldb=np.array([old_reference(old,frame,x)[0] for x in np.linspace(0,42,501)]);newb=np.array([new_reference(new,frame,x)[0] for x in np.linspace(0,new['close_s'],501)])
+ oldee=np.array([old_reference(old,frame,x)[1] for x in np.linspace(0,42,501)]);newee=np.array([new_reference(new,frame,x)[1] for x in np.linspace(0,new['close_s'],501)])
  fig,ax=plt.subplots(figsize=(9,7));ax.plot(oldb[:,0],oldb[:,1],'--',color='gray',label='Previous closing base (42 s)');ax.plot([1.26,1.18],[.18,.10],color='gray',label='Removed micro-relocation')
- ax.plot(newb[:,0],newb[:,1],'--',color='#087d9b',lw=3,label='New closing base (5 s)');ax.plot(newee[:,0],newee[:,1],color='#bb405d',label='New EE reference');ax.plot(oldee[:,0],oldee[:,1],color='gray',alpha=.4,label='Previous EE reference')
+ ax.plot(newb[:,0],newb[:,1],'--',color='#087d9b',lw=3,label='New closing base (%g s)'%new['close_s']);ax.plot(newee[:,0],newee[:,1],color='#bb405d',label='New EE reference');ax.plot(oldee[:,0],oldee[:,1],color='gray',alpha=.4,label='Previous EE reference')
  ax.plot(base[:,0],base[:,1],color='black',lw=1,label='Executed base path (observed only)')
  for deg in [0,45,90]:
   th=math.radians(deg);h=frame.hinge[:2];tip=h+.93*np.array([-math.sin(th),math.cos(th)]);ax.plot(*np.array([h,tip]).T,color='#b17a44');ax.text(*tip,f'{deg}°')

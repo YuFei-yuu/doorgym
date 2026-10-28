@@ -1,5 +1,5 @@
 {
-  "version": "author_fast5_first_physical_v1",
+  "version": "author_slow15_single_physical_v1",
   "author_skill": "high-level/float_ik/door_twin/examples/wc4_smoke_skill.json",
   "physics": "frozen-r7-physics.yaml",
   "contact_radius_m": 0.905,
@@ -12,8 +12,8 @@
   "closing_start_hinge_xy": [-1.207, 0.643],
   "closing_start_yaw_deg": -100.0,
   "reference_open_angle_deg": 90.0,
-  "close_s": 5.0,
-  "progress_ramp_s": 0.5,
+  "close_s": 15.0,
+  "progress_ramp_s": 1.5,
   "turn_progress_end": 0.65,
   "follow_progress_start": 0.65,
   "follow_m": 0.46,
