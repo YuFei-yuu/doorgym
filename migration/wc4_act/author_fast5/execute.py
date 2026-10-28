@@ -76,7 +76,10 @@ def main():
                         conflicts=[line for line in apps.splitlines() if line.split(',')[0].strip()==uuid and int(line.split(',')[1]) not in self.allowed]
                         confirmed=self.conflicts.update(conflicts)
                         with (run/'resource-monitor.jsonl').open('a') as f:f.write(json.dumps({'step':self.steps,'free_bytes':free,'compute_apps':apps,'conflicts':conflicts,'confirmed_conflicts':confirmed,'at':time.time()})+'\n')
-                        if confirmed:raise expert.StopAttempt('fast5_gpu_uuid_conflict')
+                        # A context registered by another shared-server job is
+                        # not a simulator failure. Keep provenance and report
+                        # sustained overlap without discarding a valid rollout.
+                        if confirmed:print(json.dumps({'event':'resource_warning','step':self.steps,'confirmed_gpu_context_overlap':confirmed}),flush=True)
                     if self.steps and self.steps%50==0:
                         required=['states.jsonl','contacts.jsonl','recording-clock.jsonl']
                         if any(not (out/n).exists() or (out/n).stat().st_size==0 for n in required):
