@@ -166,7 +166,7 @@ def run(m, cams, output, plan, gym, sim, states, viewer, args, dt, dof_names):
             if step*dt<1.:
                 action[-1]=np.clip(smooth_gripper(initial_gripper,home[indices[-1]],step*dt),physical_gripper_lower,physical_gripper_upper)
                 st.dof_positions[indices[-1]]=action[-1]
-            if target.position is not None:
+            if target.joints is None and target.position is not None:
                 st.last_target_pos=target.position.copy()
                 st.last_target_quat=None if target.rotation is None else Rotation.from_matrix(target.rotation).as_quat()
             else:
@@ -285,7 +285,7 @@ def run(m, cams, output, plan, gym, sim, states, viewer, args, dt, dof_names):
             row['off_target_closing_contact']=off_target_closing_contact
             row['physical_close_observed_span_s']=close_hold.elapsed
             row['final_hold_observed_span_s']=terminal_hold.elapsed
-            row['expert_target']=dict(phase=target.phase,author_phase=target.author_phase,next_phase=expert.phase,base=target.base.tolist(),reference_elapsed_s=target.reference_elapsed_s,reference_complete=target.reference_complete)
+            row['expert_target']=dict(phase=target.phase,author_phase=target.author_phase,next_phase=expert.phase,base=target.base.tolist(),reference_elapsed_s=target.reference_elapsed_s,reference_complete=target.reference_complete,mode='joint' if target.joints is not None else 'cartesian')
             row['task_monitor']=task_monitor.metadata();row['pass_plane_x']=scene.pass_plane_x
             log.write(json.dumps(serial(row))+'\n');contact_log.write(json.dumps(dict(step=step,interval_s=[step*dt,(step+1)*dt],contacts=contacts))+'\n')
             samples.append([step,(step+1)*dt,*np.r_[last_action[:2],measured_q[indices]],*action, *actual_xy,actual_yaw,*door_pos,*door_vel])

@@ -9,7 +9,9 @@ ROOT = Path(__file__).resolve().parents[3]
 
 def smooth(u):
     u = float(np.clip(u, 0, 1))
-    return u*u*u*(10+u*(-15+6*u))
+    # The polynomial can overshoot 1 by a few ulps for u just below 1.
+    # Slerp requires a closed [0, 1] domain, including the real float32 clock.
+    return float(np.clip(u*u*u*(10+u*(-15+6*u)), 0., 1.))
 
 
 def angle_delta(a, b):

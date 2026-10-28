@@ -81,7 +81,7 @@ def main():
             base_z=sampling['robot_z'],base_pitch=sampling['robot_pitch'])
     else:frame=DoorFrame(transform([2.61,0,.01],[0,0,math.pi/2]))
     robot=URDF(ROOT/'high-level/data/asset/a2wz1/urdf/a2wz1.urdf',include_visual=True)
-    ik=AuthorDLS(robot,effective);q=np.zeros(6);rows=[];dt=.02
+    ik=AuthorDLS(robot,effective);q=np.zeros(6);rows=[];dt=float(np.float32(.02))
     B0=frame.base(cfg['closing_start_hinge_xy'],math.radians(cfg['closing_start_yaw_deg']))
     F,_=ik.fk_jacobian(B0,q,frame);start=F[:3,3].copy();R0=F[:3,:3].copy()
     from scipy.spatial.transform import Slerp
