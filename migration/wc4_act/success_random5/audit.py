@@ -12,7 +12,7 @@ def audit(out):
     first_latched=None;separated_after_latch=None
     for line in (out/'states.jsonl').open():
         row=json.loads(line);assert row['step']==count
-        assert row['t']==row['timing']['physics_post_time_s'] if 'physics_post_time_s' in row['timing'] else row['t']>0
+        assert row['t']==row['timing']['measured_post_time_s']
         max_angle=max(max_angle,abs(row['door_q'][0]))
         if opened is None and abs(row['door_q'][0])>=math.radians(80):opened=row['t']
         if row['passed'] and passed is None:passed=row['t']
@@ -25,12 +25,17 @@ def audit(out):
         previous=row;last=row;count+=1
     assert count==result['steps'] and [x['source_step'] for x in clock]==list(range(0,count,2))
     assert sum(1 for _ in (out/'contacts.jsonl').open())==count
-    lock_count=0;first_lock=None;max_delta=0.
+    lock_count=0;first_lock=None;max_delta=0.;max_relock_delta=0.
+    initial_angle=read(out/'initial-state.json')['door'][0][0]
     for line in (out/'lock-writes.jsonl').open():
         row=json.loads(line);max_delta=max(max_delta,abs(row['delta']))
         if row['kind']=='relocked':
+            max_relock_delta=max(max_relock_delta,abs(row['delta']))
             lock_count+=1
             if first_lock is None:first_lock=row
+            assert row['latched']==first_lock['latched']
+        else:
+            assert row['kind']=='initial' and row['latched']==initial_angle
     legal=False
     if first_lock:
         assert pre_latch is not None
@@ -42,7 +47,7 @@ def audit(out):
     success=bool(opened is not None and legal)
     assert success==result['success']
     assert abs(math.degrees(max_angle)-result['simplified_score']['max_abs_open_deg'])<1e-9
-    assert max_delta<1e-7
+    if first_lock:assert first_lock['delta']==0. and max_relock_delta<1e-7
     paths=list((out/'raw').glob('*.npz'));assert len(paths)==1
     frames=len(clock);errs=dict(state=0.,action=0.,previous_command=0.);views={}
     with np.load(paths[0],allow_pickle=True) as d:
@@ -50,6 +55,7 @@ def audit(out):
         assert np.isfinite(state).all() and np.isfinite(action).all()
         for i,c in enumerate(clock):
             rec=records[c['source_step']];assert c['frame']==i and c['physics_post_time_s']==rec['t']
+            assert np.array_equal(action[i],np.asarray(c['action']))
             errs['state']=max(errs['state'],float(np.max(abs(state[i,2:]-np.array(rec['arm'])))))
             errs['action']=max(errs['action'],float(np.max(abs(action[i,2:]-np.array(rec['command'])))))
             prior=np.zeros(2) if i==0 else action[i-1,:2]
@@ -73,7 +79,7 @@ def audit(out):
         stop_reason=result['reason'],failure_reasons=result['simplified_score']['failures'],execution_error=result['error'],
         initial_state=read(out/'initial-state.json'),effective_randomization=binding['randomization'],
         actual_camera_poses=binding['camera_local_poses'],frames=frames,joint9_max_error=errs,
-        views=views,raw_sha256=sha(paths[0]),lock_writes=lock_count,max_lock_write_delta=max_delta,
+        views=views,raw_sha256=sha(paths[0]),lock_writes=lock_count,max_lock_write_delta=max_delta,max_relock_write_delta=max_relock_delta,
         raw_clock_and_render_verified=True,no_video=True)
 
 def main():
