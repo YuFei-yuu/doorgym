@@ -13,7 +13,9 @@ rows=read(RUN/'fixed16.json')['trials']
 
 def trial(index,gpu):
  row=rows[index];seed=row['seed'];target=base/f'trial_{index:02d}';target.mkdir(exist_ok=True)
- if (target/'event-result.json').exists():return read(target/'event-result.json')
+ if (target/'event-result.json').exists():
+  accepted=read(target/'event-result.json')
+  if not accepted['error']:return accepted
  prior=list(target.glob('attempt_*'))
  # Only an infrastructure attempt without an actual-state task result may retry.
  if prior:
@@ -31,7 +33,7 @@ def trial(index,gpu):
  if not (attempt/'result.json').exists():raise RuntimeError(f'Infrastructure exception seed {seed}: see {target}')
  from events import audit
  result=audit(attempt,seed,step)
- write(target/'event-result.json',result)
+ if not result['error']:write(target/'event-result.json',result)
  # Lossless compression after scoring with original/decoded SHA receipt; no evidence deletion.
  receipt=[]
  for name in ['states.jsonl','contacts.jsonl','lock-writes.jsonl','policy-inputs-actions.jsonl','worker-applied-evidence.jsonl']:

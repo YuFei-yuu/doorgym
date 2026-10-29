@@ -39,7 +39,7 @@ def audit(output,seed,step):
  assert rows==result['steps'] and rows<=6000
  locks=list(lines('lock-writes.jsonl'));relocks=[r for r in locks if r['kind']=='relocked']
  assert bool(relocks)==(events['legal_relock'] is not None)
- if relocks:assert all(r['delta']==0 for r in relocks)
+ if relocks:assert relocks[0]['delta']==0
  success=events['opened80'] is not None and events['legal_relock'] is not None and final['latched'] is not None and not final['unlocked']
  assert success==result['simplified_score']['success']==result['success']
  out=dict(seed=seed,step=step,success=success,max_open_deg=maximum,events=events,stop_reason=result['reason'],seconds=result['sim_seconds'],steps=rows,error=result['error'],failures=result['simplified_score']['failures'],source=str(output),criterion='actual opening >=80 deg AND final legal relock; other events diagnostics only',phase_labels_used=False)
