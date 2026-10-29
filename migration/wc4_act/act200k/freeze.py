@@ -66,7 +66,7 @@ lines+=['','逐回合详见per-trial-events.csv；与10k—50k完整对照见ele
 (RUN/'RESULT.txt').write_text('\n'.join(lines)+'\n')
 # Review tree shares model/data bytes safely; do not duplicate large artifacts on /data.
 final=ROOT/'.repro/reviews/wc4-act200k-20261029-FINAL';assert not final.exists();final.mkdir()
-exclude={'wandb','__pycache__'}
+exclude={'wandb','__pycache__','freeze-process.log'}
 def linktree(src,dst):
  dst.mkdir(exist_ok=True)
  for item in sorted(src.iterdir()):

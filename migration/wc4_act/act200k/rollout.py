@@ -141,7 +141,14 @@ def run(m, cams, output, plan, gym, sim, states, viewer, args, dt, dof_names):
     for name in ['initial-state.json','physical-camera-binding.json','frozen-trial.json']:
         actual=json.loads((output/name).read_text());prior=paired_root/name
         if prior.exists():
-            if json.loads(prior.read_text())!=actual:raise RuntimeError('Paired initial mismatch: '+name)
+            expected=json.loads(prior.read_text())
+            if name=='frozen-trial.json':
+                # A new independent YAML path may differ; its bytes and every numeric field must match.
+                old_args=expected['argv'];new_args=actual['argv'];j=old_args.index('--a2w_float_ik_config')+1
+                assert new_args[j-1]=='--a2w_float_ik_config'
+                assert hashlib.sha256(Path(old_args[j]).read_bytes()).hexdigest()==hashlib.sha256(Path(new_args[j]).read_bytes()).hexdigest()
+                expected=json.loads(json.dumps(expected));expected['argv'][j]=new_args[j]
+            if expected!=actual:raise RuntimeError('Paired initial mismatch: '+name)
         else:prior.write_text(json.dumps(actual,indent=2)+'\n')
     (output/'paired-initial-binding.json').write_text(json.dumps(dict(reference=str(paired_root),all_actual_initial_physics_camera_equal=True),indent=2)+'\n')
     xy=np.array(st.base_start,dtype=float);yaw=float(st.yaw_start)
