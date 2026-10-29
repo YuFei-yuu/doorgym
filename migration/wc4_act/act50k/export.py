@@ -11,7 +11,7 @@ step=int(sys.argv[1]);assert step in STAGES
 R=RUN/'checkpoints'/f'{step:06d}';R.mkdir(parents=True,exist_ok=False)
 TRAIN_R=RUN
 SOURCE=RUN/'train/checkpoints'/f'{step:06d}'/'pretrained_model';WRAPPED=R/'door-checkpoint'
-D=DATA.parent.parent;DATA_ID=REPO
+D=DATA.parents[2];DATA_ID=REPO
 assert json.loads((SOURCE.parent/'training_state/training_step.json').read_text())['step']==step
 assert not WRAPPED.exists()
 command=[sys.executable,'high-level/dp/export_official_lerobot_act_to_door_checkpoint.py','--official_checkpoint',str(SOURCE),'--root',str(D/'lerobot'),'--repo_id',DATA_ID,'--out_dir',str(WRAPPED/'model_latest'),'--depth_only','--device','cpu','--action_horizon','25']
