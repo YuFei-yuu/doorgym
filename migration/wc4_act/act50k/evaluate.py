@@ -61,7 +61,16 @@ def lane(gpu,indices):
   if contexts:raise RuntimeError('Evaluation GPU has foreign compute context; checkpoint retained: '+str(gpu))
   return [trial(i,gpu) for i in indices]
 # Independent simulations; every stage reuses each exact manifest once.
-gpus=[int(x) for x in os.environ.get('WC4_ACT50K_EVAL_GPUS','0,2,5,6').split(',')]
+candidates=[int(x) for x in os.environ.get('WC4_ACT50K_EVAL_GPUS','2,5,6,0,7').split(',')]
+gpus=[]
+while not gpus:
+ for gpu in candidates:
+  contexts=subprocess.check_output(['nvidia-smi','-i',str(gpu),'--query-compute-apps=pid','--format=csv,noheader'],text=True).strip()
+  if not contexts:gpus.append(gpu)
+  if len(gpus)==3:break
+ if not gpus:
+  write(base/'waiting-for-idle-gpu.json',dict(at=time.time(),candidates=candidates));time.sleep(30)
+write(base/'evaluation-gpu-selection.json',dict(candidates=candidates,selected=gpus,at=time.time(),numerical_contract_unchanged=True))
 with concurrent.futures.ThreadPoolExecutor(max_workers=len(gpus)) as pool:
  futures=[pool.submit(lane,gpu,list(range(i,16,len(gpus)))) for i,gpu in enumerate(gpus)]
  results=[]
