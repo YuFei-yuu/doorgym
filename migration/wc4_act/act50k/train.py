@@ -69,13 +69,18 @@ def make_policy(*a,**k):
   write(initial/'provenance.json',dict(old_task_weights_loaded=False,policy_pretrained_path=None,backbone='ResNet18_Weights.IMAGENET1K_V1',cache_path=str(candidates[0]),cache_sha256=sha(candidates[0]),all_backbone_tensors_equal=matches,initial_model_sha256=sha(initial/'model.safetensors'),dataset_stats_sha256=sha(DATA/'meta/stats.json'),torch=torch.__version__,torchvision=torchvision.__version__))
  return policy
 m.make_policy=make_policy
-update=m.update_policy
 metrics=(RUN/'updates.jsonl').open('a',buffering=1)
+# The guard wraps only the author optimizer/scheduler call. Post-update audits
+# run AFTER its completed boundary, so an evidence error can save full state.
+guardroot=RUN/'trainer-attempts'/str(time.time_ns());guardroot.mkdir(parents=True)
+guard=TrainingGuard(m,guardroot,lambda:holder['cfg']);guard.boundary.install_signals()
+guarded_update=m.update_policy
 
 def logged_update(*a,**k):
  assert guard.boundary.completed<50000
- result=update(*a,**k)
- row=dict(update=guard.boundary.completed+1,at=time.time(),**metric_values(result[0]))
+ result=guarded_update(*a,**k)
+ assert not guard.boundary.inflight
+ row=dict(update=guard.boundary.completed,at=time.time(),**metric_values(result[0]))
  assert all(math.isfinite(row[n]) for n in ['loss','lr','grad_norm'])
  row.update(batch_size_actual=int(a[2]['observation.state'].shape[0]),indices=a[2]['index'].detach().cpu().reshape(-1).tolist())
  metrics.write(json.dumps(row)+'\n');metrics.flush()
@@ -83,9 +88,6 @@ def logged_update(*a,**k):
   os.fsync(metrics.fileno());write(RUN/'train-progress.json',row);verify()
  return result
 m.update_policy=logged_update
-# A new guard journal per process preserves original interrupted attempts.
-guardroot=RUN/'trainer-attempts'/str(time.time_ns());guardroot.mkdir(parents=True)
-guard=TrainingGuard(m,guardroot,lambda:holder['cfg']);guard.boundary.install_signals()
 restore=m.load_training_state
 
 def restored(*a,**k):
