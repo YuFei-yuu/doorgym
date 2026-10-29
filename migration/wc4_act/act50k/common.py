@@ -2,7 +2,7 @@ import os,json,hashlib,sys
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[3]
 SUPPORT=ROOT/'migration/wc4_act'
-RUN=ROOT/'.repro/runs/wc4-act50k-20261029'
+RUN=ROOT/'.repro/runs/wc4-act50k-20261029-r2'
 DATA=ROOT/'.repro/runs/wc4-expert50-lerobot-20261029/lerobot/local/wc4_expert50_20261029'
 REPO='local/wc4_expert50_20261029'
 STAGES=[10000,20000,30000,40000,50000]

@@ -16,14 +16,19 @@ source['source_sha256']=binding
 write(RUN/'source-binding.json',binding)
 write(RUN/'manifest.json',source)
 (RUN/'attempts').mkdir()
-sampler=Sampler(RUN);rows=[]
-for seed in range(62300,62316):
- target=sampler.prepare(seed)
- trial=read(target/'manifest.json')['trials'][0]
- argv=trial['argv'];argv[argv.index('--steps')+1]='6000'
- doc=read(target/'manifest.json');doc['trials'][0]['argv']=argv
+# Preserve the prior fixed16 numeric states/cameras exactly; never redraw.
+prior_run=ROOT/'.repro/runs/wc4-act50k-20261029'
+prior=read(prior_run/'fixed16.json');rows=[]
+for row in prior['trials']:
+ seed=row['seed'];target=RUN/'attempts'/('seed%d'%seed);target.mkdir()
+ old_doc=read(row['manifest']);trial=old_doc['trials'][0]
+ original=dict(seed=seed,sampling=trial['sampling_before_asset_overrides'],cameras=trial['camera_local_poses'])
+ argv=trial['argv'];argv[argv.index('--a2w_float_ik_config')+1]=source['yaml']
+ assert argv[argv.index('--steps')+1]=='6000'
+ doc=dict(start_commit=source['start_commit'],trials=[trial],yaml=source['yaml'],yaml_sha256=source['yaml_sha256'],source_sha256=binding,r7_physics_after_asset_overrides=source['r7_physics_after_asset_overrides'])
  write(target/'manifest.json',doc)
+ assert original==dict(seed=seed,sampling=trial['sampling_before_asset_overrides'],cameras=trial['camera_local_poses'])
  rows.append(dict(seed=seed,manifest=str(target/'manifest.json'),sha256=sha(target/'manifest.json'),trial=trial))
-write(RUN/'fixed16.json',dict(seeds=list(range(62300,62316)),training_source_seeds=list(range(62100,62150)),overlap=[],sampled_once=True,filtered=False,trials=rows))
+write(RUN/'fixed16.json',dict(seeds=prior['seeds'],training_source_seeds=list(range(62100,62150)),overlap=[],sampled_once=True,filtered=False,trials=rows,reused_numeric_initials_without_redraw=True,prior_manifest_sha256=sha(prior_run/'fixed16.json')))
 write(RUN/'order.json',dict(dataset_commit='197a169133c847e23bbf0f4ea5c389bf1234fae4',steps=50000,stages=STAGES,eval_per_stage=16,max_seconds=120,seed=1000,batch=16,lr=1e-5,chunk=100,training_n_action_steps=50,eval_action_horizon=25,video=False))
-print('Frozen 16 novel original-author initial states, without simulation.')
+print('Reused all16 fixed numeric states/cameras exactly; no resampling or simulation.')

@@ -9,3 +9,5 @@ Events: measured full geometry passage, opening80, actual contact separation aft
 Evidence: full checkpoints (model, processors, optimizer, parameter groups, RNG, step/config and scheduler when present), export manifest+bundle, original training and per-episode measured state/contact/lock/action logs, exact observed depth NPZ buffers and image SHA. Logs may be losslessly gzipped only after decoded SHA comparison; retain original byte hashes.
 Failure handling: actual task failures remain denominator16; only infrastructure interruptions can retry the same fixed state, retaining all attempt directories. Resume uses original full training state, no policy-only restarts. No automatic additional budget after50k.
 Protected: main, accepted expert actions/physics/cameras/observations, frozen source datasets, historical checkpoints/environments. No environment installs/upgrades.
+
+Restart explicitly authorized by user; prior7500 failed updates/initialization are discarded and never loaded. Independent r2 run, new50k budget. Numeric fixed16 reused without a redraw. All runtime source must be sealed before launch and remain unchanged throughout active execution.

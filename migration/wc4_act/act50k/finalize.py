@@ -84,7 +84,7 @@ for x in all_results:
 lines+=['','See per-trial-events.csv and each event-audit.json for actual stop reasons and event times.','No minimum success threshold; no failed tasks replaced, no budget extended.','Logs ending in .jsonl.gz are lossless; individual original/decoded SHA receipts are next to each trial.','Complete original-author checkpoints include pretrained_model and training_state; exports include manifest AND model_latest bundle directory.','Initializer is a new ACT with ImageNet V1 backbone only; new dataset normalization, no old-task policy weights.','No uncompleted authorized work remains after this audit passes.']
 (RUN/'RESULT.txt').write_text('\n'.join(lines)+'\n')
 # Review tree shares model/data bytes safely; do not duplicate large artifacts on /data.
-final=ROOT/'.repro/reviews/wc4-act50k-20261029-FINAL';assert not final.exists();final.mkdir()
+final=ROOT/'.repro/reviews/wc4-act50k-20261029-r2-FINAL';assert not final.exists();final.mkdir()
 exclude={'wandb','__pycache__'}
 def linktree(src,dst):
  dst.mkdir(exist_ok=True)
@@ -104,7 +104,7 @@ if wandb_dirs:
 code=final/'code';code.mkdir()
 for name in subprocess.check_output(['git','ls-files','migration/wc4_act/act50k'],text=True).splitlines():shutil.copyfile(ROOT/name,code/Path(name).name)
 shutil.copyfile(RUN/'RESULT.txt',final/'RESULT.txt')
-write(final/'INDEX.json',dict(commit=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),input_commit='197a169133c847e23bbf0f4ea5c389bf1234fae4',dataset=str(DATA),repo_id=REPO,training=str(RUN),local_delivery='/Users/yu/Data/Video2Door/reproduction/wc4-act/wc4-act50k-20261029/FINAL',checkpoints=[str((RUN/'train/checkpoints'/f'{s:06d}')) for s in STAGES],exports=[str(RUN/'checkpoints'/f'{s:06d}'/'door-checkpoint/model_latest.pt') for s in STAGES],complete=True,all_80_runtime_audits_pass=True))
+write(final/'INDEX.json',dict(commit=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),input_commit='197a169133c847e23bbf0f4ea5c389bf1234fae4',dataset=str(DATA),repo_id=REPO,training=str(RUN),local_delivery='/Users/yu/Data/Video2Door/reproduction/wc4-act/wc4-act50k-20261029-r2/FINAL',checkpoints=[str((RUN/'train/checkpoints'/f'{s:06d}')) for s in STAGES],exports=[str(RUN/'checkpoints'/f'{s:06d}'/'door-checkpoint/model_latest.pt') for s in STAGES],complete=True,all_80_runtime_audits_pass=True))
 files=[dict(path=str(p.relative_to(final)),bytes=p.stat().st_size,sha256=sha(p)) for p in sorted(final.rglob('*')) if p.is_file()]
 write(final/'SHA256.json',files)
 for p in final.rglob('*'):

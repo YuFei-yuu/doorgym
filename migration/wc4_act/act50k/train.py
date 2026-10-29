@@ -53,7 +53,7 @@ m.WandBLogger.log_dict=log
 make=m.make_policy
 
 def make_policy(*a,**k):
- policy=make(*a,**k)
+ policy=make(*a,**k);holder['policy']=policy
  if not holder['cfg'].resume:
   import torchvision
   from safetensors.torch import save_file
@@ -78,6 +78,17 @@ guarded_update=m.update_policy
 
 def logged_update(*a,**k):
  assert guard.boundary.completed<50000
+ if holder.get('restored_checkpoint') and not holder.get('restored_before_forward'):
+  # Loader/model setup may consume RNG after the original load call.
+  from lerobot.utils.random_utils import deserialize_rng_state,serialize_rng_state
+  from safetensors.torch import load_file
+  cp=holder['restored_checkpoint']
+  saved_rng=load_file(str(cp/'training_state/rng_state.safetensors'))
+  deserialize_rng_state(saved_rng)
+  actual_rng=serialize_rng_state()
+  assert all(torch.equal(v.cpu(),actual_rng[n].cpu()) for n,v in saved_rng.items())
+  holder['restored_before_forward']=True
+  write(guardroot/'restored-before-first-forward.json',dict(step=guard.boundary.completed,model_optimizer_RNG_verified=True,RNG_reapplied_after_loader_setup=True,dataloader_cursor_restored=False))
  result=guarded_update(*a,**k)
  assert not guard.boundary.inflight
  row=dict(update=guard.boundary.completed,at=time.time(),**metric_values(result[0]))
@@ -97,6 +108,10 @@ def restored(*a,**k):
  cp=Path(a[0]);saved=load_file(str(cp/'training_state/optimizer_state.safetensors'))
  live=flatten_dict({'state':result[1].state_dict()['state']})
  assert set(saved)==set(live) and all(torch.equal(v,live[n].cpu()) for n,v in saved.items())
+ model_saved=load_file(str(cp/'pretrained_model/model.safetensors'))
+ assert set(model_saved)==set(holder['policy'].state_dict())
+ assert all(torch.equal(v,holder['policy'].state_dict()[n].detach().cpu()) for n,v in model_saved.items())
+ holder['restored_checkpoint']=cp
  write(guardroot/'restored.json',dict(step=result[0],checkpoint=str(cp),optimizer_tensors_equal=True,original_author_resume=True,dataloader_cursor_restored=False))
  return result
 m.load_training_state=restored
@@ -122,6 +137,8 @@ try:
  assert guard.boundary.completed==50000
  assert all((RUN/'evaluation'/f'{step:06d}'/'complete.json').exists() for step in STAGES)
  write(RUN/'complete.json',dict(updates=50000,evaluation_trials=80,stages=STAGES))
+except BoundaryStop:
+ raise SystemExit(75)
 except BaseException as exc:
  write(guardroot/'exception.json',dict(error=repr(exc),traceback=traceback.format_exc(),completed=guard.boundary.completed,inflight=guard.boundary.inflight))
  if not guard.boundary.inflight and guard.context:
