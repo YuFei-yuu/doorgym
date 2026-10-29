@@ -55,7 +55,10 @@ def lane(gpu,indices):
  uuid=subprocess.check_output(['nvidia-smi','-i',str(gpu),'--query-gpu=uuid','--format=csv,noheader'],text=True).strip()
  with open('/data/zyf/video2door/.repro/locks/'+uuid+'.lock','w') as lock:
   fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
-  write(base/f'gpu-{gpu}-lock.json',dict(gpu=gpu,uuid=uuid,pid=os.getpid(),at=time.time()))
+  snapshot=subprocess.check_output(['nvidia-smi','-i',str(gpu),'--query-gpu=index,uuid,memory.used,utilization.gpu','--format=csv,noheader'],text=True).strip()
+  contexts=subprocess.check_output(['nvidia-smi','-i',str(gpu),'--query-compute-apps=pid,used_memory','--format=csv,noheader'],text=True).strip()
+  write(base/f'gpu-{gpu}-lock.json',dict(gpu=gpu,uuid=uuid,pid=os.getpid(),at=time.time(),snapshot=snapshot,compute_contexts=contexts))
+  if contexts:raise RuntimeError('Evaluation GPU has foreign compute context; checkpoint retained: '+str(gpu))
   return [trial(i,gpu) for i in indices]
 # Independent simulations; every stage reuses each exact manifest once.
 gpus=[int(x) for x in os.environ.get('WC4_ACT50K_EVAL_GPUS','0,2,5,6').split(',')]
