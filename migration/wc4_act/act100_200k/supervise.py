@@ -3,6 +3,7 @@ from common import *
 import subprocess,time,signal,shutil,math,fcntl
 sys.path.insert(0,str(SUPPORT/'r13'))
 from stopping import request_stop
+from gpu_admission import probe
 CTL=RUN.with_name(RUN.name+'-control');CTL.mkdir(exist_ok=True)
 lease=(CTL/'supervisor.lock').open('a+');fcntl.flock(lease,fcntl.LOCK_EX|fcntl.LOCK_NB)
 train_gpu=sys.argv[1];eval_gpus=sys.argv[2];assert int(train_gpu) not in [int(g) for g in eval_gpus.split(',')]
@@ -49,6 +50,21 @@ while True:
         if not (RUN/'complete.json').exists():write(RUN/'complete.json',dict(updates=200000,evaluation_trials=160,stages=STAGES,recovered_at_final_boundary=True))
         break
     if attempt and cp is None:raise RuntimeError('No full state for automatic recovery; startup evidence retained')
+    # Resource waiting is not an execution failure and never consumes retries.
+    pool=list(dict.fromkeys([int(train_gpu),*[int(g) for g in eval_gpus.split(',')]]))
+    selected=None
+    while selected is None:
+        snapshots=[]
+        for gpu in pool:
+            item=probe(gpu);snapshots.append(item)
+            if item['available']:selected=gpu;break
+        if selected is None:
+            free=shutil.disk_usage(ROOT).free
+            write(RUN/'monitor-state.json',dict(state='waiting_training_gpu',completed_updates=known,free_bytes=free,candidates=pool,gpu_admission=snapshots,at=time.time()))
+            time.sleep(30)
+    train_gpu=str(selected);eval_gpus=','.join(str(g) for g in pool if g!=selected)
+    write(CTL/('training-gpu-selection-'+str(time.time_ns())+'.json'),dict(selected_training_gpu=selected,evaluation_candidates=eval_gpus,completed_updates=known,admission=snapshots,no_optimizer_updates_for_wait=True,at=time.time()))
+    verify()
     cmd=['bash',str(Path(__file__).with_name('launch.sh')),train_gpu,eval_gpus]
     if cp:cmd.append(str(cp))
     token=str(time.time_ns());log=CTL/('training-process-'+token+'.log')
@@ -69,6 +85,9 @@ while True:
     if proc.returncode==0:
         assert read(RUN/'complete.json')['updates']==200000
         break
+    if proc.returncode==3 and completed()==known:
+        write(RUN/'monitor-state.json',dict(state='waiting_training_gpu',resource_admission_race=True,completed_updates=known,at=time.time()))
+        time.sleep(20);continue
     attempt+=1
     write(RUN/'monitor-state.json',dict(state='interrupted',returncode=proc.returncode,completed_updates=completed(),at=time.time()))
     if attempt>3:raise RuntimeError('Repeated infrastructure interruption; evidence retained for engineering review')
