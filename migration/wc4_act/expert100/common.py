@@ -2,7 +2,7 @@
 import subprocess
 from pathlib import Path
 from success_random5.common import ROOT,sha,read,write,head
-from expert50.common import hardlink_tree,raw_path,qualification as qualify50
+from expert50.common import hardlink_tree,raw_path
 BASE='405356ad56d08650b5a6cf80c4764c65095004dd'
 OLD_FREEZE='b2dfd5ec685865e3b5d1676bc76fc1938237301d'
 def verify(run):
@@ -17,7 +17,11 @@ def verify(run):
     return m
 
 def qualification(out,origin_kind,run):
-    q=qualify50(out,origin_kind,run)
+    from expert100.quality import audit
+    q=audit(out)
+    q['leg_diagnostic']=read(out/'result.json')['leg_posture_diagnostic']
+    q['origin_kind']=origin_kind;q['evidence']=str(out.relative_to(run));q['raw_path']=str(raw_path(out).relative_to(run))
+    q['bindings']={n:sha(out/n) for n in ['command.json','initial-state.json','frozen-trial.json','physical-camera-binding.json','effective-config.json','effective-expert.json','result.json','states.jsonl','contacts.jsonl','lock-writes.jsonl','recording-clock.jsonl','raw-render-receipt.json']}
     # Independently reconstruct the physical <=1deg/<=1deg/s interval used
     # by the unchanged latch. Events remain diagnostics, not extra scoring.
     import json,math

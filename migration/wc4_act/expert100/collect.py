@@ -23,7 +23,8 @@ def finish_index(run,stop):
     for i,q in enumerate(qualified):
         assert q['success']
         source=run/q['raw_path'];dest=run/'raw'/('episode_%06d.npz'%i)
-        os.link(source,dest);assert sha(dest)==q['raw_sha256']
+        if not dest.exists():os.link(source,dest)
+        assert sha(dest)==q['raw_sha256']
         item=dict(episode_id=i,seed=q['seed'],env_seed=q['effective_randomization']['env_seed'],
             origin_kind=q['origin_kind'],raw_path=str(dest.relative_to(run)),raw_sha256=q['raw_sha256'],
             source_raw_path=q['raw_path'],evidence=q['evidence'],
@@ -36,20 +37,26 @@ def finish_index(run,stop):
         raw_byte_policy='Raw NPZ internal episode identifiers are unchanged. Unique dataset IDs are external filenames/index only; no source-byte rewrite.'))
     attempts=[json.loads(x) for x in (run/'attempt-ledger.jsonl').read_text().splitlines()] if (run/'attempt-ledger.jsonl').exists() else []
     summary=dict(complete=len(index)==100,stop_reason=stop,new_attempts=len(attempts),
-        new_successes=sum(x['status']=='success' for x in attempts),
+        new_successes=sum(q['origin_kind']=='new' for q in qualified),
         task_failures=sum(x['status']=='task_failure' for x in attempts),
         anomalies=sum(x['status'] not in ['success','task_failure'] for x in attempts),
         failure_reasons=dict(collections.Counter(x['reason'] for x in attempts if x['status']!='success')),
         dataset_episodes=len(index),reused=50,total_frames=sum(x['frames'] for x in index),
         total_steps=sum(x['steps'] for x in index),free_bytes_end=shutil.disk_usage(ROOT).free,
         videos=0,replays=0,conversion=False,training=False)
+    recovery=read(run/'audit-recovery.json') if (run/'audit-recovery.json').exists() else []
+    summary['resolved_checker_anomalies']=len(recovery)
+    summary['execution_anomalies']=sum(x['status']=='execution_anomaly' for x in attempts)
+    summary['unresolved_anomalies']=summary['anomalies']-len(recovery)
     write(run/'summary.json',summary);return summary
 
 def main():
     p=argparse.ArgumentParser();p.add_argument('--run',type=Path,required=True);a=p.parse_args();run=a.run.resolve()
-    manifest=verify(run);assert len(list((run/'qualification').glob('*.json')))==50
-    write(run/'collection-start.json',dict(at=time.time(),pid=os.getpid(),gpus=manifest['workers'],free_bytes=shutil.disk_usage(ROOT).free))
-    sampler=Sampler(run);successes=0;inflight={};next_seed=manifest['start_new_seed'];stop=None
+    manifest=verify(run);prior=[read(p) for p in (run/'qualification').glob('*.json')];assert 50<=len(prior)<=100
+    write(run/('collection-start-'+manifest['start_commit'][:7]+'.json'),dict(at=time.time(),pid=os.getpid(),gpus=manifest['workers'],free_bytes=shutil.disk_usage(ROOT).free))
+    sampler=Sampler(run);successes=sum(q['origin_kind']=='new' for q in prior);inflight={};next_seed=manifest['start_new_seed'];stop=None
+    prepared=[json.loads(x) for x in (run/'prepared-seeds.jsonl').read_text().splitlines()] if (run/'prepared-seeds.jsonl').exists() else []
+    if prepared:next_seed=max(x['seed'] for x in prepared)+1
     excluded=set(read(run/'seed-exclusions.json')['used_seeds'])
     streak_reason=None;streak=0;raw_hashes={read(p)['raw_sha256'] for p in (run/'qualification').glob('*.json')}
     def event(x):
