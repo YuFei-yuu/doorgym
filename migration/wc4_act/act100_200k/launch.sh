@@ -8,6 +8,7 @@ flock -n 9
 WC4_A100_CONTEXTS=$(nvidia-smi -i "$VIDEO2DOOR_GPU" --query-compute-apps=pid --format=csv,noheader)
 if [[ -n "$WC4_A100_CONTEXTS" ]]; then echo 'Selected training GPU is occupied' >&2; exit 3; fi
 source migration/wc4_act/activate.sh act
+export CUDA_VISIBLE_DEVICES="$WC4_A100_UUID"
 export WC4_ACT100_200K_RUN="$PWD/.repro/runs/wc4-act100-fresh200k-20261031"
 export WC4_ACT100_200K_EVAL_GPUS=${2:?evaluation candidates}
 export WC4_EXECUTION_RUN="$WC4_ACT100_200K_RUN"

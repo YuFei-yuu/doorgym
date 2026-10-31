@@ -11,6 +11,11 @@ from lerobot.policies.act.modeling_act import ACTPolicy
 from lerobot.configs.train import TrainPipelineConfig
 from overview import load
 verify();holder={}
+lease_uuid=Path(os.readlink('/proc/self/fd/9')).stem
+assert 'FLOCK' in Path('/proc/self/fdinfo/9').read_text() and os.environ['CUDA_VISIBLE_DEVICES']==lease_uuid
+assert torch.cuda.is_available() and torch.cuda.device_count()==1
+properties=torch.cuda.get_device_properties(0)
+write(RUN/'training-device-binding.json',dict(pid=os.getpid(),uuid=lease_uuid,cuda_visible_devices=os.environ['CUDA_VISIBLE_DEVICES'],physical_gpu=os.environ['VIDEO2DOOR_GPU'],logical_device=0,device_name=properties.name,total_memory=properties.total_memory,torch=torch.__version__,shared_uuid_lock_verified=True))
 validate=TrainPipelineConfig.validate
 
 def checked(cfg):
