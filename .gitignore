@@ -28,3 +28,16 @@ Thumbs.db
 .vscode/
 node_modules/
 dist/
+
+# Local handoff snapshots and generated training/evaluation/replay deliveries
+/migration/wc4_act/flow_handoff_20261025/
+/reproduction/
+**/FINAL/
+**/FINAL-METADATA/
+*.jsonl
+*.jsonl.gz
+*.parquet
+*.arrow
+*.mkv
+*.webm
+*.tfevents.*
