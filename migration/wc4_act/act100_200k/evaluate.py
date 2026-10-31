@@ -24,9 +24,9 @@ def trial(index,gpu):
    from events import audit
    result=audit(latest,seed,step);write(target/'event-result.json',result);return result
  attempt=target/f'attempt_{len(prior):03d}'
- cmd=['bash','-c','export VIDEO2DOOR_GPU="$1"; shift; source migration/wc4_act/activate.sh gym && exec python -B "$@"','act100-fresh200k',str(gpu),str(Path(__file__).with_name('rollout.py')),'--output',str(attempt),'--manifest',row['manifest'],'--checkpoint',str(checkpoint),*row['trial']['argv']]
+ cmd=['bash','-c','export VIDEO2DOOR_GPU="$1"; shift; source migration/wc4_act/activate.sh gym && export CUDA_VISIBLE_DEVICES="$WC4_EVAL_GPU_UUID" && exec python -B "$@"','act100-fresh200k',str(gpu),str(Path(__file__).with_name('rollout.py')),'--output',str(attempt),'--manifest',row['manifest'],'--checkpoint',str(checkpoint),*row['trial']['argv']]
  write(target/f'command-{len(prior):03d}.json',dict(argv=cmd,seed=seed,checkpoint_sha256=sha(checkpoint),official_model_sha256=sha(RUN/'train/checkpoints'/f'{step:06d}'/'pretrained_model/model.safetensors')))
- env=dict(os.environ,WC4_ACT100_200K_RUN=str(RUN),WC4_ACT100_200K_STAGE=str(step),CUDA_VISIBLE_DEVICES=str(gpu))
+ env=dict(os.environ,WC4_EVAL_GPU_UUID=subprocess.check_output(['nvidia-smi','-i',str(gpu),'--query-gpu=uuid','--format=csv,noheader'],text=True).strip(),WC4_ACT100_200K_RUN=str(RUN),WC4_ACT100_200K_STAGE=str(step),CUDA_VISIBLE_DEVICES=str(gpu))
  with (target/f'process-{len(prior):03d}.log').open('x') as log:
   code=subprocess.run(cmd,cwd=ROOT,env=env,stdout=log,stderr=subprocess.STDOUT).returncode
  write(target/f'exit-{len(prior):03d}.json',dict(code=code,at=time.time()))

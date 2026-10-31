@@ -56,7 +56,8 @@ with (RUN/'per-trial-events.csv').open('w') as f:
 with (RUN/'node-comparison.csv').open('w') as f:
  keys=['step','new100_successes','old50_successes','denominator','old50_node_available','new100_training_relation','old50_training_relation','new100_wandb']
  w=csv.DictWriter(f,fieldnames=keys);w.writeheader();w.writerows({k:r[k] for k in keys} for r in compare)
-text=['100条数据ACT从头200k及十节点固定16评测：冻结交付','',f"实际执行提交：{read(RUN/'manifest.json')['start_commit']}",
+lineage=read(RUN/'execution-lineage.json') if (RUN/'execution-lineage.json').exists() else [dict(commit=read(RUN/'manifest.json')['start_commit'],start_update=0)]
+text=['100条数据ACT从头200k及十节点固定16评测：冻结交付','',f"实际执行提交及修复阶段：{json.dumps(lineage,ensure_ascii=False)}",
  f'输入冻结426feb7；repo_id={REPO}；数据100条/154667帧，统计SHA1fdfb23cfac8591bf328490ec28c88e8e667683b34d3cb16ac0c043191531db7。',
  '从0初始化ACT，未加载旧任务策略，仅ResNet18 ImageNet V1初始化，实际初始模型和骨干张量映射/SHA保留。',
  'seed1000、batch16、lr1e-5、chunk100、训练n_action_steps50、3读取worker、原作者全量均匀shuffle；scheduler=None。',
@@ -94,7 +95,7 @@ code=final/'code';code.mkdir()
 for rel in subprocess.check_output(['git','ls-files','migration/wc4_act/act100_200k'],cwd=ROOT,text=True).splitlines():shutil.copyfile(ROOT/rel,code/Path(rel).name)
 shutil.copyfile(RUN/'RESULT.txt',final/'RESULT.txt')
 subprocess.run(['git','bundle','create',str(final/'code-lineage.bundle'),'426feb7..HEAD'],cwd=ROOT,check=True)
-write(final/'INDEX.json',dict(execution_commit=read(RUN/'manifest.json')['start_commit'],input_freeze='426feb7473e2bc08bbe2d3754a0f75f09dd9bf45',dataset=str(DATA),repo_id=REPO,
+write(final/'INDEX.json',dict(execution_lineage=lineage,execution_commit=read(RUN/'manifest.json')['start_commit'],input_freeze='426feb7473e2bc08bbe2d3754a0f75f09dd9bf45',dataset=str(DATA),repo_id=REPO,
  training=str(RUN),episodes=100,frames=154667,initialization='fresh; ImageNet ResNet18 only',updates=200000,evaluation_trials=160,stages=STAGES,
  completion_meaning='exact200000 optimizer updates plus10 completed16-trial evaluations and all runtime/export audits; no minimum success rate threshold',
  full_checkpoints=[str(RUN/'train/checkpoints'/f'{s:06d}') for s in STAGES],exports=[str(RUN/'checkpoints'/f'{s:06d}'/'door-checkpoint/model_latest.pt') for s in STAGES],
