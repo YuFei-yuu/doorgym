@@ -1,0 +1,8 @@
+本轮仅转换与读取验收：011870a最终根source-index的100条/154667帧；50复用+50新增，原顺序、全长、各执行版本和时钟SHA保留。禁止以phases/v1部分索引作为输入。
+独立run wc4-expert100-lerobot-20261031，repo_id local/wc4_expert100_20261031。仅从100原NPZ重新转换及重算全部统计，不拼接旧转换，不复用旧50条统计。
+原作者converter/sanitizer、joint_state9、双masked-depth、25fps、video/h264与原精度读取修复不改。图像统计沿原确定性抽样/下采样与逐episode聚合配方，对全部100条重新计算；数值统计使用全帧。
+全量状态/动作精确比较、特征/索引/timestamp核对；双视频全解码与原生PTS索引覆盖；H264按有损编码，窗口诊断对应视角，不要求像素字节相等。
+真实make_dataset/ACT配置chunk100,n_action_steps50；3-worker,batch16,shuffle seed1000,drop_last=False,prefetch2,CPU pin_memory=False，全量一次覆盖所有样本并逐项核对动作窗口/尾padding/图像/状态；真实processor加载本批统计，不构造ACT模型/优化器。
+既有door-act环境，CUDA隐藏，8CPU核、各数值库2线程；独立tmp与HF缓存，无依赖安装/环境重建/历史清理。容量预留40GiB，不足停止并保全日志。
+采集检查器修复与7回合59点外部compute重叠按原字节来源记录保留，不据此删回合。原输入NPZ/时钟/索引前后SHA核对。
+完成后冻结完整转换数据/新统计/源版本/实际命令/原始日志与SHA；本地明确完整转换数据覆盖，原始NPZ/物理日志只引用原冻结位置。不补采、不训练、不仿真、不新增录像或回放。
