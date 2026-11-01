@@ -1,6 +1,8 @@
 """Paired fixed16 policy-only rollouts. Actual task failures stay in denominator."""
 from common import *
 import subprocess,time,concurrent.futures,gzip,shutil,fcntl,traceback
+from gpu_admission import probe
+class AdmissionUnavailable(RuntimeError):pass
 step=int(sys.argv[1]);assert step in STAGES
 verify();base=RUN/'evaluation'/f'{step:06d}';base.mkdir(parents=True,exist_ok=True)
 if (base/'complete.json').exists():raise SystemExit(0)
@@ -56,27 +58,36 @@ def trial(index,gpu):
 def lane(gpu,indices):
  uuid=subprocess.check_output(['nvidia-smi','-i',str(gpu),'--query-gpu=uuid','--format=csv,noheader'],text=True).strip()
  with open('/data/zyf/video2door/.repro/locks/'+uuid+'.lock','w') as lock:
-  fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
+  try:fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
+  except BlockingIOError:raise AdmissionUnavailable('UUID lease busy for GPU '+str(gpu))
   snapshot=subprocess.check_output(['nvidia-smi','-i',str(gpu),'--query-gpu=index,uuid,memory.used,utilization.gpu','--format=csv,noheader'],text=True).strip()
   contexts=subprocess.check_output(['nvidia-smi','-i',str(gpu),'--query-compute-apps=pid,used_memory','--format=csv,noheader'],text=True).strip()
   write(base/f'gpu-{gpu}-lock.json',dict(gpu=gpu,uuid=uuid,pid=os.getpid(),at=time.time(),snapshot=snapshot,compute_contexts=contexts))
-  if contexts:raise RuntimeError('Evaluation GPU has foreign compute context; checkpoint retained: '+str(gpu))
+  if contexts:raise AdmissionUnavailable('GPU became occupied before scene creation: '+str(gpu))
   return [trial(i,gpu) for i in indices]
 # Independent simulations; every stage reuses each exact manifest once.
 candidates=[int(x) for x in os.environ.get('WC4_ACT100_200K_EVAL_GPUS','2,5,6,0,7').split(',')]
-gpus=[]
-while not gpus:
+round_number=0
+while True:
+ gpus=[];admissions=[]
  for gpu in candidates:
-  contexts=subprocess.check_output(['nvidia-smi','-i',str(gpu),'--query-compute-apps=pid','--format=csv,noheader'],text=True).strip()
-  if not contexts:gpus.append(gpu)
+  item=probe(gpu);admissions.append(item)
+  if item['available']:gpus.append(gpu)
   if len(gpus)==3:break
  if not gpus:
-  write(base/'waiting-for-idle-gpu.json',dict(at=time.time(),candidates=candidates));time.sleep(30)
-write(base/'evaluation-gpu-selection.json',dict(candidates=candidates,selected=gpus,at=time.time(),numerical_contract_unchanged=True))
-with concurrent.futures.ThreadPoolExecutor(max_workers=len(gpus)) as pool:
- futures=[pool.submit(lane,gpu,list(range(i,16,len(gpus)))) for i,gpu in enumerate(gpus)]
- results=[]
- for future in futures:results.extend(future.result())
+  write(base/'waiting-for-idle-gpu.json',dict(at=time.time(),candidates=candidates,admissions=admissions));time.sleep(30);continue
+ write(base/'evaluation-gpu-selection.json',dict(candidates=candidates,selected=gpus,at=time.time(),numerical_contract_unchanged=True,round=round_number))
+ results=[];busy=[]
+ with concurrent.futures.ThreadPoolExecutor(max_workers=len(gpus)) as pool:
+  futures=[pool.submit(lane,gpu,list(range(i,16,len(gpus)))) for i,gpu in enumerate(gpus)]
+  for future in futures:
+   try:results.extend(future.result())
+   except AdmissionUnavailable as error:busy.append(str(error))
+ if not busy:break
+ # No task result is removed. All completed trial results are reused from
+ # their exact fixed state on the next resource round, never rerun.
+ write(base/('gpu-admission-race-%04d.json'%round_number),dict(at=time.time(),resource_only=True,reasons=busy,completed_results_reused=True,no_optimizer_updates=True))
+ round_number+=1;time.sleep(10)
 results.sort(key=lambda x:x['seed']);assert len(results)==16
 counts={k:sum(r['events'][k] is not None for r in results) for k in results[0]['events']}
 summary=dict(step=step,denominator=16,successes=sum(r['success'] for r in results),event_counts=counts,results=results)

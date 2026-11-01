@@ -95,7 +95,9 @@ while True:
     # an older state to recreate already-budgeted updates.
     cp=checkpoint_at_known_boundary()
     if cp is None:raise RuntimeError('No complete boundary checkpoint; no automatic fresh restart')
-    while shutil.disk_usage(ROOT).free<65*1024**3:
+    capacity_stop=(RUN/'STOP_REQUEST.json').exists() and read(RUN/'STOP_REQUEST.json')['reason']=='capacity_below40GiB'
+    required_free=(65 if capacity_stop else 40)*1024**3
+    while shutil.disk_usage(ROOT).free<required_free:
         write(RUN/'monitor-state.json',dict(state='waiting_capacity',completed_updates=completed(),free_bytes=shutil.disk_usage(ROOT).free,at=time.time()));time.sleep(30)
     root_stop=RUN/'STOP_REQUEST.json'
     if root_stop.exists():
