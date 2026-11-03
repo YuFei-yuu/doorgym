@@ -3,11 +3,12 @@ import time,fcntl,shutil
 ctl=RUN.with_name(RUN.name+'-control');ctl.mkdir(exist_ok=True)
 with (ctl/'controller.lock').open('a+') as lease:
  fcntl.flock(lease,fcntl.LOCK_EX|fcntl.LOCK_NB)
+ token=str(time.time_ns())
  env=dict(os.environ,WC4_EXECUTION_RUN=str(RUN),WC4_ACT100_200K_EVAL_GPUS='7,4,5,6')
  for attempt in range(4):
   verify()
   if (RUN/'STOP_REQUEST.json').exists():raise RuntimeError('Capacity/controlled stop retained; review before resume')
-  with (ctl/f'evaluation-{attempt}.log').open('xb') as out:
+  with (ctl/f'evaluation-{token}-{attempt}.log').open('xb') as out:
    p=subprocess.Popen([sys.executable,'-B',str(Path(__file__).with_name('evaluate.py')),'120000'],cwd=ROOT,env=env,stdout=out,stderr=subprocess.STDOUT)
    while p.poll() is None:
     free=shutil.disk_usage(ROOT).free
@@ -15,7 +16,7 @@ with (ctl/'controller.lock').open('a+') as lease:
     if free<40*1024**3:write(RUN/'STOP_REQUEST.json',dict(reason='capacity_below40GiB',at=time.time(),free_bytes=free))
     time.sleep(20)
    p.returncode=p.wait()
-  write(ctl/f'evaluation-{attempt}.exit.json',dict(code=p.returncode,at=time.time()))
+  write(ctl/f'evaluation-{token}-{attempt}.exit.json',dict(code=p.returncode,at=time.time()))
   if p.returncode==0:break
   if attempt==3:raise RuntimeError('Repeated infrastructure error; all attempts preserved')
   time.sleep(10)

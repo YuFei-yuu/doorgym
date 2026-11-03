@@ -18,7 +18,7 @@ from r11.criteria import terminal
 from fullcycle_task_monitor import TaskMonitor
 from success_random5.criterion import SuccessMonitor
 from legdiag_random5.diagnostic import LegDiagnostic
-from r13.action_journal import ActionJournal
+from action_journal import ActionJournal
 from r13.contacts import diagnostic
 
 ROOT=Path(__file__).resolve().parents[3]
