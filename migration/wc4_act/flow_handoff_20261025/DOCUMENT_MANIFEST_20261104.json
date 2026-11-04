@@ -3,7 +3,7 @@
   "timezone": "Asia/Shanghai",
   "pre_archive_head": "e307962",
   "scope": "User-requested documentation archive and server commit/push; no new experiments",
-  "verification_boundary": "Read frozen source records and event tables; this turn does not rerun full simulation/data/training acceptance. Source SHA binds consulted files.",
+  "verification_boundary": "Read frozen source records; independently aggregated 160 per-trial event rows on server CPU and checked each fixed16 seed group against all ten reported counts. Does not rerun physical logs, data decode or training acceptance.",
   "documents": [
     {
       "path": "/Users/yu/Data/Video2Door/code-wc4-act/migration/wc4_act/flow_handoff_20261025/README.md",
@@ -12,8 +12,8 @@
     },
     {
       "path": "/Users/yu/Data/Video2Door/code-wc4-act/migration/wc4_act/flow_handoff_20261025/WC4_新专家采集与ACT训练_20261104.md",
-      "bytes": 15249,
-      "sha256": "f1611d67d8353fd0195116e06c10799ff97dbc948bf3806f679ac0828af25d83"
+      "bytes": 15381,
+      "sha256": "2a244ef5905e115115a074e78c5ecbe35e00380a9d06b37c06833a634d08ed21"
     },
     {
       "path": "/Users/yu/Data/Video2Door/code-wc4-act/AGENTS.md",
