@@ -1,0 +1,73 @@
+{
+  "date": "2026-10-25",
+  "timezone": "Asia/Shanghai",
+  "base_commit": "1638f9b1caf8f1bf3428afdcaaf94902090afc6c",
+  "main_protected": "87c5a8665f78b0627c95ea9be6a0e756fc359b11",
+  "purpose": "User-requested consolidated Markdown handoff; next intent is further expert trajectory rewrite, no training authorization",
+  "documents": [
+    {
+      "file": "WC4_专家生成至200k_流程报告.md",
+      "kind": "byte-identical historical snapshot",
+      "source": "/Users/yu/Data/Video2Door/reproduction/wc4-act/wc4-fulltask-flow-handoff-20261025/WC4_专家生成至200k_流程报告.md",
+      "source_sha256": "03c1a6f1e49149f8099be5016a6305077aea4707a868a80137820c39e535c41d",
+      "copy_sha256": "03c1a6f1e49149f8099be5016a6305077aea4707a868a80137820c39e535c41d",
+      "original_preserved": true
+    },
+    {
+      "file": "REPRODUCTION_GUIDE.md",
+      "kind": "byte-identical historical snapshot",
+      "source": "/Users/yu/Data/Video2Door/code-wc4-act/migration/wc4_act/REPRODUCTION_GUIDE.md",
+      "source_sha256": "4fcbc7f0e71fca353edca1add65f77ae6f5c204e35caa7cea8a4a646d0d328a7",
+      "copy_sha256": "4fcbc7f0e71fca353edca1add65f77ae6f5c204e35caa7cea8a4a646d0d328a7",
+      "original_preserved": true
+    },
+    {
+      "file": "WC4_新专家路线_阶段1至8_流程报告.md",
+      "kind": "new branch handoff report",
+      "sha256": "0de73fc5bd706550c68ff060f67620b69aac911270d7cf5ab4571be3e55aae3f",
+      "evidence_boundary": "Stage8 handoff recheck independently covers hashes and all numeric values/indices; full DataLoader, full video decode and image statistics were not rerun in this documentation turn."
+    }
+  ],
+  "index_sha256": "2a908261a65928eb97420e24a1876395991889fcbbf3c0daee18d99b6387cc8e",
+  "stage_report_sources": [
+    {
+      "path": "/Users/yu/Data/Video2Door/code-wc4-act/migration/wc4_act/newexpert_stage1/RESULT.md",
+      "sha256": "d9fbbc73349ff6b2abc1ca9b4ac65ebf43de08d32bbc8773d333e1e56d4649ba"
+    },
+    {
+      "path": "/Users/yu/Data/Video2Door/code-wc4-act/migration/wc4_act/newexpert_stage2/RESULT.md",
+      "sha256": "b251280e1910f9ba4134219482d444c9fa92a98226b63f29ad39d149db7eb75b"
+    },
+    {
+      "path": "/Users/yu/Data/Video2Door/code-wc4-act/migration/wc4_act/newexpert_stage3/RESULT.md",
+      "sha256": "2c6f369dfa19b3718047a03d0cf1d0213eefeec33f86e7e926833d44c5c067e9"
+    },
+    {
+      "path": "/Users/yu/Data/Video2Door/code-wc4-act/migration/wc4_act/newexpert_stage4/RESULT.md",
+      "sha256": "36121372c0f1ea3eb1f08ab2e9b013bd30916f27bd54547ac20a3d945ac875c4"
+    },
+    {
+      "path": "/Users/yu/Data/Video2Door/code-wc4-act/migration/wc4_act/newexpert_stage5/RESULT.md",
+      "sha256": "28eed67b8ff4d076088130e1e6eccd49344ec353c97d267db83d9a5722639157"
+    },
+    {
+      "path": "/Users/yu/Data/Video2Door/code-wc4-act/migration/wc4_act/newexpert_stage6/RESULT.md",
+      "sha256": "e3e79bc1862f8e928e144b877bb3fc83d577ae03cf14435202314fbe690a189f"
+    },
+    {
+      "path": "/Users/yu/Data/Video2Door/code-wc4-act/migration/wc4_act/newexpert_stage7/RESULT.md",
+      "sha256": "396735ed44128b5726228447e1e297a0123377da1a6157705a7ec522116a823f"
+    },
+    {
+      "path": "/Users/yu/Data/Video2Door/code-wc4-act/migration/wc4_act/newexpert_stage8/RESULT.md",
+      "sha256": "6356e1dac1c51371871e0f543539b98b95d26405fab9ce7747deabe5e26db50e"
+    }
+  ],
+  "changes": "Documentation only. Originals preserved. No commit or push performed.",
+  "storage_maintenance": {
+    "date": "2026-10-25",
+    "report": "/Users/yu/Data/Video2Door/reproduction/wc4-act/storage-cleanup-20261025-01/README.txt",
+    "original_three_reports_unchanged": true,
+    "historical_log_paths_require_cleanup_receipts": true
+  }
+}

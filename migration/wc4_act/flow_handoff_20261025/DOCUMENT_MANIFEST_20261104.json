@@ -1,0 +1,154 @@
+{
+  "date": "2026-11-04",
+  "timezone": "Asia/Shanghai",
+  "pre_archive_head": "e307962",
+  "scope": "User-requested documentation archive and server commit/push; no new experiments",
+  "verification_boundary": "Read frozen source records and event tables; this turn does not rerun full simulation/data/training acceptance. Source SHA binds consulted files.",
+  "documents": [
+    {
+      "path": "/Users/yu/Data/Video2Door/code-wc4-act/migration/wc4_act/flow_handoff_20261025/README.md",
+      "bytes": 5545,
+      "sha256": "39c4fb9185642a50f299bc0041e8080fd895b5b3ad26f32123366d61fa05e2ed"
+    },
+    {
+      "path": "/Users/yu/Data/Video2Door/code-wc4-act/migration/wc4_act/flow_handoff_20261025/WC4_新专家采集与ACT训练_20261104.md",
+      "bytes": 15249,
+      "sha256": "f1611d67d8353fd0195116e06c10799ff97dbc948bf3806f679ac0828af25d83"
+    },
+    {
+      "path": "/Users/yu/Data/Video2Door/code-wc4-act/AGENTS.md",
+      "bytes": 3256,
+      "sha256": "e02c71ae06ca1936747fe23e0df96910265b5fcea5828fd77acb665b92af5a7c"
+    },
+    {
+      "path": "/Users/yu/Data/Video2Door/code-wc4-act/migration/wc4_act/README.md",
+      "bytes": 2705,
+      "sha256": "54bf093ed0534b4b99c443e7a54df434ad1dcb123905fe60018018a10000ffeb"
+    },
+    {
+      "path": "/Users/yu/Data/Video2Door/code-wc4-act/.gitignore",
+      "bytes": 583,
+      "sha256": "81cc7c516ea72233a84d34e20bdeb7e175bdfc7f32422c997a0616f489777fc0"
+    }
+  ],
+  "sources": [
+    {
+      "path": "/Users/yu/Data/Video2Door/reproduction/wc4-act/wc4-delay-only-20261028/FINAL/MANIFEST.json",
+      "bytes": 1822,
+      "sha256": "532221d65cecbaa50823b801ed598c1ab93e7fb4eac2d282a580bf28fb930612"
+    },
+    {
+      "path": "/Users/yu/Data/Video2Door/reproduction/wc4-act/wc4-delay-only-20261028/FINAL/RESULT.txt",
+      "bytes": 8497,
+      "sha256": "7b1a1d924e029b29dcb197f9a60e250ad3843c21adc23c1217e6a865f703a60c"
+    },
+    {
+      "path": "/Users/yu/Data/Video2Door/reproduction/wc4-act/wc4-success-random5-20261029/FINAL/RESULT.txt",
+      "bytes": 5074,
+      "sha256": "8b07a5b6f4ce93d25fd3130251d2595ff9c3fbd1e392d86ee45ff02456aca3dd"
+    },
+    {
+      "path": "/Users/yu/Data/Video2Door/reproduction/wc4-act/wc4-legdiag-random5-20261029/FINAL/RESULT.txt",
+      "bytes": 5164,
+      "sha256": "a43826911d83c87f0f9737825d2ef3d0c9eb65b625c7ca5359ccfc7089356826"
+    },
+    {
+      "path": "/Users/yu/Data/Video2Door/reproduction/wc4-act/wc4-expert50-20261029/FINAL/RESULT.txt",
+      "bytes": 4035,
+      "sha256": "a148321e9fb365cfb4a430da74320b238e70f4e101ffd596ffa52aa8cc881b96"
+    },
+    {
+      "path": "/Users/yu/Data/Video2Door/reproduction/wc4-act/wc4-expert50-lerobot-20261029/FINAL/RESULT.txt",
+      "bytes": 5515,
+      "sha256": "007f74524b73839539af25013079a43c6c4b88ee9ebbc0f64fe76834d09f0fad"
+    },
+    {
+      "path": "/Users/yu/Data/Video2Door/reproduction/wc4-act/wc4-act50k-20261029-r2/FINAL/RESULT.txt",
+      "bytes": 2320,
+      "sha256": "63712815d3348c8805573b1bfe88a1f6830fa2e9571bb02e8f1bdd23795bf172"
+    },
+    {
+      "path": "/Users/yu/Data/Video2Door/reproduction/wc4-act/wc4-act200k-20261029/FINAL-METADATA/RESULT.txt",
+      "bytes": 3495,
+      "sha256": "3a32c2b4b279fc0d751ebf56e00a0741cc55572d55945420bfa150b7dbffe841"
+    },
+    {
+      "path": "/Users/yu/Data/Video2Door/reproduction/wc4-act/wc4-act300k-20261030/FINAL-METADATA/RESULT.txt",
+      "bytes": 4550,
+      "sha256": "558a4a8cecf6d9b0a5e2e88f7b07233f5dd2530971e310ac95f6a5585fd87330"
+    },
+    {
+      "path": "/Users/yu/Data/Video2Door/reproduction/wc4-act/wc4-expert100-20261031/HANDOFF.txt",
+      "bytes": 2237,
+      "sha256": "3aa8a1bb8346488ddeabdacec207daf39902cfbae2bfb05ff07473b74fdd5558"
+    },
+    {
+      "path": "/Users/yu/Data/Video2Door/reproduction/wc4-act/wc4-expert100-20261031/FINAL/RESULT.txt",
+      "bytes": 4431,
+      "sha256": "4bfb3587e1615e54eb698d0684388a6316eccd380f7f18620876e6a787fb3203"
+    },
+    {
+      "path": "/Users/yu/Data/Video2Door/reproduction/wc4-act/wc4-expert100-lerobot-20261031/HANDOFF.txt",
+      "bytes": 2858,
+      "sha256": "b1c8c0ec54c002a0effc317743cc0e98959b3d0078379eaff9ed4886c23008cc"
+    },
+    {
+      "path": "/Users/yu/Data/Video2Door/reproduction/wc4-act/wc4-act100-fresh200k-20261031/FINAL/RESULT.txt",
+      "bytes": 5201,
+      "sha256": "f9d160da636d3f7059a39898b1041a2ca307d15875e215aeaf07ba063f39b7f7"
+    },
+    {
+      "path": "/Users/yu/Data/Video2Door/reproduction/wc4-act/wc4-act100-fresh200k-20261031/FINAL/HANDOFF.txt",
+      "bytes": 2678,
+      "sha256": "de3117764fd394fb109e0017ed3087c118603c9c1990c083a01ac0ad6aec1530"
+    },
+    {
+      "path": "/Users/yu/Data/Video2Door/reproduction/wc4-act/wc4-act100-fresh200k-20261031/FINAL/evidence/node-comparison.csv",
+      "bytes": 2110,
+      "sha256": "427be455bb9adea8a9894cdd66b6fd0e50231bed96940822fd857636776099e2"
+    },
+    {
+      "path": "/Users/yu/Data/Video2Door/reproduction/wc4-act/wc4-act100-fresh200k-20261031/FINAL/evidence/per-trial-events.csv",
+      "bytes": 31494,
+      "sha256": "ea92d41964b6c3d39e60d5122302097f52284d8f1220d37111fef21fc238253a"
+    },
+    {
+      "path": "/Users/yu/Data/Video2Door/reproduction/wc4-act/wc4-act100-fresh200k-20261031/FINAL/verification/postfreeze-verification.json",
+      "bytes": 292,
+      "sha256": "5d855d4fd3b0f37bf769489435887a9fbe8a27954a20b1c533db4905136cffe4"
+    },
+    {
+      "path": "/Users/yu/Data/Video2Door/reproduction/wc4-act/wc4-act100-fresh200k-20261031/FINAL/evidence/execution-lineage.json",
+      "bytes": 1144,
+      "sha256": "cf40c425afcd3fe39469706347d797321d7728b784795626830bfb954f121072"
+    },
+    {
+      "path": "/Users/yu/Data/Video2Door/reproduction/wc4-act/wc4-act100-120k-h15-eval16-20261102/HANDOFF.txt",
+      "bytes": 2898,
+      "sha256": "208b65e054354a0d6c840299c927c465c96672ac44d2731490fcc8ec0b644bd0"
+    }
+  ],
+  "historical_documents": [
+    {
+      "path": "/Users/yu/Data/Video2Door/code-wc4-act/migration/wc4_act/flow_handoff_20261025/DOCUMENT_MANIFEST.json",
+      "bytes": 3694,
+      "sha256": "8ddb3af3bf1055de198c7f26323d3eecb7723cce372274fce1cb58fb36cd2695"
+    },
+    {
+      "path": "/Users/yu/Data/Video2Door/code-wc4-act/migration/wc4_act/flow_handoff_20261025/REPRODUCTION_GUIDE.md",
+      "bytes": 39352,
+      "sha256": "4fcbc7f0e71fca353edca1add65f77ae6f5c204e35caa7cea8a4a646d0d328a7"
+    },
+    {
+      "path": "/Users/yu/Data/Video2Door/code-wc4-act/migration/wc4_act/flow_handoff_20261025/WC4_专家生成至200k_流程报告.md",
+      "bytes": 21756,
+      "sha256": "03c1a6f1e49149f8099be5016a6305077aea4707a868a80137820c39e535c41d"
+    },
+    {
+      "path": "/Users/yu/Data/Video2Door/code-wc4-act/migration/wc4_act/flow_handoff_20261025/WC4_新专家路线_阶段1至8_流程报告.md",
+      "bytes": 19991,
+      "sha256": "0de73fc5bd706550c68ff060f67620b69aac911270d7cf5ab4571be3e55aae3f"
+    }
+  ],
+  "historical_manifest_notice": "DOCUMENT_MANIFEST.json remains unchanged; its index_sha256 binds the historical README only."
+}

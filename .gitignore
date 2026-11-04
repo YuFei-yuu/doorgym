@@ -29,8 +29,7 @@ Thumbs.db
 node_modules/
 dist/
 
-# Local handoff snapshots and generated training/evaluation/replay deliveries
-/migration/wc4_act/flow_handoff_20261025/
+# Generated training/evaluation/replay deliveries (handoff documentation is tracked)
 /reproduction/
 **/FINAL/
 **/FINAL-METADATA/
